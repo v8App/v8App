@@ -8,7 +8,7 @@ v8App is a cross-platform Javascript runtime allowing you to write desktop and m
  
  Mac OS, Linux
  ```bash
-curl https://github.com/v8App/v8App/scripts/inirial-clone.sh | bash -c
+curl https://raw.githubusercontent.com/v8App/v8App/master/scripts/iniitial-clone.sh | bash -c
 ```
 Windows
 ```bash
