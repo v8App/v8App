@@ -13,18 +13,14 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "This script will install google's depot tools and then clone the v8App in the current directory '${TOP}'."
-echo "Do you wish to continue?(y/n)"
-read l_answer
-l_answer=`echo ${l_answer} | awk '{print tolower($0)}'`
-if [[ "$l_answer" == "no" ]] || [[ "$l_answer" == "n" ]]; then
-    exit 0
-fi
 
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 if [[ $? -ne 0 ]]; then
     echo "Failed to clone the depot_tools"
     exit 1
 fi
+
+export PATH=${PATH}:${TOP}/depot_tools
 
 cd ${TOP}/depot_tools
 if [[ $? -ne 0 ]]; then
@@ -46,7 +42,6 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-export PATH=${PATH}:${TOP}/depot_tools
 
 gclient config --name "v8App" --unmanaged https://github.com/v8App/v8App
 if [[ $? -ne 0 ]]; then

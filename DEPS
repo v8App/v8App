@@ -26,7 +26,7 @@
 #  git commit -aspv_he
 #  git cl upload
 
-gclient_gn_args_file = 'src/build/config/gclient_args.gni'
+gclient_gn_args_file = 'v8App/build/config/gclient_args.gni'
 gclient_gn_args = [
 ]
 
@@ -36,6 +36,10 @@ vars = {
   # the commit queue can handle CLs rolling V8
   # and whatever else without interference from each other.
   'v8_revision': 'c72055a12fbc1556cde7bdd37410c8634450a5f8',
+  # Three lines of non-changing comments so that
+  # the commit queue can handle CLs rolling V8
+  # and whatever else without interference from each other.
+  'chromium_build_revision':'9dba72ca2e45182db8787bafb81122b3fd7cc295',
 }
 
 allowed_hosts = [
@@ -43,6 +47,8 @@ allowed_hosts = [
 ]
 
 deps = {
-  'src/v8':
-    Var('chromium_git') + '/v8/v8.git' + '@' +  Var('v8_revision'),
+    'v8App/build':
+        Var('chromium_url') + '/chromium/src/build.git' + '@' + Var('chromium_build_revision'),
+    'v8App/src/v8':
+        Var('chromium_git') + '/v8/v8.git' + '@' +  Var('v8_revision'),
 }
