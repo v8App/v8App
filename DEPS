@@ -48,7 +48,7 @@ allowed_hosts = [
 
 deps = {
     'v8App/build':
-        Var('chromium_url') + '/chromium/src/build.git' + '@' + Var('chromium_build_revision'),
+        Var('chromium_git') + '/chromium/src/build.git' + '@' + Var('chromium_build_revision'),
     'v8App/src/v8':
         Var('chromium_git') + '/v8/v8.git' + '@' +  Var('v8_revision'),
 }
