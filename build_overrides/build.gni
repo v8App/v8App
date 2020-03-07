@@ -1,0 +1,15 @@
+# Copyright 2020 The V8app project authors. All rights reserved.
+# Use of this source code is governed by a MIT license that can be
+# found in the LICENSE file.
+
+# We don't use Chromium's third_party/binutils.
+linux_use_bundled_binutils_override = true
+
+# We are not using Chromium
+build_with_chromium = false
+
+# Skip assertions about 4GiB file size limit.
+ignore_elf32_limitations = true
+
+# Use the system install of Xcode for tools like ibtool, libtool, etc.
+use_system_xcode = true
