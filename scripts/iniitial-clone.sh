@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright 2020 The v8App Authors. All rights reserved.
+# Use of this source code is governed by a MIT license that can be
+# found in the LICENSE file.
+
 TOP="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 #are we on Linux or Mac OS X
@@ -54,3 +58,5 @@ if [[ $? -ne 0 ]]; then
     echo "Failed to sync the v8App repository"
     exit 1
 fi
+
+echo "/n/nYou will want to add this this path '${TOP}/depot_tools' to your PATH variable through an export or in your shell config."
