@@ -103,8 +103,8 @@ deps = {
     'dep_type': 'cipd',
     'condition': 'host_os == "win"',
     },
-  'v8/third_party/zlib':
-    Var('chromium_git') + '/v8App/third_party/zlib.git'+ '@' + 'b9b9a5af7cca2e683e5f2aead8418e5bf9d5a7d5',
+  'v8App/third_party/zlib':
+    Var('chromium_git') + '/chromium/src/third_party/zlib.git'+ '@' + 'b9b9a5af7cca2e683e5f2aead8418e5bf9d5a7d5',
 }
 
 hooks = [
