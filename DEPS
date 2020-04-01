@@ -103,12 +103,6 @@ deps = {
     'dep_type': 'cipd',
     'condition': 'host_os == "win"',
     },
-  'v8App/third_party/zlib':
-    Var('chromium_git') + '/chromium/src/third_party/zlib.git'+ '@' + 'b9b9a5af7cca2e683e5f2aead8418e5bf9d5a7d5',
-  'v8App/third_party/icu':
-    Var('chromium_git') + '/chromium/deps/icu.git' + '@' + 'dbd3825b31041d782c5b504c59dcfb5ac7dda08c',
-  'v8App/third_party/googletest/src':
-    Var('chromium_git') + '/external/github.com/google/googletest.git' + '@' + '306f3754a71d6d1ac644681d3544d06744914228',
   'v8App/tools/clang':
     Var('chromium_git') + '/chromium/src/tools/clang.git' + '@' + '535dbf16a84c7fc238f7ed11b5a75381407e38f6',
   'v8App/tools/clang/dsymutil': {
