@@ -57,7 +57,7 @@ allowed_hosts = [
 ]
 
 deps = {
-    'v8App/third_party/libuv':
+    'v8App/third_party/libuv/src':
         Var('github_git') + '/libuv/libuv.git' + '@' +  Var('libuv_revision'),
     'v8App/v8':
         Var('chromium_git') + '/v8/v8.git' + '@' +  Var('v8_revision'),
@@ -109,6 +109,18 @@ deps = {
     Var('chromium_git') + '/chromium/deps/icu.git' + '@' + 'dbd3825b31041d782c5b504c59dcfb5ac7dda08c',
   'v8App/third_party/googletest/src':
     Var('chromium_git') + '/external/github.com/google/googletest.git' + '@' + '306f3754a71d6d1ac644681d3544d06744914228',
+  'v8App/tools/clang':
+    Var('chromium_git') + '/chromium/src/tools/clang.git' + '@' + '535dbf16a84c7fc238f7ed11b5a75381407e38f6',
+  'v8App/tools/clang/dsymutil': {
+    'packages': [
+      {
+        'package': 'chromium/llvm-build-tools/dsymutil',
+        'version': 'M56jPzDv1620Rnm__jTMYS62Zi8rxHVq7yw0qeBFEgkC',
+      }
+    ],
+    'condition': 'checkout_mac',
+    'dep_type': 'cipd',
+  },
 }
 
 hooks = [
@@ -154,14 +166,14 @@ hooks = [
     'name': 'win_toolchain',
     'pattern': '.',
     'condition': 'checkout_win',
-    'action': ['python', 'v8/build/vs_toolchain.py', 'update'],
+    'action': ['python', 'v8App/build/vs_toolchain.py', 'update'],
   },
   {
     # Update the Mac toolchain if necessary.
     'name': 'mac_toolchain',
     'pattern': '.',
     'condition': 'checkout_mac',
-    'action': ['python', 'v8/build/mac_toolchain.py'],
+    'action': ['python', 'v8App/build/mac_toolchain.py'],
   },
   {
     # Note: On Win, this should run after win_toolchain, as it may use it.
@@ -169,15 +181,6 @@ hooks = [
     'pattern': '.',
     # clang not supported on aix
     'condition': 'host_os != "aix"',
-    'action': ['python', 'v8/tools/clang/scripts/update.py'],
-  },
-  {
-    'name':'copy_v8_testing',
-    'pattern': '.',
-    'action':[
-        'cp',
-        './v8/testing',
-        './testing'
-    ],
+    'action': ['python', 'v8App/tools/clang/scripts/update.py'],
   },
 ]

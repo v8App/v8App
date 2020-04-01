@@ -59,4 +59,12 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
+echo "Syncing v8"
+cd v8App/v8
+gclient sync --gclientfile=.v8_gclient
+if [[ $? -ne 0 ]]; then
+    echo "Failed to sync the v8 repository"
+    exit 1
+fi
+
 echo "/n/nYou will want to add this this path '${TOP}/depot_tools' to your PATH variable through an export or in your shell config."
