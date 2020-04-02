@@ -14,7 +14,7 @@ executable("v8App") {
     include_dirs=["."]
     deps = [
         "//v8:v8",
-        "//v8: ",
+        "//v8:v8_libbase ",
         "//v8:v8_libplatform",
     ]
 }
