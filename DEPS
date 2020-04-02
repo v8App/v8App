@@ -59,7 +59,7 @@ allowed_hosts = [
 deps = {
     'v8App/third_party/libuv/src':
         Var('github_git') + '/libuv/libuv.git' + '@' +  Var('libuv_revision'),
-    'v8App/v8':
+    'v8App/v8/src':
         Var('chromium_git') + '/v8/v8.git' + '@' +  Var('v8_revision'),
     'v8App/build':
         Var('chromium_git') + '/chromium/src/build.git' + '@' + Var('chromium_build_revision'),
