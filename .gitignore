@@ -4,3 +4,4 @@ testing
 tools
 .cipd
 .v8_gclient_entries
+third_party/llvm-build

@@ -60,7 +60,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "Syncing v8"
-cd v8App/v8
+cd v8App/v8/src
 gclient sync --gclientfile=.v8_gclient
 if [[ $? -ne 0 ]]; then
     echo "Failed to sync the v8 repository"
