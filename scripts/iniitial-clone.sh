@@ -13,20 +13,6 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-mkdir v8App
-if [[ $? -ne 0 ]]; then
-    echo "Failed to create teh v8App root directory"
-    exit 1
-fi
-
-TOP=${TOP}/v8App
-
-cd ${TOP}
-if [[ $? -ne 0 ]]; then
-    echo "Failed to change to the v8App root directory"
-    exit 1
-fi
-
 #are we on Linux or Mac OS X
 OSX=`uname -a | grep Darwin | wc -l`
 
