@@ -13,21 +13,22 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-
-echo "Cloning yhr v8App repository."
-#clone the repository
-git clone https://github.com/v8App/v8App.git
+mkdir v8App
 if [[ $? -ne 0 ]]; then
-    echo "Failed to clone the v8Dist repo"
+    echo "Failed to create teh v8App root directory"
     exit 1
 fi
 
 TOP=${TOP}/v8App
 
+cd ${TOP}
+if [[ $? -ne 0 ]]; then
+    echo "Failed to change to the v8App root directory"
+    exit 1
+fi
+
 #are we on Linux or Mac OS X
 OSX=`uname -a | grep Darwin | wc -l`
-
-cd ${TOP}
 
 echo "Cloning depot_to0ls"
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
