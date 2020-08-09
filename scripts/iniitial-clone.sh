@@ -6,9 +6,6 @@
 
 TOP="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-#are we on Linux or Mac OS X
-OSX=`uname -a | grep Darwin | wc -l`
-
 #check for git install
 git --version >> /dev/null
 if [[ $? -ne 0 ]]; then
@@ -16,8 +13,23 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-echo "This script will install google's depot tools and then clone the v8App in the current directory '${TOP}'."
 
+echo "Cloning yhr v8App repository."
+#clone the repository
+git clone https://github.com/v8App/v8App.git
+if [[ $? -ne 0 ]]; then
+    echo "Failed to clone the v8Dist repo"
+    exit 1
+fi
+
+TOP=${TOP}/v8App
+
+#are we on Linux or Mac OS X
+OSX=`uname -a | grep Darwin | wc -l`
+
+cd ${TOP}
+
+echo "Cloning depot_to0ls"
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 if [[ $? -ne 0 ]]; then
     echo "Failed to clone the depot_tools"
@@ -26,7 +38,7 @@ fi
 
 export PATH=${PATH}:${TOP}/depot_tools
 
-cd ${TOP}/depot_tools
+pushd ${TOP}/depot_tools
 if [[ $? -ne 0 ]]; then
     echo "Failed to cd to the depot_tools"
     exit 1
@@ -40,13 +52,9 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-cd ${TOP}
-if [[ $? -ne 0 ]]; then
-    echo "Failed to change back to ${TOP}"
-    exit 1
-fi
+popd
 
-
+echo "Pulling v8App's dependencies"
 gclient config --name "v8App" --unmanaged https://github.com/v8App/v8App
 if [[ $? -ne 0 ]]; then
     echo "Failed to generate the gclient config"
@@ -56,14 +64,6 @@ fi
 gclient sync --with_branch_heads --with_tags
 if [[ $? -ne 0 ]]; then
     echo "Failed to sync the v8App repository"
-    exit 1
-fi
-
-echo "Syncing v8"
-cd v8App/v8/src
-gclient sync --gclientfile=.v8_gclient
-if [[ $? -ne 0 ]]; then
-    echo "Failed to sync the v8 repository"
     exit 1
 fi
 

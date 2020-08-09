@@ -1,5 +1,0 @@
-android_unstripped_runtime_outputs = false
-is_debug = false
-target_cpu = "x64"
-target_os = "android"
-v8_android_log_stdout = true

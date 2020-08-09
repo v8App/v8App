@@ -1,7 +1,0 @@
-is_debug = true
-target_cpu = "x64"
-target_os = "android"
-v8_android_log_stdout = true
-v8_enable_backtrace = true
-v8_enable_slow_dchecks = true
-v8_optimized_debug = false
