@@ -30,42 +30,9 @@ fi
 #are we on Linux or Mac OS X
 OSX=`uname -a | grep Darwin | wc -l`
 
-echo "Cloning depot_to0ls"
-git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+echo "Cloning v8App"
+git clone https://github.com/v8App/v8App.git
 if [[ $? -ne 0 ]]; then
-    echo "Failed to clone the depot_tools"
+    echo "Failed to clone the v8App repository"
     exit 1
 fi
-
-export PATH=${PATH}:${TOP}/depot_tools
-
-pushd ${TOP}/depot_tools
-if [[ $? -ne 0 ]]; then
-    echo "Failed to cd to the depot_tools"
-    exit 1
-fi
-
-#now update depot_tools
-echo "Updating depot_tools"
-gclient --version
-if [[ $? -ne 0 ]]; then
-    echo "Failed to update depot_tools"
-    exit 1
-fi
-
-popd
-
-echo "Pulling v8App's dependencies"
-gclient config --name "v8App" --unmanaged https://github.com/v8App/v8App
-if [[ $? -ne 0 ]]; then
-    echo "Failed to generate the gclient config"
-    exit 1
-fi
-
-gclient sync --with_branch_heads --with_tags
-if [[ $? -ne 0 ]]; then
-    echo "Failed to sync the v8App repository"
-    exit 1
-fi
-
-echo "/n/nYou will want to add this this path '${TOP}/depot_tools' to your PATH variable through an export or in your shell config."
