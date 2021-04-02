@@ -1,1 +1,6 @@
 .idea
+build
+bazel-bin
+bazel-out
+bazel-testlogs
+bazel-v8App
