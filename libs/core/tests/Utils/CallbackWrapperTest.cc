@@ -69,18 +69,18 @@ namespace v8App
             testStr = "";
         }
 
-        template<typename Signature>
-        auto TestMoveConstructor(Signature&& inWrapper)
-        {
-            return new CallbackWrapper<Signature>(std::move(inWrapper));
-        }
         TEST(CallWrapperTest, Function)
         {
             resetGlobals();
 
             //function
             auto voidFunc = MakeCallback(testFunctionVoid);
-            voidFunc->invoke(5, 10.0f);
+            EXPECT_FALSE(voidFunc.IsMemberFunction());
+            EXPECT_FALSE(voidFunc.IsLambdaFunction());
+            EXPECT_FALSE(voidFunc.IsStdFunction());
+            EXPECT_TRUE(voidFunc.IsVoid());
+
+            voidFunc.Invoke(5, 10.0f);
 
             EXPECT_EQ(5, testInt);
             EXPECT_EQ(10.0f, testFloat);
@@ -89,15 +89,16 @@ namespace v8App
 
             //test function that returns vallue
             auto retFunc = MakeCallback(testFunctionReturns);
-            EXPECT_EQ(20, retFunc->invoke(5.0f, "test"));
+            EXPECT_EQ(20, retFunc.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
+            EXPECT_FALSE(retFunc.IsVoid());
 
             resetGlobals();
 
             //function pointer
             auto voidFunc2 = MakeCallback(&testFunctionVoid);
-            voidFunc2->invoke(5, 10.0f);
+            voidFunc2.Invoke(5, 10.0f);
 
             EXPECT_EQ(5, testInt);
             EXPECT_EQ(10.0f, testFloat);
@@ -106,14 +107,39 @@ namespace v8App
 
             //test function pointer that returns value
             auto retFunc2 = MakeCallback(&testFunctionReturns);
-            EXPECT_EQ(20, retFunc2->invoke(5.0f, "test"));
+            EXPECT_EQ(20, retFunc2.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
 
             resetGlobals();
 
-            auto newFunc2 = TestMoveConstructor(std::move(*retFunc2));
-            EXPECT_EQ(20, newFunc2->invoke(5.0f, "test"));
+            //test copy constructor
+            auto newFunc(retFunc2);
+            EXPECT_EQ(20, newFunc.Invoke(5.0f, "test"));
+            EXPECT_EQ(5.0f, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test copy constructor nove
+            auto newFunc2(std::move(newFunc));
+            EXPECT_EQ(20, newFunc2.Invoke(5.0f, "test"));
+            EXPECT_EQ(5.0f, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test operator=
+            newFunc = newFunc2;
+            EXPECT_EQ(20, newFunc.Invoke(5.0f, "test"));
+            EXPECT_EQ(5.0f, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test operator= move
+            retFunc = std::move(newFunc);
+            EXPECT_EQ(20, retFunc.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
         }
@@ -125,29 +151,86 @@ namespace v8App
             TestMemberFuncs *object = new TestMemberFuncs();
 
             //test static member function
-            auto staticMember = MakeStaticMemberCallback(&TestMemberFuncs::testStatic);
-            staticMember->invoke(5, 5);
+            auto staticMember = MakeCallback(&TestMemberFuncs::testStatic);
+            EXPECT_FALSE(staticMember.IsMemberFunction());
+            EXPECT_FALSE(staticMember.IsLambdaFunction());
+            EXPECT_FALSE(staticMember.IsStdFunction());
+            EXPECT_TRUE(staticMember.IsVoid());
+
+            staticMember.Invoke(5, 5);
 
             EXPECT_EQ(5, testInt);
             EXPECT_EQ(0.0f, testFloat);
 
             resetGlobals();
 
-            //test unbounded member function passing object
-            auto unbounded = MakeMemberCallback(&TestMemberFuncs::Test1);
-            unbounded->invoke(object, 5, 10.0f);
+            //test void memeber function
+            auto voidFunc = MakeCallback(&TestMemberFuncs::Test1);
+            voidFunc.Invoke(object, 5, 10.0f);
+            EXPECT_TRUE(voidFunc.IsMemberFunction());
+            EXPECT_FALSE(voidFunc.IsLambdaFunction());
+            EXPECT_FALSE(voidFunc.IsStdFunction());
+            EXPECT_TRUE(voidFunc.IsVoid());
 
             EXPECT_EQ(5, testInt);
             EXPECT_EQ(10.0f, testFloat);
 
             resetGlobals();
 
-            //test unbounded const member function passing object
-            auto unbounded2 = MakeMemberCallback(&TestMemberFuncs::Test3);
-            EXPECT_EQ(5, unbounded2->invoke(object));
+            //test memeber function returns
+            auto retFunc = MakeCallback(&TestMemberFuncs::Test2);
+            EXPECT_EQ(20, retFunc.Invoke(object, 5, "test"));
+            EXPECT_FALSE(retFunc.IsVoid());
+
+            EXPECT_EQ(5.0, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test const member function passing object
+            auto constFunc = MakeCallback(&TestMemberFuncs::Test3);
+            EXPECT_EQ(5, constFunc.Invoke(object));
+            EXPECT_FALSE(constFunc.IsVoid());
+
+            resetGlobals();
+
+            //test copy constrcutor
+
+            auto newFunc(retFunc);
+            EXPECT_EQ(20, newFunc.Invoke(object, 5, "test"));
+
+            EXPECT_EQ(5.0, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test copy move constructor
+            auto newFunc2(std::move(retFunc));
+            EXPECT_EQ(20, newFunc2.Invoke(object, 5, "test"));
+
+            EXPECT_EQ(5.0, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test operator=
+            newFunc = newFunc2;
+            EXPECT_EQ(20, newFunc2.Invoke(object, 5, "test"));
+
+            EXPECT_EQ(5.0, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test opreator= move
+            retFunc = std::move(newFunc2);
+            EXPECT_EQ(20, retFunc.Invoke(object, 5, "test"));
+
+            EXPECT_EQ(5.0, testFloat);
+            EXPECT_EQ("test", testStr);
         }
 
-        TEST(CallWrapperTest, MemberFunctionPtrWeakObjectPtr)
+        TEST(CallWrapperTest, MemberFunctionPtrWeakObjectPtrInvoke)
         {
             resetGlobals();
 
@@ -155,20 +238,17 @@ namespace v8App
             std::weak_ptr<TestMemberFuncs> weak = shared;
 
             //test unbounded member function passing object
-            auto unbounded = MakeMemberCallback(&TestMemberFuncs::Test1);
-            unbounded->invoke(weak, 5, 10.0f);
+            auto voidFunc = MakeCallback(&TestMemberFuncs::Test1);
+            voidFunc.Invoke(weak, 5, 10.0f);
 
             EXPECT_EQ(5, testInt);
             EXPECT_EQ(10.0f, testFloat);
 
             resetGlobals();
-            //reset weak since it's was moved
-            weak = shared;
-
 
             //test unbounded const member function passing object
-            auto unbounded2 = MakeMemberCallback(&TestMemberFuncs::Test3);
-            EXPECT_EQ(5, unbounded2->invoke(weak));
+            auto constFunc = MakeCallback(&TestMemberFuncs::Test3);
+            EXPECT_EQ(5, constFunc.Invoke(weak));
         }
 
         TEST(CallWrapperTest, LambdaFunctions)
@@ -181,8 +261,13 @@ namespace v8App
                 testFloat = y;
             };
 
-            auto func = MakeLambdaCallback(lambda1);
-            func->invoke(7, 12.0f);
+            auto func = MakeCallbackForLambda(lambda1);
+            EXPECT_FALSE(func.IsMemberFunction());
+            EXPECT_TRUE(func.IsLambdaFunction());
+            EXPECT_FALSE(func.IsStdFunction());
+            EXPECT_TRUE(func.IsVoid());
+
+            func.Invoke(7, 12.0f);
 
             EXPECT_EQ(7, testInt);
             EXPECT_EQ(12.0f, testFloat);
@@ -192,14 +277,15 @@ namespace v8App
             int x = 30;
             float y = 20.0f;
 
-        //caputer all by reference
-            auto lambda2 = [&](){
-                testInt = x;;
+            //caputer all by reference
+            auto lambda2 = [&]() {
+                testInt = x;
                 testFloat = y;
             };
 
-            auto func2 = MakeLambdaCallback(lambda2);
-            func2->invoke();
+            auto func2 = MakeCallbackForLambda(lambda2);
+            func2.Invoke();
+            EXPECT_TRUE(func2.IsVoid());
 
             EXPECT_EQ(30, testInt);
             EXPECT_EQ(20.0f, testFloat);
@@ -210,13 +296,15 @@ namespace v8App
             y = 50.0f;
 
             //capture all by copy
-            auto lambda3 = [=](){
-                testInt = x;;
+            auto lambda3 = [=]() {
+                testInt = x;
+                ;
                 testFloat = y;
             };
 
-            auto func3 = MakeLambdaCallback(lambda3);
-            func3->invoke();
+            auto func3 = MakeCallbackForLambda(lambda3);
+            func3.Invoke();
+            EXPECT_TRUE(func3.IsVoid());
 
             EXPECT_EQ(14, testInt);
             EXPECT_EQ(50.0f, testFloat);
@@ -227,41 +315,105 @@ namespace v8App
             y = 50.0f;
 
             //capture x pass y and return int
-           auto lambda4 = [x](float y)->int{
-                testInt = x;;
+            auto lambda4 = [x](float y) -> int {
+                testInt = x;
+                ;
                 testFloat = y;
                 return 6;
             };
 
-
-            auto func4 = MakeLambdaCallback(lambda4);
-            EXPECT_EQ(6, func4->invoke(24.0f));
+            auto func4 = MakeCallbackForLambda(lambda4);
+            EXPECT_EQ(6, func4.Invoke(24.0f));
+            EXPECT_FALSE(func4.IsVoid());
 
             EXPECT_EQ(1, testInt);
             EXPECT_EQ(24.0f, testFloat);
+
+            resetGlobals();
+
+            //test copy constructor
+            auto newFunc(func4);
+            EXPECT_EQ(6, newFunc.Invoke(24.0f));
+
+            EXPECT_EQ(1, testInt);
+            EXPECT_EQ(24.0f, testFloat);
+
+            resetGlobals();
+
+            //test copy constructor move
+            auto newFunc2(std::move(func4));
+            EXPECT_EQ(6, newFunc2.Invoke(24.0f));
+
+            EXPECT_EQ(1, testInt);
+            EXPECT_EQ(24.0f, testFloat);
+
+            resetGlobals();
         }
 
         TEST(CallWrapperTest, StdFunction)
         {
             resetGlobals();
 
-            auto func1 = std::function<void(int,float)>(testFunctionVoid);
+            auto func1 = std::function<void(int, float)>(testFunctionVoid);
 
             auto callback1 = MakeCallback(func1);
-            callback1->invoke(10, 20.0f);
+            EXPECT_FALSE(callback1.IsMemberFunction());
+            EXPECT_FALSE(callback1.IsLambdaFunction());
+            EXPECT_TRUE(callback1.IsStdFunction());
+            EXPECT_TRUE(callback1.IsVoid());
+
+            callback1.Invoke(10, 20.0f);
 
             EXPECT_EQ(10, testInt);
             EXPECT_EQ(20.0f, testFloat);
 
             resetGlobals();
 
-            auto func2 = std::function<int(int,std::string)>(testFunctionReturns);
+            auto func2 = std::function<int(int, std::string)>(testFunctionReturns);
 
             auto callback2 = MakeCallback(func2);
-            EXPECT_EQ(20, callback2->invoke(10, "test"));
+            EXPECT_EQ(20, callback2.Invoke(10, "test"));
+            EXPECT_FALSE(callback2.IsVoid());
+
+            EXPECT_EQ(10, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test copy constructor
+            auto newFunc(callback2);
+            EXPECT_EQ(20, newFunc.Invoke(10, "test"));
+
+            EXPECT_EQ(10, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test copy move construcotr
+            auto newFunc2(std::move(callback2));
+            EXPECT_EQ(20, newFunc2.Invoke(10, "test"));
+
+            EXPECT_EQ(10, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test operator =
+            newFunc = newFunc2;
+            EXPECT_EQ(20, newFunc.Invoke(10, "test"));
+
+            EXPECT_EQ(10, testFloat);
+            EXPECT_EQ("test", testStr);
+
+            resetGlobals();
+
+            //test operator= move
+            callback2 = std::move(newFunc2);
+            EXPECT_EQ(20, callback2.Invoke(10, "test"));
 
             EXPECT_EQ(10, testFloat);
             EXPECT_EQ("test", testStr);
         }
+
     }
 }

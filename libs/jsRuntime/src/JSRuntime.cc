@@ -68,7 +68,8 @@ namespace v8App
 
         void JSRuntime::ProcessIdleTasks(double inTimeLeft)
         {
-            if(AreIdleTasksEnabled() == false) {
+            if (AreIdleTasksEnabled() == false)
+            {
                 return;
             }
 
@@ -76,7 +77,7 @@ namespace v8App
 
             IdleTaskPtr task = m_TaskRunner->PopIdleTask();
 
-            while(deadline > Time::MonotonicallyIncreasingTimeSeconds() && task)
+            while (deadline > Time::MonotonicallyIncreasingTimeSeconds() && task)
             {
                 {
                     v8::Locker locker(m_Isolate.get());
@@ -85,6 +86,45 @@ namespace v8App
                 }
                 task = m_TaskRunner->PopIdleTask();
             }
+        }
+
+        void JSRuntime::SetObjectTemplate(void *inInfo, v8::Local<v8::ObjectTemplate> inTemplate)
+        {
+            CHECK_NOT_NULL(m_Isolate.get());
+            m_ObjectTemplates[inInfo] = v8::Eternal<v8::ObjectTemplate>(m_Isolate.get(), inTemplate);
+        }
+
+        v8::Local<v8::ObjectTemplate> JSRuntime::GetObjectTemplate(void *inInfo)
+        {
+            CHECK_NOT_NULL(m_Isolate.get());
+            ObjectTemplateMap::iterator it = m_ObjectTemplates.find(inInfo);
+            if(it == m_ObjectTemplates.end())
+            {
+                return v8::Local<v8::ObjectTemplate>();
+            }
+            return it->second.Get(m_Isolate.get());
+        }
+
+        void JSRuntime::SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate)
+        {
+            CHECK_NOT_NULL(m_Isolate.get());
+            m_FunctionTemplates[inInfo] = v8::Eternal<v8::FunctionTemplate>(m_Isolate.get(), inTemplate);
+        }
+
+        v8::Local<v8::FunctionTemplate> JSRuntime::GetFunctionTemplate(void *inInfo)
+        {
+            CHECK_NOT_NULL(m_Isolate.get());
+            FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inInfo);
+            if(it == m_FunctionTemplates.end())
+            {
+                return v8::Local<v8::FunctionTemplate>();
+            }
+            return it->second.Get(m_Isolate.get());
+        }
+
+        V8ExternalRegistry& JSRuntime::GetExternalRegistry()
+        {
+            return m_ExternalRegistry;
         }
 
     } // namespace JSRuntime

@@ -6,212 +6,312 @@
 #define __CALLBACK_WRAPPER_H__
 
 #include <functional>
+#include <experimental/type_traits>
 #include <memory>
 
 #include <Logging/LogMacros.h>
 
 /**
  * CallbackWrapper is a set of template classes desgiend to wrap function pointers.
- * Class Memeber functions, lambdas nd std::functions.
- * Class memeber function can bind static, const and non-const memeber functions and
- * can be bound to a specific object or be unbound and have an object passed in upon
- * invocation.
+ * Class Member functions, lambdas and std::functions.
+ * Class member function can wrap static, const and non-const memeber functions
  */
 namespace v8App
 {
     namespace Utils
     {
-        template<typename T>
-        struct MemberFuncType
+
+        class CallbackWrapperBase
         {
-            using type = T;
+        public:
+            virtual bool IsMemberFunction() const { return false; }
+            virtual bool IsLambdaFunction() const { return false; }
+            virtual bool IsStdFunction() const { return false; }
+            virtual bool IsVoid() const { return true; }
         };
 
-        template<typename C, typename R, typename...Args>
-        struct MemberFuncType<R(C::*)(Args...) const>
-        {
-            using type = std::function<R(Args...)>;
-        };
-
-        template <typename Signature>
+        template <typename Signature, bool Lambda = false>
         class CallbackWrapper;
+        /**
+         * Handles free functions and static member functions
+         */
+        template <typename R, typename... Args>
+        class CallbackWrapper<R (*)(Args...)> : public CallbackWrapperBase
+        {
+        public:
+            using Functor = R(Args...);
+            using FunctionPtr = R (*)(Args...);
+
+            CallbackWrapper(Functor inCallback) : m_Callback(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback) {}
+            CallbackWrapper(CallbackWrapper &&inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                inCallback.m_Callback = nullptr;
+            }
+            CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept
+            {
+                m_Callback = std::move(inCallback.m_Callback);
+                return *this;
+            }
+
+            CallbackWrapper &operator=(const CallbackWrapper &inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                return *this;
+            }
+
+            R Invoke(Args... args)
+            {
+                return std::invoke(m_Callback, std::forward<Args>(args)...);
+            }
+
+            bool IsVoid() const override
+            {
+                return std::is_same<void, R>::value;
+            }
+
+        private:
+            FunctionPtr m_Callback = nullptr;
+        };
+
+        /**
+         * Handles Member functions
+         */
+        template <typename R, typename C, typename... Args>
+        class CallbackWrapper<R (C::*)(Args...)> : public CallbackWrapperBase
+        {
+        public:
+            using Functor = R (C::*)(Args...);
+
+            CallbackWrapper(Functor inCallback) : m_Callback(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback) {}
+            CallbackWrapper(CallbackWrapper &&inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                inCallback.m_Callback = nullptr;
+            }
+            CallbackWrapper &operator=(const CallbackWrapper &inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                return *this;
+            }
+            CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept
+            {
+                m_Callback = std::move(inCallback.m_Callback);
+                return *this;
+            }
+
+            R Invoke(C *inObject, Args... args)
+            {
+                return std::invoke(m_Callback, inObject, std::forward<Args>(args)...);
+            }
+
+            R Invoke(std::weak_ptr<C> &inObject, Args... args)
+            {
+                C *obj = inObject.lock().get();
+                return std::invoke(m_Callback, obj, std::forward<Args>(args)...);
+            }
+
+            bool IsMemberFunction() const override { return true; }
+
+            bool IsVoid() const override
+            {
+                return std::is_same<void, R>::value;
+            }
+
+        private:
+            Functor m_Callback = nullptr;
+        };
+
+        /**
+         * Handles const Member functions
+         */
+        template <typename R, typename C, typename... Args>
+        class CallbackWrapper<R (C::*)(Args...) const> : public CallbackWrapperBase
+        {
+        public:
+            using Functor = R (C::*)(Args...) const;
+
+            CallbackWrapper(Functor inCallback) : m_Callback(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback) {}
+            CallbackWrapper(CallbackWrapper &&inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                inCallback.m_Callback = nullptr;
+            }
+            CallbackWrapper &operator=(const CallbackWrapper &inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                return *this;
+            }
+            CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept
+            {
+                m_Callback = std::move(inCallback.m_Callback);
+                return *this;
+            }
+
+            R Invoke(C *inObject, Args... args)
+            {
+                return std::invoke(m_Callback, inObject, std::forward<Args>(args)...);
+            }
+
+            R Invoke(std::weak_ptr<C> &inObject, Args... args)
+            {
+                C *obj = inObject.lock().get();
+                return std::invoke(m_Callback, obj, std::forward<Args>(args)...);
+            }
+
+            bool IsMemberFunction() const override { return true; }
+
+            bool IsVoid() const override
+            {
+                return std::is_same<void, R>::value;
+            }
+
+        private:
+            Functor m_Callback = nullptr;
+        };
+
+        /**
+         * Handles trivially copyable lamdba functions
+         */
+        template <typename R, typename C, typename... Args>
+        class CallbackWrapper<R (C::*)(Args...), true> : public CallbackWrapperBase
+        {
+        public:
+            using Functor = R (C::*)(Args...) const;
+
+            CallbackWrapper(C &inCallback) : m_Lambda(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback)
+                : m_Lambda(inCallback.m_Lambda)
+            {
+                static_assert(std::is_trivially_copyable<C>::value, "Only trivialy copyable lambda are supported");
+            }
+            CallbackWrapper(CallbackWrapper &&inCallback) : m_Lambda(inCallback.m_Lambda) {}
+
+            R Invoke(Args... args)
+            {
+                return m_Lambda.operator()(args...);
+            }
+
+            bool IsLambdaFunction() const override { return true; }
+
+            bool IsVoid() const override
+            {
+                return std::is_same<void, R>::value;
+            }
+
+            CallbackWrapper &operator=(const CallbackWrapper &inCallback) = delete;
+            CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept = delete;
+
+        private:
+            C m_Lambda;
+        };
+
+        template <typename R, typename C, typename... Args>
+        class CallbackWrapper<R (C::*)(Args...) const, true> : public CallbackWrapperBase
+        {
+        public:
+            using Functor = R (C::*)(Args...) const;
+
+            CallbackWrapper(C &inCallback) : m_Lambda(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback)
+                : m_Lambda(inCallback.m_Lambda)
+            {
+                static_assert(std::is_trivially_copyable<C>::value, "Only trivialy copyable lambda are supported");
+            }
+            CallbackWrapper(CallbackWrapper &&inCallback) : m_Lambda(inCallback.m_Lambda) {}
+            R Invoke(Args... args)
+            {
+                return m_Lambda.operator()(args...);
+            }
+
+            bool IsLambdaFunction() const override { return true; }
+
+            bool IsVoid() const override
+            {
+                return std::is_same<void, R>::value;
+            }
+
+            CallbackWrapper &operator=(const CallbackWrapper &inCallback) = delete;
+            CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept = delete;
+
+        private:
+            C m_Lambda;
+        };
 
         /**
          * Handles std::function classes
          */
         template <typename R, typename... Args>
-        class CallbackWrapper<std::function<R(Args...)>>
+        class CallbackWrapper<std::function<R(Args...)>> : public CallbackWrapperBase
         {
             using Functor = std::function<R(Args...)>;
 
         public:
-            explicit CallbackWrapper(Functor inCallback)
+            CallbackWrapper(Functor inCallback) : m_Callback(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback) {}
+            CallbackWrapper(CallbackWrapper &&inCallback) noexcept : m_Callback(std::move(inCallback.m_Callback)) {}
+
+            CallbackWrapper &operator=(const CallbackWrapper &inCallback)
             {
-                m_Callback = inCallback;
+                m_Callback = inCallback.m_Callback;
+                return *this;
+            }
+            CallbackWrapper &operator=(const CallbackWrapper &&inCallback) noexcept
+            {
+                m_Callback = std::move(inCallback.m_Callback);
+                return *this;
             }
 
-            R invoke(Args... args)
+            R Invoke(Args... args)
             {
-                return m_Callback(args...);
+                return m_Callback(std::forward<Args>(args)...);
             }
 
-            CallbackWrapper(const CallbackWrapper&) = delete;
-            CallbackWrapper* operator=(const CallbackWrapper&) = delete;
+            bool IsStdFunction() const override { return true; }
+
+            bool IsVoid() const override
+            {
+                return std::is_same<void, R>::value;
+            }
+
         private:
             Functor m_Callback;
         };
 
         /**
-         * Handles Static member functions and nomrmal function pointers
+         * Helper struct to tease out the function signature of a lamnda
          */
-       template <typename R, typename... Args>
-        class CallbackWrapper<R (*)(Args...)>
+        template <typename Lambda>
+        struct LambdaSignature
         {
-            using Functor = R (*)(Args...);
-
-        public:
-            CallbackWrapper(Functor inCallback)
-            {
-                m_Callback = inCallback;
-            }
-            
-            CallbackWrapper(CallbackWrapper&&) = default;
-
-            R invoke(Args... args)
-            {
-                return std::invoke(m_Callback, args...);
-            }
-
-            CallbackWrapper(const CallbackWrapper&) = delete;
-            CallbackWrapper* operator=(const CallbackWrapper&) = delete;
-        private:
-            Functor m_Callback;
+            using type = Lambda;
         };
 
-
-        /**
-         * Memeber non const methods
-         */
-        template <typename R, typename... Args, typename T>
-        class CallbackWrapper<R (T::*)(Args...)>
+        template <typename C, typename R, typename... Args>
+        struct LambdaSignature<R (C::*)(Args...)>
         {
-            using Functor = R (T::*)(Args...);
-
-        public:
-            CallbackWrapper(Functor inCallback)
-            {
-                m_Callback = inCallback;
-            }
-
-            R invoke(T *inObject, Args... args)
-            {
-                CHECK_NOT_NULL(inObject);
-
-                return std::invoke(m_Callback, inObject, args...);
-            }
-
-            R invoke(std::weak_ptr<T> inWeakPtr, Args... args)
-            {
-                T *object;
-
-                CHECK_EQ(false, inWeakPtr.expired());
-                object = inWeakPtr.lock().get();
-
-                return std::invoke(m_Callback, object, args...);
-            }
-
-            CallbackWrapper(const CallbackWrapper&) = delete;
-            CallbackWrapper* operator=(const CallbackWrapper&) = delete;
-        private:
-            Functor m_Callback;
+            using type = R (C::*)(Args...);
         };
 
         /**
-         * Memeber const methods
-         */
-        template <typename R, typename... Args, typename T>
-        class CallbackWrapper<R (T::*)(Args...) const>
-        {
-            using Functor = R (T::*)(Args...) const;
-
-        public:
-            CallbackWrapper(Functor inCallback)
-            {
-                m_Callback = inCallback;
-            }
-            R invoke(T *inObject, Args... args)
-            {
-                CHECK_NOT_NULL(inObject);
-
-                return std::invoke(m_Callback, inObject, args...);
-            }
-
-            R invoke(std::weak_ptr<T> inWeakPtr, Args... args)
-            {
-                T *object;
-
-                CHECK_EQ(false, inWeakPtr.expired());
-                object = inWeakPtr.lock().get();
-
-                return std::invoke(m_Callback, object, args...);
-            }
-
-            CallbackWrapper(const CallbackWrapper&) = delete;
-            CallbackWrapper* operator=(const CallbackWrapper&) = delete;
-        private:
-            Functor m_Callback;
-        };
-
-        /**
-         * Helpers to Allow for easier creation by ust calling the helper and passing it
-         * the callback without hacing to specify exact signatures
-         */
-
-        /**
-         * Handles function pointers, std::functions and lambdas
+         * Helper function to create a callback by just passing the function
          */
         template <typename Signature>
         auto MakeCallback(Signature inCallback)
         {
-            return new CallbackWrapper<Signature>(inCallback);
+            return CallbackWrapper<Signature>(inCallback);
         }
 
         /**
-         * Converts the lambda function to a std::function
-         */
-        template<typename Signature>
-        typename MemberFuncType<decltype(&Signature::operator())>::type
-        FunctionFromLambda(Signature const &inLambda)
-        {
-            return inLambda;
-        }
-
-        /**
-         * Handles lambdas
+         * Helper function to create a callback for a lmabda function 
          */
         template <typename Signature>
-        auto MakeLambdaCallback(Signature inCallback)
+        auto MakeCallbackForLambda(Signature inCallback)
         {
-            return new CallbackWrapper<typename MemberFuncType<decltype(&Signature::operator())>::type>(FunctionFromLambda(inCallback));
-        }
-
-        /**
-         * Hnadles memeber function that are no bound to a specific instance
-         */
-        template <typename Signature>
-        auto MakeMemberCallback(Signature inCallback)
-        {
-            return new CallbackWrapper<Signature>(inCallback);
-        }
-
-        /**
-         * Handles static member functions could be done with the MakeCallback above
-         * but this just makes it clear.
-         */
-        template <typename Signature>
-        auto MakeStaticMemberCallback(Signature inCallback)
-        {
-            return new CallbackWrapper<Signature>(inCallback);
+            return CallbackWrapper<typename LambdaSignature<decltype(&Signature::operator())>::type, true>(inCallback);
         }
     }
 }

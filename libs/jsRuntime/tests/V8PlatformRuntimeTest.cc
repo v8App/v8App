@@ -92,6 +92,29 @@ namespace v8App
             EXPECT_NE(nullptr, runtime->GetDelayedQueue());
             EXPECT_EQ(runtime.get(), JSRuntime::GetRuntime(isolate.lock().get()));
 
+            /* move this to the functin template and object template tests files 
+                since we get a debug check about them being empty.
+            //test the v8 template methods
+            //used to pass a pointer to store/find the templates
+            v8::Isolate* isolatePtr = isolate.lock().get();
+            v8::HandleScope scope(isolatePtr);
+           
+            int templateFinder = 5;
+            float templateFinder2 = 10;
+            v8::Local<v8::ObjectTemplate> testObjectTemplate = v8::ObjectTemplate::New(isolatePtr);
+
+            //test that nothing is found
+            EXPECT_EQ(true, runtime->GetObjectTemplate(&templateFinder).IsEmpty());
+            EXPECT_EQ(true, runtime->GetObjectTemplate(&templateFinder2).IsEmpty());
+
+            //now lets set them
+            runtime->SetObjectTemplate(&templateFinder, testObjectTemplate);
+            runtime->SetObjectTemplate(&templateFinder2, testObjectTemplate);
+
+            //should not get back a null
+            EXPECT_EQ(false, runtime->GetObjectTemplate(&templateFinder).IsEmpty());
+            EXPECT_EQ(false, runtime->GetObjectTemplate(&templateFinder2).IsEmpty());
+*/
             //now lets test the platofrm calls that require an isolate
             EXPECT_EQ(platform->GetForegroundTaskRunner(isolate.lock().get()).get(), runtime->GetForegroundTaskRunner().get());
             EXPECT_TRUE(platform->IdleTasksEnabled(isolate.lock().get()));
@@ -119,6 +142,32 @@ namespace v8App
             EXPECT_EQ(10, task2Int);
             EXPECT_EQ(4, idleInt);
             EXPECT_EQ(0, idle2Int);
+
+            //we'll test the external registry code here as well.
+            V8ExternalRegistry &registryClass = runtime->GetExternalRegistry();
+
+            const std::vector<intptr_t> &registry = registryClass.GetReferences();
+            EXPECT_EQ(0, registry.size());
+
+            //we'll just use the address of an int to test the registry code in reality it'll be function pointers
+            int testPtr = 10;
+            int testPtr2 = 20;
+
+            //register the ptr and it should be 2 since we add the nullptr to the end of it.
+            registryClass.Register(&testPtr);
+            EXPECT_EQ(2, registry.size());
+            EXPECT_EQ(reinterpret_cast<intptr_t>(&testPtr), registry[0]);
+            EXPECT_EQ(reinterpret_cast<intptr_t>(nullptr), registry[1]);
+
+            //if we try to register it again it shold skip it.
+            registryClass.Register(&testPtr);
+            EXPECT_EQ(2, registry.size());
+
+            //register another one
+            registryClass.Register(&testPtr2);
+            EXPECT_EQ(3, registry.size());
+            EXPECT_EQ(reinterpret_cast<intptr_t>(&testPtr2), registry[1]);
+            EXPECT_EQ(reinterpret_cast<intptr_t>(nullptr), registry[2]);
 
             //test destructor
             runtime.reset();

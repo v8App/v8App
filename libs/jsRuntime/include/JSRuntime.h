@@ -6,8 +6,11 @@
 #define _JS_RUNTIME_H_
 
 #include <memory>
+#include<map>
 
 #include "v8-platform.h"
+#include "v8.h"
+#include "V8ExternalRegistry.h"
 
 namespace v8App
 {
@@ -49,6 +52,14 @@ namespace v8App
             void ProcessTasks();
             void ProcessIdleTasks(double inTimeLeft);
 
+            void SetObjectTemplate(void *inInfo, v8::Local<v8::ObjectTemplate> inTemplate);
+            v8::Local<v8::ObjectTemplate> GetObjectTemplate(void *inInfo);
+
+            void SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate);
+            v8::Local<v8::FunctionTemplate> GetFunctionTemplate(void *inInfo);
+
+            V8ExternalRegistry& GetExternalRegistry();
+
         protected:
             IdleTasksSupport m_IdleEnabled;
 
@@ -60,8 +71,16 @@ namespace v8App
             std::shared_ptr<TaskRunner> m_TaskRunner;
             std::unique_ptr<DelayedWorkerTaskQueue> m_DelayedWorkerTasks;
 
-            JSRuntime(const JSRuntime&) = delete;
-            JSRuntime& operator=(const JSRuntime&) = delete;
+            using ObjectTemplateMap = std::map<void *, v8::Eternal<v8::ObjectTemplate>>;
+            using FunctionTemplateMap = std::map<void *, v8::Eternal<v8::FunctionTemplate>>;
+
+            ObjectTemplateMap m_ObjectTemplates;
+            FunctionTemplateMap m_FunctionTemplates;
+
+            V8ExternalRegistry m_ExternalRegistry;
+
+            JSRuntime(const JSRuntime &) = delete;
+            JSRuntime &operator=(const JSRuntime &) = delete;
         };
     } // namespace JSRuntime
 } // namespace v8App
