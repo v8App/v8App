@@ -256,7 +256,8 @@ namespace v8App
             resetGlobals();
 
             //non capture values and void return
-            auto lambda1 = [](int x, float y) {
+            auto lambda1 = [](int x, float y)
+            {
                 testInt = x;
                 testFloat = y;
             };
@@ -278,7 +279,8 @@ namespace v8App
             float y = 20.0f;
 
             //caputer all by reference
-            auto lambda2 = [&]() {
+            auto lambda2 = [&]()
+            {
                 testInt = x;
                 testFloat = y;
             };
@@ -296,7 +298,8 @@ namespace v8App
             y = 50.0f;
 
             //capture all by copy
-            auto lambda3 = [=]() {
+            auto lambda3 = [=]()
+            {
                 testInt = x;
                 ;
                 testFloat = y;
@@ -315,7 +318,8 @@ namespace v8App
             y = 50.0f;
 
             //capture x pass y and return int
-            auto lambda4 = [x](float y) -> int {
+            auto lambda4 = [x](float y) -> int
+            {
                 testInt = x;
                 ;
                 testFloat = y;

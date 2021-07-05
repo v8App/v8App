@@ -24,6 +24,8 @@ namespace v8App
                 isolate->Dispose();
             });
             m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, this);
+            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+            
             v8::Isolate::CreateParams params;
             //TODO: replace with custom allocator
             params.array_buffer_allocator =

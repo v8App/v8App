@@ -26,9 +26,7 @@ namespace v8App
             struct V8NativeObjectInfo
             {
                 static V8NativeObjectInfo *From(v8::Local<v8::Object> inObject);
-                //alows the name object to store additional data. First index is reseved for the info
-                //second is for the object pointer
-                const int m_NumObjectFields = kMaxReservedInternalFields;
+                int dummy;
             };
 
             class V8NativeObjectBase
@@ -40,12 +38,11 @@ namespace v8App
                 //subclasses should override to return a name for the objects for logging
                 virtual const char *GetTypeName();
 
-                //subclasses should override this if they need more internal fields.
-                virtual int GetNumberOfInternalFields();
+                virtual V8ObjectTemplateBuilder GetObjectTemplateBuilder(v8::Isolate*  inIsolate);
 
-                V8ObjectTemplateBuilder GetObjectTemplateBuilder(IsolateWeakPtr inIsolate);
+                v8::Local<v8::ObjectTemplate> GetOrCreateObjectTemplate(v8::Isolate* inIsolate, V8NativeObjectInfo *inInfo);
 
-                v8::MaybeLocal<v8::Object> GetNativeObjectInternal(IsolateWeakPtr inIsolate, V8NativeObjectInfo *inInfo);
+                v8::MaybeLocal<v8::Object> GetV8NativeObjectInternal(v8::Isolate* inIsolate, V8NativeObjectInfo *inInfo);
 
             private:
                 static void FirstWeakCallback(const v8::WeakCallbackInfo<V8NativeObjectBase> &inInfo);
@@ -58,15 +55,26 @@ namespace v8App
                 V8NativeObjectBase &operator=(const V8NativeObjectBase &) = delete;
             };
 
+            /**
+             * Subclasses of V8NativeObject should have a staitc variable s_V8NativeObjectInfo where the pointer
+             * to this variable is used to cache the object template on the runtime.
+             * 
+             * To make sure that a wrapped object gets created correctly subclasses should make their construtors
+             * protected and have a CreteObject method that returns a V*NativeObjHandle otherwise the c++ object
+             * will leak since the weakclass backs wouldn't be setup to delete it when the V8 side is disposed of.
+             */
             template <typename T>
             class V8NativeObject : public V8NativeObjectBase
             {
             public:
-                v8::MaybeLocal<v8::Object> GetNativeObject(IsolateWeakPtr inIsolate);
+                v8::MaybeLocal<v8::Object> GetV8NativeObject(v8::Isolate*  inIsolate)
+                {
+                    return GetV8NativeObjectInternal(inIsolate, &T::s_V8NativeObjectInfo);
+                }
 
-            protected:
-                V8NativeObject();
-                ~V8NativeObject() override;
+             protected:
+                V8NativeObject() {}
+                ~V8NativeObject() override {}
 
             private:
                 V8NativeObject(const V8NativeObject &) = delete;
@@ -75,7 +83,7 @@ namespace v8App
 
             template <typename T>
             struct ToReturnsMaybe<
-                T *,
+                T*,
                 typename std::enable_if<
                     std::is_convertible<T *, V8NativeObjectBase *>::value>::type>
             {
@@ -83,13 +91,13 @@ namespace v8App
             };
 
             template <typename T>
-            struct V8TypeConverter<T *,
+            struct V8TypeConverter<T*,
                                    typename std::enable_if<std::is_convertible<T *, V8NativeObjectBase *>::value>::type>
             {
                 static v8::MaybeLocal<v8::Value> To(v8::Isolate *inIsolate, T *inValue)
                 {
                     v8::Local<v8::Object> object;
-                    if (inValue->GetNativeObject(inIsolate).ToLocal(&object) == false)
+                    if (inValue->GetV8NativeObject(inIsolate).ToLocal(&object) == false)
                     {
                         return v8::MaybeLocal<v8::Value>();
                     }
@@ -99,6 +107,7 @@ namespace v8App
                 static bool From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, T **outValue)
                 {
                     *outValue = static_cast<T *>(static_cast<V8NativeObjectBase *>(FromV8NativeObjectInternal(inIsolate, inValue, &T::s_V8NativeObjectInfo)));
+                    return *outValue != nullptr;
                 }
             };
 

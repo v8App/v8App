@@ -11,12 +11,9 @@ namespace v8App
     {
         namespace CppBridge
         {
-            CallbackHolderBase::CallbackHolderBase(IsolateWeakPtr inIsolate)
+            CallbackHolderBase::CallbackHolderBase(v8::Isolate* inIsolate)
             {
-                DCHECK_EQ(false, inIsolate.expired());
-                v8::Isolate * isolate = inIsolate.lock().get();
-
-                m_ExHolder.Reset(isolate, v8::External::New(isolate, this));
+                m_ExHolder.Reset(inIsolate, v8::External::New(inIsolate, this));
                 m_ExHolder.SetWeak(this, &CallbackHolderBase::FirstWeakCallback, v8::WeakCallbackType::kParameter);
             }
 
@@ -25,10 +22,9 @@ namespace v8App
                 DCHECK_EQ(true, m_ExHolder.IsEmpty());
             }
 
-            v8::Local<v8::External> CallbackHolderBase::GetExternalHandle(IsolateWeakPtr inIsolate)
+            v8::Local<v8::External> CallbackHolderBase::GetExternalHandle(v8::Isolate* inIsolate)
             {
-                DCHECK_EQ(false, inIsolate.expired());
-                return v8::Local<v8::External>::New(inIsolate.lock().get(), m_ExHolder);
+                return v8::Local<v8::External>::New(inIsolate, m_ExHolder);
             }
 
             void CallbackHolderBase::FirstWeakCallback(const v8::WeakCallbackInfo<CallbackHolderBase>& info)

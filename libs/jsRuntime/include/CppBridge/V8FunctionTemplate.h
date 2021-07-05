@@ -22,13 +22,13 @@ namespace v8App
         namespace CppBridge
         {
 
-             class CallbackHolderBase
+            class CallbackHolderBase
             {
             public:
-                v8::Local<v8::External> GetExternalHandle(IsolateWeakPtr inIsolate);
+                v8::Local<v8::External> GetExternalHandle(v8::Isolate *inIsolate);
 
             protected:
-                explicit CallbackHolderBase(IsolateWeakPtr inIsolate);
+                explicit CallbackHolderBase(v8::Isolate *inIsolate);
                 virtual ~CallbackHolderBase();
 
             private:
@@ -45,7 +45,7 @@ namespace v8App
             class CallbackHolder : public CallbackHolderBase
             {
             public:
-                CallbackHolder(IsolateWeakPtr inIsolate, Utils::CallbackWrapper<Signature> inCallback, const char *inTypeName)
+                CallbackHolder(v8::Isolate *inIsolate, Utils::CallbackWrapper<Signature> inCallback, const char *inTypeName)
                     : CallbackHolderBase(inIsolate), m_Callback(inCallback), m_TypeName(inTypeName) {}
 
                 Utils::CallbackWrapper<Signature> m_Callback;
@@ -58,7 +58,7 @@ namespace v8App
                 CallbackHolder &operator=(const CallbackHolder &) = delete;
             };
 
-           template <typename T>
+            template <typename T>
             struct CppArgumentTraits
             {
                 typedef T LocalType;
@@ -80,18 +80,41 @@ namespace v8App
             typename CppArgumentTraits<ArgType>::LocalType ConvertArgument(V8Arguments *inArgs, bool isMemberFunction)
             {
                 using LocalType = typename CppArgumentTraits<ArgType>::LocalType;
-                LocalType value;
 
-                if (inArgs->GetNextArg(&value) == false)
+                if constexpr (std::is_same<v8::FunctionCallbackInfo<v8::Value>, LocalType>::value)
                 {
-                    ThrowConversionError(inArgs, inArgs->GetNextArgIndex() - 1, isMemberFunction);
+                    if (inArgs->IsPropertyCallback())
+                    {
+                        //if it's not a FunctionCallbackInfo then we can't continue
+                        CHECK_EQ(false, true);
+                    }
+                    return inArgs->GetFunctionInfo();
                 }
-                return value;
+                else if constexpr (std::is_same<v8::PropertyCallbackInfo<v8::Value>, LocalType>::value)
+                {
+                    if (inArgs->IsPropertyCallback() == false)
+                    {
+                        //if it's not a PropertyCallbackInfo then we can't continue
+                        CHECK_EQ(false, true);
+                    }
+                    return inArgs->GetPropertyInfo();
+                }
+                else
+                {
+                    LocalType value;
+
+                    if (inArgs->GetNextArg(&value) == false)
+                    {
+                        ThrowConversionError(inArgs, inArgs->GetNextArgIndex() - 1, isMemberFunction);
+                    }
+                    return value;
+                }
             }
 
             template <typename Signature>
             struct CallbackDispatcher;
 
+            //normal free or static functions
             template <typename R, typename... Args>
             struct CallbackDispatcher<R (*)(Args...)>
             {
@@ -142,7 +165,7 @@ namespace v8App
                 }
             };
 
-
+            //non-const member functions
             template <typename R, typename C, typename... Args>
             struct CallbackDispatcher<R (C::*)(Args...)>
             {
@@ -178,8 +201,8 @@ namespace v8App
                 {
                     if (inArgs->NoConversionErrors())
                     {
-                        C object;
-                        if(inArgs->GetHolder(&object) == false)
+                        C *object;
+                        if (inArgs->GetHolder(&object) == false)
                         {
                             inArgs->ThrowTypeError("");
                             return;
@@ -187,11 +210,11 @@ namespace v8App
 
                         if constexpr (std::is_same<void, R>::value)
                         {
-                            inCallback.Invoke(&object, std::move(args)...);
+                            inCallback.Invoke(object, std::move(args)...);
                         }
                         else
                         {
-                            if (inArgs->Return(inCallback.Invoke(&object, std::move(args)...)) == false)
+                            if (inArgs->Return(inCallback.Invoke(object, std::move(args)...)) == false)
                             {
                                 inArgs->ThrowTypeError("");
                             }
@@ -199,7 +222,7 @@ namespace v8App
                     }
                 }
             };
-
+            //const member functions
             template <typename R, typename C, typename... Args>
             struct CallbackDispatcher<R (C::*)(Args...) const>
             {
@@ -235,8 +258,8 @@ namespace v8App
                 {
                     if (inArgs->NoConversionErrors())
                     {
-                        C object;
-                        if(inArgs->GetHolder(&object) == false)
+                        C *object;
+                        if (inArgs->GetHolder(&object) == false)
                         {
                             inArgs->ThrowTypeError("");
                             return;
@@ -244,11 +267,11 @@ namespace v8App
 
                         if constexpr (std::is_same<void, R>::value)
                         {
-                            inCallback.Invoke(&object, std::move(args)...);
+                            inCallback.Invoke(object, std::move(args)...);
                         }
                         else
                         {
-                            if (inArgs->Return(inCallback.Invoke(&object, std::move(args)...)) == false)
+                            if (inArgs->Return(inCallback.Invoke(object, std::move(args)...)) == false)
                             {
                                 inArgs->ThrowTypeError("");
                             }
@@ -258,28 +281,36 @@ namespace v8App
             };
 
             template <typename Signature>
-            v8::Local<v8::FunctionTemplate> CreateFunctionTemplate(IsolateWeakPtr inIsolate, CallbackWrapper<Signature> inCallback,
-                                                                   const char *TypeName = "")
+            v8::Local<v8::FunctionTemplate> CreateFunctionTemplate(v8::Isolate *inIsolate, CallbackWrapper<Signature> inCallback,
+                                                                   const char *TypeName = "", bool isConstructor = false)
             {
-                CHECK_EQ(false, inIsolate.expired());
                 using HolderInstType = CallbackHolder<Signature>;
-                HolderInstType *holder = new HolderInstType(inIsolate, std::move(inCallback), TypeName);
-                v8::Isolate *isolate = inIsolate.lock().get();
-                
-                JSRuntime *runtime = JSRuntime::GetRuntime(isolate);
-                CHECK_NE(nullptr, runtime);
+                v8::Local<v8::FunctionTemplate> tmpl;
 
-                v8::Local<v8::FunctionTemplate> tmpl = v8::FunctionTemplate::New(
-                    isolate,
-                    &CallbackDispatcher<Signature>::V8CallbackForFunction,
-                    ConvertToV8<v8::Local<v8::External>>(isolate,
-                                                         holder->GetExternalHandle(inIsolate)));
+                    HolderInstType *holder = new HolderInstType(inIsolate, std::move(inCallback), TypeName);
 
-                tmpl->RemovePrototype();
+                    JSRuntime *runtime = JSRuntime::GetRuntime(inIsolate);
+                    CHECK_NE(nullptr, runtime);
 
+                if (isConstructor)
+                {
+                    //for the constrcutor function we don't need a holder object since it'll be creatig one when called
+                    tmpl = v8::FunctionTemplate::New(inIsolate);
+                    tmpl->SetCallHandler(&CallbackDispatcher<Signature>::V8CallbackForFunction, holder->GetExternalHandle(inIsolate));
+                    tmpl->SetLength(1);
+                }
+                else
+                {
+                    tmpl = v8::FunctionTemplate::New(
+                        inIsolate,
+                        &CallbackDispatcher<Signature>::V8CallbackForFunction,
+                        ConvertToV8<v8::Local<v8::External>>(inIsolate,
+                                                             holder->GetExternalHandle(inIsolate)));
+
+                    tmpl->RemovePrototype();
+                }
                 //register the external reference
-                runtime->GetExternalRegistry().Register((void*)&CallbackDispatcher<Signature>::V8CallbackForFunction);
-
+                runtime->GetExternalRegistry().Register((void *)&CallbackDispatcher<Signature>::V8CallbackForFunction);
                 return tmpl;
             }
         } // namespace CppBridge

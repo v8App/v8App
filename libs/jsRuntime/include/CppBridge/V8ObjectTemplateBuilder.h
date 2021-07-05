@@ -25,20 +25,33 @@ namespace v8App
             class V8ObjectTemplateBuilder
             {
             public:
-                explicit V8ObjectTemplateBuilder(IsolateWeakPtr inIsolate, int inNumInternalFields);
-                V8ObjectTemplateBuilder(IsolateWeakPtr inIsolate, int inNumInternalFields, const char *inTypeNmae);
-                V8ObjectTemplateBuilder(IsolateWeakPtr inIsolate, int inNumInternalFields, const char *inTypeNmae, v8::Local<v8::ObjectTemplate> inTemplate);
+                explicit V8ObjectTemplateBuilder(v8::Isolate* inIsolate);
+                V8ObjectTemplateBuilder(v8::Isolate* inIsolate, const char *inTypeName);
+                V8ObjectTemplateBuilder(v8::Isolate* inIsolate, const char *inTypeName, v8::Local<v8::ObjectTemplate> inTemplate, bool inConstructorAllows = false);
 
                 V8ObjectTemplateBuilder(const V8ObjectTemplateBuilder &inTemplate);
                 ~V8ObjectTemplateBuilder();
 
+                // Use the classes typename for the v8 symbol name
                 template <typename T>
-                V8ObjectTemplateBuilder &SetValue(const std::string &inName, T inValue)
+                V8ObjectTemplateBuilder &SetConstuctor(const T &inCallback)
                 {
-                    CHECK_EQ(false, m_Isolate.expired());
+                    return SetConstuctor(m_TypeName, inCallback);
+                }
 
-                    v8::Isolate* isolate = m_Isolate.lock().get();
-                    return SetValueMethodInternal(inName, ConvertToV8(isolate, inValue));
+                //allows specifying the symbol name for setting the v8 symbol for the function 
+                template <typename T>
+                V8ObjectTemplateBuilder &SetConstuctor(const char* className, const T &inCallback)
+                {
+                    CHECK_NOT_NULL(className);
+                    CHECK_NE("", className);
+                    return SetConstructorInternal(className, CreateFunctionTemplate(m_Isolate, Utils::MakeCallback(inCallback), nullptr, true));
+                }
+
+                template <typename T>
+                V8ObjectTemplateBuilder &SetValue(const std::string &inName, const T &inCallback)
+                {
+                    return SetValueMethodInternal(inName, CreateFunctionTemplate(m_Isolate, Utils::MakeCallback(inCallback), m_TypeName));
                 }
 
                 template <typename T>
@@ -64,12 +77,14 @@ namespace v8App
                 v8::Local<v8::ObjectTemplate> Build();
 
             private:
+                V8ObjectTemplateBuilder &SetConstructorInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inConstructor);
                 V8ObjectTemplateBuilder &SetValueMethodInternal(const std::string &inName, v8::Local<v8::Data> inValue);
                 V8ObjectTemplateBuilder &SetPropertyInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inGetter,
                                                              v8::Local<v8::FunctionTemplate> inSetter);
 
-                IsolateWeakPtr m_Isolate;
+                v8::Isolate* m_Isolate;
                 v8::Local<v8::ObjectTemplate> m_Template;
+                bool m_ConstructorAllowed;
 
                 const char *m_TypeName = nullptr;
             };

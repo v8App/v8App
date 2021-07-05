@@ -107,11 +107,11 @@ namespace v8App
                 v8::Local<v8::External> external = v8::External::New(m_Isolate, testDataPtr);
 
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
-                global->Set(v8::String::NewFromUtf8Literal(m_Isolate, "test"),
+                global->Set(StringToV8(m_Isolate, "test"),
                             v8::FunctionTemplate::New(m_Isolate, &testFunctionCallback, external));
-                global->Set(v8::String::NewFromUtf8Literal(m_Isolate, "test2"),
+                global->Set(StringToV8(m_Isolate, "test2"),
                             v8::FunctionTemplate::New(m_Isolate, &testFunctionCallback2));
-                global->Set(v8::String::NewFromUtf8Literal(m_Isolate, "testReturn"),
+                global->Set(StringToV8(m_Isolate, "testReturn"),
                             v8::FunctionTemplate::New(m_Isolate, &testReturnValue));
 
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
@@ -126,8 +126,8 @@ namespace v8App
 
                 v8::TryCatch try_catch(m_Isolate);
 
-                v8::Local<v8::String> source1 = v8::String::NewFromUtf8Literal(m_Isolate, csource1);
-                v8::Local<v8::String> source2 = v8::String::NewFromUtf8Literal(m_Isolate, csource2);
+                v8::Local<v8::String> source1 = StringToV8(m_Isolate, csource1);
+                v8::Local<v8::String> source2 = StringToV8(m_Isolate, csource2);
 
                 v8::Local<v8::Script> script1 = v8::Script::Compile(context, source1).ToLocalChecked();
                 v8::Local<v8::Script> script2 = v8::Script::Compile(context, source2).ToLocalChecked();

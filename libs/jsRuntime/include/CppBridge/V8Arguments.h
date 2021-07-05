@@ -21,7 +21,7 @@ namespace v8App
                 ~V8Arguments();
 
                 template <typename T>
-                bool GetHolder(T *outHolder)
+                bool GetHolder(T **outHolder)
                 {
                     v8::Local<v8::Object> holder = m_IsProperty ? m_PropertyInfo->Holder()
                                                                 : m_FunctionInfo->Holder();
@@ -100,6 +100,15 @@ namespace v8App
                 
                 void ThrowError() const;
                 void ThrowTypeError(const std::string inError) const;
+
+                //help determine if whic of the 2 below are safe to call.
+                bool IsPropertyCallback() const { return m_IsProperty; }
+
+                // When using these 2 make sure that the you use the right one as the types are
+                // are a union and you if you request the wrong type you'll end up with at least a crash
+                //or worse a hard to track down bug.
+                const v8::FunctionCallbackInfo<v8::Value>& GetFunctionInfo() { return *m_FunctionInfo; }
+                const v8::PropertyCallbackInfo<v8::Value>& GetPropertyInfo() { return *m_PropertyInfo; }
 
             private:
                 v8::Isolate* m_Isolate;

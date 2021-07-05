@@ -2,7 +2,9 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
+#include "Logging/LogMacros.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
+#include "CppBridge/V8NativeObject.h"
 
 namespace v8App
 {
@@ -12,26 +14,20 @@ namespace v8App
     {
         namespace CppBridge
         {
-            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(IsolateWeakPtr inIsolate, int inNumInternalFields)
-                : V8ObjectTemplateBuilder(inIsolate, inNumInternalFields, nullptr)
+            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(v8::Isolate *inIsolate)
+                : V8ObjectTemplateBuilder(inIsolate, nullptr)
             {
             }
 
-            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(IsolateWeakPtr inIsolate, int inNumInternalFields, const char *inTypeNmae)
-                : m_Isolate(inIsolate), m_TypeName(inTypeNmae)
+            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(v8::Isolate *inIsolate, const char *inTypeName)
+                : V8ObjectTemplateBuilder(inIsolate, inTypeName, v8::ObjectTemplate::New(inIsolate), true)
             {
-                CHECK_EQ(false, m_Isolate.expired());
-
-                m_Template = v8::ObjectTemplate::New(m_Isolate.lock().get());
-                m_Template->SetInternalFieldCount(inNumInternalFields);
             }
 
-            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(IsolateWeakPtr inIsolate, int inNumInternalFields, const char *inTypeNmae, v8::Local<v8::ObjectTemplate> inTemplate) : m_Isolate(inIsolate), m_TypeName(inTypeNmae)
+            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(v8::Isolate *inIsolate, const char *inTypeNmae, v8::Local<v8::ObjectTemplate> inTemplate, bool inConstructorAllowed)
+                : m_Isolate(inIsolate), m_Template(inTemplate), m_ConstructorAllowed(inConstructorAllowed), m_TypeName(inTypeNmae)
             {
-                CHECK_EQ(false, m_Isolate.expired());
-
-                m_Template = v8::ObjectTemplate::New(m_Isolate.lock().get());
-                m_Template->SetInternalFieldCount(inNumInternalFields);
+                m_Template->SetInternalFieldCount(kMaxReservedInternalFields);
             }
 
             V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(const V8ObjectTemplateBuilder &inTemplate) = default;
@@ -41,22 +37,43 @@ namespace v8App
             v8::Local<v8::ObjectTemplate> V8ObjectTemplateBuilder::Build()
             {
                 v8::Local<v8::ObjectTemplate> templ = m_Template;
-                templ.Clear();
+                m_Template.Clear();
                 return templ;
+            }
+
+            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetConstructorInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inConstructor)
+            {
+                //assert if the template was passed in externally since we don't know what was setup before it was passed
+                CHECK_EQ(m_ConstructorAllowed, true);
+                //recreate the object template with the constrcutor
+                m_Template.Clear();
+                m_Template = inConstructor->PrototypeTemplate();
+                m_Template->SetInternalFieldCount(kMaxReservedInternalFields);
+
+                inConstructor->SetClassName(StringToV8(m_Isolate, inName));
+                v8::Local<v8::Context> context = m_Isolate->GetCurrentContext();
+                v8::Local<v8::Object> global = context->Global();
+                CHECK_EQ(false, global.IsEmpty());
+
+                global->Set(context, StringToV8(m_Isolate, inName), inConstructor->GetFunction(context).ToLocalChecked());
+                
+                return *this;
             }
 
             V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetValueMethodInternal(const std::string &inName, v8::Local<v8::Data> inValue)
             {
-                CHECK_EQ(false, m_Isolate.expired());
-                m_Template->Set(CreateSymbol(m_Isolate.lock().get(), inName), inValue);
+                //once we start set stuff don't allow the constrcutor to be added
+                m_ConstructorAllowed = false;
+                m_Template->Set(CreateSymbol(m_Isolate, inName), inValue);
                 return *this;
             }
 
             V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetPropertyInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inGetter,
                                                                                   v8::Local<v8::FunctionTemplate> inSetter)
             {
-                CHECK_EQ(false, m_Isolate.expired());
-                m_Template->SetAccessorProperty(CreateSymbol(m_Isolate.lock().get(), inName), inGetter, inSetter);
+                //once we start set stuff don't allow the constrcutor to be added
+                m_ConstructorAllowed = false;
+                m_Template->SetAccessorProperty(CreateSymbol(m_Isolate, inName), inGetter, inSetter);
                 return *this;
             }
         }

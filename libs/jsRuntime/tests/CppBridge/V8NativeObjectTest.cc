@@ -22,14 +22,12 @@ namespace v8App
             {
             public:
                 const char *GetTypeName() override { return V8NativeObjectBase::GetTypeName(); }
-                int GetNumberOfInternalFields() override { return V8NativeObjectBase::GetNumberOfInternalFields(); }
             };
 
             class V8NativeObjectOverrides : public V8NativeObjectBase
             {
             public:
                 const char *GetTypeName() override { return "TestOverride"; }
-                int GetNumberOfInternalFields() override { return 5; }
             };
 
             TEST_F(V8NativeObjectTest, test)
@@ -40,10 +38,8 @@ namespace v8App
                 V8NativeObjectOverrides *test2 = new V8NativeObjectOverrides();
 
                 EXPECT_EQ(nullptr, test1->GetTypeName());
-                EXPECT_EQ(kMaxReservedInternalFields, test1->GetNumberOfInternalFields());
 
                 EXPECT_EQ("TestOverride", test2->GetTypeName());
-                EXPECT_EQ(5, test2->GetNumberOfInternalFields());
 
                 delete test1;
                 delete test2;

@@ -458,68 +458,20 @@ namespace v8App
                 v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
                 EXPECT_TRUE(V8TypeConverter<std::string>::From(m_Isolate, symbol.As<v8::Value>(), &returnedValue));
                 EXPECT_EQ(str.c_str(), returnedValue);
-            }
 
-            TEST_F(ConverterTests, StdWString)
-            {
-                v8::HandleScope scope(m_Isolate);
+                //test the to string function
+                str = "TestString";
+                std::string emptyString;
+                v8::Local<v8::Value> emptyValue;
+                v8::Local<v8::Value> testValue = v8::String::NewFromUtf8(m_Isolate, "TestString", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>();
+                EXPECT_EQ(emptyString, V8ToString(m_Isolate, emptyValue));
+                EXPECT_EQ(emptyString, V8ToString(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
+                EXPECT_EQ(str, V8ToString(m_Isolate, testValue));
 
-                std::wstring str = L"";
-                EXPECT_TRUE(V8TypeConverter<std::wstring>::To(m_Isolate, str)->StrictEquals(v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(L"")).ToLocalChecked()));
-                str = L"Test";
-                //we use the u literal since it's 2 bytes where as the L(wide) literal could be 2 or 4
-                EXPECT_TRUE(V8TypeConverter<std::wstring>::To(m_Isolate, str)->StrictEquals(v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"Test"), v8::NewStringType::kNormal, 4).ToLocalChecked()));
-
-                std::wstring returnedValue = L"";
-
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Boolean::New(m_Isolate, false).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Boolean::New(m_Isolate, true).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Number::New(m_Isolate, 0.0).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Number::New(m_Isolate, -5.0).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Integer::New(m_Isolate, -5).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Integer::New(m_Isolate, 5).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_TRUE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::String::NewFromUtf8(m_Isolate, "", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_TRUE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::String::NewFromUtf8(m_Isolate, "foo", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"foo", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Object::New(m_Isolate).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Null(m_Isolate).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                returnedValue = L"";
-                EXPECT_FALSE(V8TypeConverter<std::wstring>::From(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(L"", returnedValue);
-
-                //test the create symbol
-                str = L"TestSymbol";
-                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
-                EXPECT_TRUE(V8TypeConverter<std::wstring>::From(m_Isolate, symbol.As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(str.c_str(), returnedValue);
+                //test StringToV8
+                v8::Local<v8::String> v8String = StringToV8(m_Isolate, str);
+                //resue the converted value above to test on the V* side
+                EXPECT_TRUE(v8String->StrictEquals(testValue));
             }
 
             TEST_F(ConverterTests, StdU16String)
@@ -575,6 +527,26 @@ namespace v8App
                 returnedValue = u"";
                 EXPECT_FALSE(V8TypeConverter<std::u16string>::From(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>(), &returnedValue));
                 EXPECT_EQ(u"", returnedValue);
+
+                //test the create symbol
+                str = u"TestSymbol";
+                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
+                EXPECT_TRUE(V8TypeConverter<std::u16string>::From(m_Isolate, symbol.As<v8::Value>(), &returnedValue));
+                EXPECT_EQ(str, returnedValue);
+
+                //test the to string function
+                str = u"TestString";
+                std::u16string emptyString;
+                v8::Local<v8::Value> emptyValue;
+                v8::Local<v8::Value> testValue = v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"TestString")).ToLocalChecked().As<v8::Value>();
+                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, emptyValue));
+                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
+                EXPECT_EQ(str, V8ToU16String(m_Isolate, testValue));
+
+                //test StringToV8
+                v8::Local<v8::String> v8String = U16StringToV8(m_Isolate, str);
+                //resue the converted value above to test on the V* side
+                EXPECT_TRUE(v8String->StrictEquals(testValue));
             }
 
             static void testFunc(v8::FunctionCallbackInfo<v8::Value> const &args)
@@ -1064,24 +1036,6 @@ namespace v8App
                 testStruct test_struct;
                 result = TryConvertToV8(m_Isolate, test_struct, &value);
                 EXPECT_TRUE(result);
-            }
-
-            TEST_F(ConverterTests, FromMaybe)
-            {
-                v8::HandleScope scope(m_Isolate);
-
-                //setup a external since it can't be converted to an integral value
-                v8::Local<v8::Value> value = v8::Local<v8::External>::New(m_Isolate, v8::External::New(m_Isolate, (void *)testFunc));
-
-                //since it's not a int value this will return an empty Maybe
-                v8::Maybe<int64_t> local = value->IntegerValue(m_Isolate->GetCurrentContext());
-
-                int64_t outValue = 0;
-                EXPECT_FALSE(FromMaybe(local, &outValue));
-
-                TryConvertToV8(m_Isolate, 10, &value);
-                local = value->IntegerValue(m_Isolate->GetCurrentContext());
-                EXPECT_TRUE(FromMaybe(local, &outValue));
             }
         } // namespace Bridge
     }     // namespace JSRuntime

@@ -11,36 +11,15 @@ namespace v8App
     {
         namespace CppBridge
         {
-            void *FromV8NativeObjectInternal(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, V8NativeObjectInfo *inInfo)
-            {
-                if (inValue->IsObject() == false)
-                {
-                    return nullptr;
-                }
-                v8::Local<v8::Object> object = v8::Local<v8::Object>::Cast(inValue);
-                V8NativeObjectInfo *info = V8NativeObjectInfo::From(object);
-
-                if (info == nullptr)
-                {
-                    return nullptr;
-                }
-
-                if (info != inInfo)
-                {
-                    return nullptr;
-                }
-
-                return object->GetAlignedPointerFromInternalField(kV8NativeObjectInstance);
-            }
 
             V8NativeObjectInfo *V8NativeObjectInfo::From(v8::Local<v8::Object> inObject)
             {
-                V8NativeObjectInfo *info = static_cast<V8NativeObjectInfo *>(
-                    inObject->GetAlignedPointerFromInternalField(kV8NativeObjectInfo));
-                if (inObject->InternalFieldCount() != info->m_NumObjectFields)
+                if (inObject->InternalFieldCount() != kMaxReservedInternalFields)
                 {
                     return nullptr;
                 }
+                V8NativeObjectInfo *info = static_cast<V8NativeObjectInfo *>(
+                    inObject->GetAlignedPointerFromInternalField(kV8NativeObjectInfo));
                 return info;
             }
 
@@ -51,19 +30,30 @@ namespace v8App
                 m_Object.Reset();
             }
 
-            V8ObjectTemplateBuilder V8NativeObjectBase::GetObjectTemplateBuilder(IsolateWeakPtr inIsolate)
+            V8ObjectTemplateBuilder V8NativeObjectBase::GetObjectTemplateBuilder(v8::Isolate *inIsolate)
             {
-                return V8ObjectTemplateBuilder(inIsolate, GetNumberOfInternalFields(), GetTypeName());
+                return V8ObjectTemplateBuilder(inIsolate, GetTypeName());
+            }
+
+            v8::Local<v8::ObjectTemplate> V8NativeObjectBase::GetOrCreateObjectTemplate(v8::Isolate *inIsolate, V8NativeObjectInfo *inInfo)
+            {
+                JSRuntime *runtime = JSRuntime::GetRuntime(inIsolate);
+                v8::Local<v8::ObjectTemplate> objTemplate = runtime->GetObjectTemplate(inInfo);
+                if (objTemplate.IsEmpty())
+                {
+                    objTemplate = GetObjectTemplateBuilder(inIsolate).Build();
+                    CHECK_EQ(false, objTemplate.IsEmpty());
+                    runtime->SetObjectTemplate(inInfo, objTemplate);
+                }
+
+                CHECK_EQ(kMaxReservedInternalFields, objTemplate->InternalFieldCount());
+
+                return objTemplate;
             }
 
             const char *V8NativeObjectBase::GetTypeName()
             {
                 return nullptr;
-            }
-
-            int V8NativeObjectBase::GetNumberOfInternalFields()
-            {
-                return kMaxReservedInternalFields;
             }
 
             void V8NativeObjectBase::FirstWeakCallback(const v8::WeakCallbackInfo<V8NativeObjectBase> &inInfo)
@@ -80,14 +70,12 @@ namespace v8App
                 delete baseObject;
             }
 
-            v8::MaybeLocal<v8::Object> V8NativeObjectBase::GetNativeObjectInternal(IsolateWeakPtr inIsolate, V8NativeObjectInfo *inInfo)
+            v8::MaybeLocal<v8::Object> V8NativeObjectBase::GetV8NativeObjectInternal(v8::Isolate *inIsolate, V8NativeObjectInfo *inInfo)
             {
-                CHECK_EQ(false, inIsolate.expired());
-                v8::Isolate *isolate = inIsolate.lock().get();
 
                 if (m_Object.IsEmpty() == false)
                 {
-                    return v8::MaybeLocal<v8::Object>(v8::Local<v8::Object>::New(isolate, m_Object));
+                    return v8::MaybeLocal<v8::Object>(v8::Local<v8::Object>::New(inIsolate, m_Object));
                 }
 
                 if (m_Destrying)
@@ -95,18 +83,10 @@ namespace v8App
                     return v8::MaybeLocal<v8::Object>();
                 }
 
-                JSRuntime *runtime = JSRuntime::GetRuntime(isolate);
-                v8::Local<v8::ObjectTemplate> objTemplate = runtime->GetObjectTemplate(inInfo);
-                if (objTemplate.IsEmpty())
-                {
-                    objTemplate = GetObjectTemplateBuilder(inIsolate).Build();
-                    CHECK_EQ(false, objTemplate.IsEmpty());
-                    runtime->SetObjectTemplate(inInfo, objTemplate);
-                }
-
-                CHECK_EQ(inInfo->m_NumObjectFields, objTemplate->InternalFieldCount());
+                v8::Local<v8::ObjectTemplate> objTemplate = GetOrCreateObjectTemplate(inIsolate, inInfo);
+                
                 v8::Local<v8::Object> object;
-                if (objTemplate->NewInstance(isolate->GetCurrentContext()).ToLocal(&object) == false)
+                if (objTemplate->NewInstance(inIsolate->GetCurrentContext()).ToLocal(&object) == false)
                 {
                     delete this;
                     return v8::MaybeLocal<v8::Object>(object);
@@ -114,10 +94,37 @@ namespace v8App
 
                 int indexes[] = {kV8NativeObjectInfo, kV8NativeObjectInstance};
                 void *values[] = {inInfo, this};
+
                 object->SetAlignedPointerInInternalFields(2, indexes, values);
-                m_Object.Reset(isolate, object);
+                m_Object.Reset(inIsolate, object);
                 m_Object.SetWeak(this, FirstWeakCallback, v8::WeakCallbackType::kParameter);
                 return v8::MaybeLocal<v8::Object>(object);
+            }
+
+            void *FromV8NativeObjectInternal(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, V8NativeObjectInfo *inInfo)
+            {
+                if (inValue->IsObject() == false)
+                {
+                    return nullptr;
+                }
+                v8::Local<v8::Object> object = v8::Local<v8::Object>::Cast(inValue);
+                //we should at a min have kMaxReservedInternalFields fields
+                if (object->InternalFieldCount() < kMaxReservedInternalFields)
+                {
+                    return nullptr;
+                }
+                V8NativeObjectInfo *info = V8NativeObjectInfo::From(object);
+                if (info == nullptr)
+                {
+                    return nullptr;
+                }
+
+                if (info != inInfo)
+                {
+                    return nullptr;
+                }
+
+                return object->GetAlignedPointerFromInternalField(kV8NativeObjectInstance);
             }
         }
     }

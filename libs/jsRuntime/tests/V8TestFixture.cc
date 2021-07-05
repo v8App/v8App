@@ -45,8 +45,10 @@ namespace v8App
             m_Isolate = isolate.lock().get();
             m_Isolate->Enter();
             v8::HandleScope scope(m_Isolate);
-            m_Context.Reset(m_Isolate, v8::Context::New(m_Isolate));
-            v8::Local<v8::Context>::New(m_Isolate, m_Context)->Enter();
+            v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
+            m_Context.Reset(m_Isolate, v8::Context::New(m_Isolate, nullptr, global));
+            m_Context.Get(m_Isolate)->Enter();
+            //            v8::Local<v8::Context>::New(m_Isolate, m_Context->Enter();
         }
 
         void V8TestFixture::TearDown()
