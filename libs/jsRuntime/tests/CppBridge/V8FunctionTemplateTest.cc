@@ -6,6 +6,7 @@
 #include <string>
 
 #include "../V8TestFixture.h"
+#include "JSUtilites.h"
 #include "CppBridge/V8FunctionTemplate.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -48,7 +49,7 @@ namespace v8App
 
                 //Test the diapching code for a free function
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
-                global->Set(StringToV8(m_Isolate, "test"), func_template);
+                global->Set(JSUtilities::StringToV8(m_Isolate, "test"), func_template);
 
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
 
@@ -58,7 +59,7 @@ namespace v8App
 
                 v8::TryCatch try_catch(m_Isolate);
 
-                v8::Local<v8::String> source1 = StringToV8(m_Isolate, csource1);
+                v8::Local<v8::String> source1 = JSUtilities::StringToV8(m_Isolate, csource1);
 
                 v8::Local<v8::Script> script1 = v8::Script::Compile(context, source1).ToLocalChecked();
 
@@ -93,7 +94,7 @@ namespace v8App
 
                 //Test the diapching code for a free function
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
-                global->Set(StringToV8(m_Isolate, "test"), func_template);
+                global->Set(JSUtilities::StringToV8(m_Isolate, "test"), func_template);
 
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
 
@@ -103,7 +104,7 @@ namespace v8App
 
                 v8::TryCatch try_catch(m_Isolate);
 
-                v8::Local<v8::String> source1 = StringToV8(m_Isolate, csource1);
+                v8::Local<v8::String> source1 = JSUtilities::StringToV8(m_Isolate, csource1);
 
                 v8::Local<v8::Script> script1 = v8::Script::Compile(context, source1).ToLocalChecked();
 
@@ -125,11 +126,11 @@ namespace v8App
                 v8::Local<v8::FunctionTemplate> func_template = CreateFunctionTemplate(
                     m_Isolate, Utils::MakeCallback(functionInfoCallbackAsConstructor), nullptr, true);
 
-                func_template->SetClassName(StringToV8(m_Isolate, "test"));
+                func_template->SetClassName(JSUtilities::StringToV8(m_Isolate, "test"));
 
                 //Test the diapching code for a free function
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
-                global->Set(StringToV8(m_Isolate, "test"), func_template);
+                global->Set(JSUtilities::StringToV8(m_Isolate, "test"), func_template);
 
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
 
@@ -139,7 +140,7 @@ namespace v8App
 
                 v8::TryCatch try_catch(m_Isolate);
 
-                v8::Local<v8::String> source1 = StringToV8(m_Isolate, csource1);
+                v8::Local<v8::String> source1 = JSUtilities::StringToV8(m_Isolate, csource1);
 
                 v8::Local<v8::Script> script1 = v8::Script::Compile(context, source1).ToLocalChecked();
 

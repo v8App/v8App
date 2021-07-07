@@ -29,8 +29,8 @@ namespace v8App
 
                 std::stringstream messageBuilder;
                 v8::Local<v8::Message> message = inTryCatch.Message();
-                messageBuilder << CppBridge::V8ToString(inIsolate, message->Get()) << std::endl
-                               << CppBridge::V8ToString(inIsolate, GetSourceLine(inIsolate, message)) << std::endl;
+                messageBuilder << V8ToString(inIsolate, message->Get()) << std::endl
+                               << V8ToString(inIsolate, GetSourceLine(inIsolate, message)) << std::endl;
 
                 v8::Local<v8::StackTrace> trace = message->GetStackTrace();
                 if (trace.IsEmpty() == false)
@@ -39,9 +39,9 @@ namespace v8App
                     for (int idx = 0; idx < length; idx++)
                     {
                         v8::Local<v8::StackFrame> frame = trace->GetFrame(inIsolate, idx);
-                        messageBuilder << CppBridge::V8ToString(inIsolate, frame->GetScriptName()) << ":"
+                        messageBuilder << V8ToString(inIsolate, frame->GetScriptName()) << ":"
                                        << frame->GetLineNumber() << ":" << frame->GetColumn() << ":"
-                                       << CppBridge::V8ToString(inIsolate, frame->GetFunctionName()) << std::endl;
+                                       << V8ToString(inIsolate, frame->GetFunctionName()) << std::endl;
                     }
                 }
                 return messageBuilder.str();
@@ -81,6 +81,55 @@ namespace v8App
 
                 inIsolate->ThrowException(error);
             }
+
+            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::string &inString)
+            {
+                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
+            }
+
+            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::u16string &inString)
+            {
+                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
+            }
+
+            std::string V8ToString(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
+            {
+                if (inValue.IsEmpty() || inValue->IsString() == false)
+                {
+                    return std::string();
+                }
+                std::string outValue;
+                v8::Local<v8::String> v8Str = v8::Local<v8::String>::Cast(inValue);
+                int length = v8Str->Utf8Length(inIsolate);
+                outValue.resize(length);
+                v8Str->WriteUtf8(inIsolate, &(outValue)[0], length, nullptr, v8::String::NO_NULL_TERMINATION);
+                return outValue;
+            }
+
+            std::u16string V8ToU16String(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
+            {
+                if (inValue.IsEmpty() || inValue->IsString() == false)
+                {
+                    return std::u16string();
+                }
+                std::u16string outValue;
+
+                v8::Local<v8::String> v8Str = v8::Local<v8::String>::Cast(inValue);
+                outValue.resize(v8Str->Length());
+                v8Str->Write(inIsolate, reinterpret_cast<uint16_t *>(&(outValue)[0]), 0, v8Str->Length(), v8::String::NO_NULL_TERMINATION);
+                return outValue;
+            }
+
+            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString)
+            {
+                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), v8::NewStringType::kNormal, inString.length()).ToLocalChecked();
+            }
+
+            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString)
+            {
+                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), v8::NewStringType::kNormal, inString.length()).ToLocalChecked();
+            }
+
         }
     }
 }

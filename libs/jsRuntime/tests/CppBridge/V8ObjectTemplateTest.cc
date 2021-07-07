@@ -67,7 +67,7 @@ namespace v8App
 
                     if (inInfo.IsConstructCall() == false)
                     {
-                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, StringToV8(isolate, "must be an instance call (new)"));
+                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, JSUtilities::StringToV8(isolate, "must be an instance call (new)"));
                         return;
                     }
                     V8NativeObjectHandle<TestUnnamed> instance = CreateV8NativeObjHandle(isolate, new TestUnnamed());
@@ -123,7 +123,7 @@ namespace v8App
 
                     if (inInfo.IsConstructCall() == false)
                     {
-                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, StringToV8(isolate, "must be an instance call (new)"));
+                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, JSUtilities::StringToV8(isolate, "must be an instance call (new)"));
                         return;
                     }
                     V8NativeObjectHandle<TestNamed> instance = CreateV8NativeObjHandle(isolate, new TestNamed());
@@ -199,7 +199,7 @@ namespace v8App
                 object->SetValue(100);
                 EXPECT_EQ(100, object->GetValue());
 
-                v8::Local<v8::String> source = StringToV8(m_Isolate, R"script(
+                v8::Local<v8::String> source = JSUtilities::StringToV8(m_Isolate, R"script(
                         (
                             function(obj) {
                                 if(obj.value !== 100) {
@@ -239,7 +239,7 @@ namespace v8App
                             )
                     )script";
 
-                v8::Local<v8::String> v8Source = StringToV8(inIsolate, source);
+                v8::Local<v8::String> v8Source = JSUtilities::StringToV8(inIsolate, source);
                 EXPECT_FALSE(v8Source.IsEmpty());
 
                 v8::TryCatch tryCatch(inIsolate);
@@ -255,7 +255,7 @@ namespace v8App
                     return std::string();
                 }
 
-                return V8ToString(inIsolate, tryCatch.Message()->Get());
+                return JSUtilities::V8ToString(inIsolate, tryCatch.Message()->Get());
             }
 
             TEST_F(V8ObjectTemplateTest, InvocationErrorOnUnnamedObjectMethods)
@@ -266,9 +266,9 @@ namespace v8App
                 V8NativeObjectHandle<TestUnnamed> object = TestUnnamed::CreateObject(m_Isolate);
 
                 v8::Local<v8::Object> v8Object = ConvertToV8(m_Isolate, object.Get()).ToLocalChecked().As<v8::Object>();
-                v8::Local<v8::Value> memberMethod = v8Object->Get(context, StringToV8(m_Isolate, "testMember")).ToLocalChecked();
-                v8::Local<v8::Value> staticMemberMethod = v8Object->Get(context, StringToV8(m_Isolate, "testStaticMember")).ToLocalChecked();
-                v8::Local<v8::Value> nonMemberMethod = v8Object->Get(context, StringToV8(m_Isolate, "testNonMember")).ToLocalChecked();
+                v8::Local<v8::Value> memberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testMember")).ToLocalChecked();
+                v8::Local<v8::Value> staticMemberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testStaticMember")).ToLocalChecked();
+                v8::Local<v8::Value> nonMemberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testNonMember")).ToLocalChecked();
 
                 EXPECT_TRUE(memberMethod->IsFunction());
                 EXPECT_TRUE(nonMemberMethod->IsFunction());
@@ -303,8 +303,8 @@ namespace v8App
                 V8NativeObjectHandle<TestNamed> object = TestNamed::CreateObject(m_Isolate);
 
                 v8::Local<v8::Object> v8Object = ConvertToV8(m_Isolate, object.Get()).ToLocalChecked().As<v8::Object>();
-                v8::Local<v8::Value> memberMethod = v8Object->Get(context, StringToV8(m_Isolate, "testMember")).ToLocalChecked();
-                v8::Local<v8::Value> nonMemberMethod = v8Object->Get(context, StringToV8(m_Isolate, "testNonMember")).ToLocalChecked();
+                v8::Local<v8::Value> memberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testMember")).ToLocalChecked();
+                v8::Local<v8::Value> nonMemberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testNonMember")).ToLocalChecked();
 
                 EXPECT_TRUE(memberMethod->IsFunction());
                 EXPECT_TRUE(nonMemberMethod->IsFunction());
@@ -334,7 +334,7 @@ namespace v8App
                 const char source[] = R"script(
                         let obj = new testUnamed();
                 )script";
-                v8::Local<v8::String> v8Source = StringToV8(m_Isolate, source);
+                v8::Local<v8::String> v8Source = JSUtilities::StringToV8(m_Isolate, source);
                 EXPECT_FALSE(v8Source.IsEmpty());
 
                 v8::TryCatch tryCatch(m_Isolate);
@@ -357,7 +357,7 @@ namespace v8App
                             throw 'Failed';
                         }
                 )script";
-                v8Source = StringToV8(m_Isolate, source2);
+                v8Source = JSUtilities::StringToV8(m_Isolate, source2);
                 EXPECT_FALSE(v8Source.IsEmpty());
 
                 tryCatch.Reset();
@@ -383,7 +383,7 @@ namespace v8App
                 const char source[] = R"script(
                         let obj = new TestNamed();
                 )script";
-                v8::Local<v8::String> v8Source = StringToV8(m_Isolate, source);
+                v8::Local<v8::String> v8Source = JSUtilities::StringToV8(m_Isolate, source);
                 EXPECT_FALSE(v8Source.IsEmpty());
 
                 v8::TryCatch tryCatch(m_Isolate);

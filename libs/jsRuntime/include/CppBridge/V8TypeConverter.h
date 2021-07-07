@@ -227,23 +227,6 @@ namespace v8App
                 DCHECK_NE(nullptr, inIsolate);
                 return V8TypeConverter<T>::From(inIsolate, inValue, outValue);
             }
-
-            //Create a symbol from a std::string
-            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::string &inString);
-
-            //create a symbol from a std::u16string
-            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::u16string &inString);
-
-            std::string V8ToString(v8::Isolate* inIsolate, v8::Local<v8::Value> inValue);
-
-            std::u16string V8ToU16String(v8::Isolate* inIsolate, v8::Local<v8::Value> inValue);
-
-            v8::Local<v8::String> StringToV8(v8::Isolate* inIsolate, const std::string& inString);
-
-            v8::Local<v8::String> U16StringToV8(v8::Isolate* inIsolate, const std::u16string& inString);
-
-
-            
         } // namespace CppBridge
     }     // namespace JSRuntime
 } // namespace v8App

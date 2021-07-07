@@ -452,26 +452,6 @@ namespace v8App
                 returnedValue = "";
                 EXPECT_FALSE(V8TypeConverter<std::string>::From(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>(), &returnedValue));
                 EXPECT_EQ("", returnedValue);
-
-                //test the create symbol
-                str = "TestSymbol";
-                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
-                EXPECT_TRUE(V8TypeConverter<std::string>::From(m_Isolate, symbol.As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(str.c_str(), returnedValue);
-
-                //test the to string function
-                str = "TestString";
-                std::string emptyString;
-                v8::Local<v8::Value> emptyValue;
-                v8::Local<v8::Value> testValue = v8::String::NewFromUtf8(m_Isolate, "TestString", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>();
-                EXPECT_EQ(emptyString, V8ToString(m_Isolate, emptyValue));
-                EXPECT_EQ(emptyString, V8ToString(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
-                EXPECT_EQ(str, V8ToString(m_Isolate, testValue));
-
-                //test StringToV8
-                v8::Local<v8::String> v8String = StringToV8(m_Isolate, str);
-                //resue the converted value above to test on the V* side
-                EXPECT_TRUE(v8String->StrictEquals(testValue));
             }
 
             TEST_F(ConverterTests, StdU16String)
@@ -527,26 +507,6 @@ namespace v8App
                 returnedValue = u"";
                 EXPECT_FALSE(V8TypeConverter<std::u16string>::From(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>(), &returnedValue));
                 EXPECT_EQ(u"", returnedValue);
-
-                //test the create symbol
-                str = u"TestSymbol";
-                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
-                EXPECT_TRUE(V8TypeConverter<std::u16string>::From(m_Isolate, symbol.As<v8::Value>(), &returnedValue));
-                EXPECT_EQ(str, returnedValue);
-
-                //test the to string function
-                str = u"TestString";
-                std::u16string emptyString;
-                v8::Local<v8::Value> emptyValue;
-                v8::Local<v8::Value> testValue = v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"TestString")).ToLocalChecked().As<v8::Value>();
-                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, emptyValue));
-                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
-                EXPECT_EQ(str, V8ToU16String(m_Isolate, testValue));
-
-                //test StringToV8
-                v8::Local<v8::String> v8String = U16StringToV8(m_Isolate, str);
-                //resue the converted value above to test on the V* side
-                EXPECT_TRUE(v8String->StrictEquals(testValue));
             }
 
             static void testFunc(v8::FunctionCallbackInfo<v8::Value> const &args)

@@ -240,55 +240,6 @@ namespace v8App
                 *outValue = inValue;
                 return true;
             }
-
-            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::string &inString)
-            {
-                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
-            }
-
-            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::u16string &inString)
-            {
-                //we use the converter becuae of the extra handling it does fort he u16string
-                return v8::Local<v8::String>::Cast(V8TypeConverter<std::u16string>::To(inIsolate, inString, v8::NewStringType::kInternalized));
-            }
-
-            std::string V8ToString(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
-            {
-                if (inValue.IsEmpty())
-                {
-                    return std::string();
-                }
-                std::string retValue;
-                if (ConvertFromV8(inIsolate, inValue, &retValue) == false)
-                {
-                    return std::string();
-                }
-                return retValue;
-            }
-
-            std::u16string V8ToU16String(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
-            {
-                if (inValue.IsEmpty())
-                {
-                    return std::u16string();
-                }
-                std::u16string retValue;
-                if (ConvertFromV8(inIsolate, inValue, &retValue) == false)
-                {
-                    return std::u16string();
-                }
-                return retValue;
-            }
-
-            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string& inString)
-            {
-                return ConvertToV8(inIsolate, inString).As<v8::String>();
-            }
-
-            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string& inString)
-            {
-                return ConvertToV8(inIsolate, inString).As<v8::String>();
-            }
-        }
+       }
     }
 }

@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "Logging/LogMacros.h"
+#include "JSUtilites.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
 #include "CppBridge/V8NativeObject.h"
 
@@ -50,12 +51,12 @@ namespace v8App
                 m_Template = inConstructor->PrototypeTemplate();
                 m_Template->SetInternalFieldCount(kMaxReservedInternalFields);
 
-                inConstructor->SetClassName(StringToV8(m_Isolate, inName));
+                inConstructor->SetClassName(JSUtilities::StringToV8(m_Isolate, inName));
                 v8::Local<v8::Context> context = m_Isolate->GetCurrentContext();
                 v8::Local<v8::Object> global = context->Global();
                 CHECK_EQ(false, global.IsEmpty());
 
-                global->Set(context, StringToV8(m_Isolate, inName), inConstructor->GetFunction(context).ToLocalChecked());
+                global->Set(context, JSUtilities::StringToV8(m_Isolate, inName), inConstructor->GetFunction(context).ToLocalChecked());
                 
                 return *this;
             }
@@ -64,7 +65,7 @@ namespace v8App
             {
                 //once we start set stuff don't allow the constrcutor to be added
                 m_ConstructorAllowed = false;
-                m_Template->Set(CreateSymbol(m_Isolate, inName), inValue);
+                m_Template->Set(JSUtilities::CreateSymbol(m_Isolate, inName), inValue);
                 return *this;
             }
 
@@ -73,7 +74,7 @@ namespace v8App
             {
                 //once we start set stuff don't allow the constrcutor to be added
                 m_ConstructorAllowed = false;
-                m_Template->SetAccessorProperty(CreateSymbol(m_Isolate, inName), inGetter, inSetter);
+                m_Template->SetAccessorProperty(JSUtilities::CreateSymbol(m_Isolate, inName), inGetter, inSetter);
                 return *this;
             }
         }

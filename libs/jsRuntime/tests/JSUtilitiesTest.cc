@@ -5,7 +5,6 @@
 
 #include "V8TestFixture.h"
 #include "JSUtilites.h"
-#include "CppBridge/V8TypeConverter.h"
 
 namespace v8App
 {
@@ -29,7 +28,7 @@ namespace v8App
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
 
-                v8::Local<v8::String> source = CppBridge::StringToV8(m_Isolate, scriptStr);
+                v8::Local<v8::String> source = StringToV8(m_Isolate, scriptStr);
 
                 v8::Local<v8::Script> script;
                 EXPECT_FALSE(v8::Script::Compile(context, source).ToLocal(&script));
@@ -48,52 +47,110 @@ namespace v8App
                 v8::HandleScope scope(m_Isolate);
                 v8::TryCatch tryCatch(m_Isolate);
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::RangeError, CppBridge::StringToV8(m_Isolate, "Range Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::RangeError, StringToV8(m_Isolate, "Range Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught RangeError: Range Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught RangeError: Range Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::ReferenceError, CppBridge::StringToV8(m_Isolate, "Reference Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::ReferenceError, StringToV8(m_Isolate, "Reference Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught ReferenceError: Reference Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught ReferenceError: Reference Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::SyntaxError, CppBridge::StringToV8(m_Isolate, "Syntax Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::SyntaxError, StringToV8(m_Isolate, "Syntax Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught SyntaxError: Syntax Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught SyntaxError: Syntax Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::TypeError, CppBridge::StringToV8(m_Isolate, "Type Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::TypeError, StringToV8(m_Isolate, "Type Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught TypeError: Type Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught TypeError: Type Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmCompileError, CppBridge::StringToV8(m_Isolate, "WASM Compile Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmCompileError, StringToV8(m_Isolate, "WASM Compile Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught CompileError: WASM Compile Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught CompileError: WASM Compile Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmLinkError, CppBridge::StringToV8(m_Isolate, "WASM Link Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmLinkError, StringToV8(m_Isolate, "WASM Link Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught LinkError: WASM Link Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught LinkError: WASM Link Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmRuntimeError, CppBridge::StringToV8(m_Isolate, "WASM Runtime Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmRuntimeError, StringToV8(m_Isolate, "WASM Runtime Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught RuntimeError: WASM Runtime Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught RuntimeError: WASM Runtime Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::Error, CppBridge::StringToV8(m_Isolate, "Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::Error, StringToV8(m_Isolate, "Error"));
                 EXPECT_TRUE(tryCatch.HasCaught());
-                EXPECT_EQ("Uncaught Error: Error", CppBridge::V8ToString(m_Isolate, tryCatch.Message()->Get()));
+                EXPECT_EQ("Uncaught Error: Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
             }
+
+            TEST_F(V8UtilitiesTest, TestStdStringConversion)
+            {
+                v8::HandleScope scope(m_Isolate);
+
+                std::string str = "";
+                std::string returnedValue = "";
+
+                //test the create symbol
+                str = "TestSymbol";
+                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
+                returnedValue = V8ToString(m_Isolate, symbol.As<v8::Value>());
+                EXPECT_EQ(str.c_str(), returnedValue);
+
+                //test the to string function
+                str = "TestString";
+                std::string emptyString;
+                v8::Local<v8::Value> emptyValue;
+                v8::Local<v8::Value> testValue = v8::String::NewFromUtf8(m_Isolate, "TestString", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>();
+                EXPECT_EQ(emptyString, V8ToString(m_Isolate, emptyValue));
+                EXPECT_EQ(emptyString, V8ToString(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
+                EXPECT_EQ(str, V8ToString(m_Isolate, testValue));
+
+                //test StringToV8
+                v8::Local<v8::String> v8String = StringToV8(m_Isolate, str);
+                //resue the converted value above to test on the V* side
+                EXPECT_TRUE(v8String->StrictEquals(testValue));
+            }
+
+            TEST_F(V8UtilitiesTest, TestStdU16StringConversion)
+            {
+
+                v8::HandleScope scope(m_Isolate);
+
+                std::u16string str = u"";
+                std::u16string returnedValue = u"";
+
+                //test the create symbol
+                str = u"TestSymbol";
+                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
+                returnedValue = V8ToU16String(m_Isolate, symbol.As<v8::Value>());
+                EXPECT_EQ(str, returnedValue);
+
+                //test the to string function
+                str = u"TestString";
+                std::u16string emptyString;
+                v8::Local<v8::Value> emptyValue;
+                v8::Local<v8::Value> testValue = v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"TestString")).ToLocalChecked().As<v8::Value>();
+                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, emptyValue));
+                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
+                EXPECT_EQ(str, V8ToU16String(m_Isolate, testValue));
+
+                //test StringToV8
+                v8::Local<v8::String> v8String = U16StringToV8(m_Isolate, str);
+                //resue the converted value above to test on the V* side
+                EXPECT_TRUE(v8String->StrictEquals(testValue));
+            }
+
         }
     }
 }
