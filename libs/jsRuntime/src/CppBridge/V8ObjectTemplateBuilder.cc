@@ -54,7 +54,7 @@ namespace v8App
                 inConstructor->SetClassName(JSUtilities::StringToV8(m_Isolate, inName));
                 v8::Local<v8::Context> context = m_Isolate->GetCurrentContext();
                 v8::Local<v8::Object> global = context->Global();
-                CHECK_EQ(false, global.IsEmpty());
+                CHECK_FALSE(global.IsEmpty());
 
                 global->Set(context, JSUtilities::StringToV8(m_Isolate, inName), inConstructor->GetFunction(context).ToLocalChecked());
                 

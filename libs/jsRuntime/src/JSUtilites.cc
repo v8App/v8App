@@ -47,36 +47,37 @@ namespace v8App
                 return messageBuilder.str();
             }
 
-            void ThrowV8Error(v8::Isolate *inIsolate, V8Errors inType, v8::Local<v8::String> inMessage)
+            void ThrowV8Error(v8::Isolate *inIsolate, V8Errors inType, std::string inMessage)
             {
                 v8::Local<v8::Value> error;
+                v8::Local<v8::String> v8Message = JSUtilities::StringToV8(inIsolate, inMessage);
 
                 switch (inType)
                 {
                 case V8Errors::RangeError:
-                    error = v8::Exception::RangeError(inMessage);
+                    error = v8::Exception::RangeError(v8Message);
                     break;
                 case V8Errors::ReferenceError:
-                    error = v8::Exception::ReferenceError(inMessage);
+                    error = v8::Exception::ReferenceError(v8Message);
                     break;
                 case V8Errors::SyntaxError:
-                    error = v8::Exception::SyntaxError(inMessage);
+                    error = v8::Exception::SyntaxError(v8Message);
                     break;
                 case V8Errors::TypeError:
-                    error = v8::Exception::TypeError(inMessage);
+                    error = v8::Exception::TypeError(v8Message);
                     break;
                 case V8Errors::WasmCompileError:
-                    error = v8::Exception::WasmCompileError(inMessage);
+                    error = v8::Exception::WasmCompileError(v8Message);
                     break;
                 case V8Errors::WasmLinkError:
-                    error = v8::Exception::WasmLinkError(inMessage);
+                    error = v8::Exception::WasmLinkError(v8Message);
                     break;
                 case V8Errors::WasmRuntimeError:
-                    error = v8::Exception::WasmRuntimeError(inMessage);
+                    error = v8::Exception::WasmRuntimeError(v8Message);
                     break;
 
                 default:
-                    error = v8::Exception::Error(inMessage);
+                    error = v8::Exception::Error(v8Message);
                 }
 
                 inIsolate->ThrowException(error);
@@ -120,14 +121,15 @@ namespace v8App
                 return outValue;
             }
 
-            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString)
+            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString, v8::NewStringType inType)
             {
-                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), v8::NewStringType::kNormal, inString.length()).ToLocalChecked();
+                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), inType, inString.length()).ToLocalChecked();
             }
 
-            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString)
+            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString, v8::NewStringType inType)
             {
-                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), v8::NewStringType::kNormal, inString.length()).ToLocalChecked();
+                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), inType, inString.length()).ToLocalChecked();
+            }
             }
 
         }

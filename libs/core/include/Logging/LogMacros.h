@@ -35,6 +35,8 @@
 #define CHECK_LE(a, b) CHECK((a) <= (b))
 #define CHECK_NULL(a) CHECK((a) == nullptr)
 #define CHECK_NOT_NULL(a) CHECK((a) != nullptr)
+#define CHECK_TRUE(a) CHECK((a))
+#define CHECK_FALSE(a) CHECK((!a))
 
 #if V8APP_DEBUG
 #define LOG_GENERAL(message) v8App::Log::Log::General(message, __FILE__, __func__, __LINE__)
@@ -52,6 +54,8 @@
 #define DCHECK_LE(a, b) CHECK((a) <= (b))
 #define DCHECK_NULL(a) CHECK((a) == nullptr)
 #define DCHECK_NOT_NULL(a) CHECK((a) != nullptr)
+#define DCHECK_TRUE(a) CHECK((a))
+#define DCHECK_FALSE(a) CHECK((!a))
 
 #else
 #define LOG_GENERAL(message) v8App::Log::Log::General(message)
@@ -69,6 +73,8 @@
 #define DCHECK_LE(a, b) ((void) 0)
 #define DCHECK_NULL(a) ((void) 0)
 #define DCHECK_NOT_NULL(a) ((void) 0)
+#define DCHECK_TRUE(a) ((void) 0)
+#define DCHECK_FALSE(a) ((void) 0)
 
 #endif
 

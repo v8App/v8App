@@ -42,7 +42,7 @@ namespace v8App
                 if (objTemplate.IsEmpty())
                 {
                     objTemplate = GetObjectTemplateBuilder(inIsolate).Build();
-                    CHECK_EQ(false, objTemplate.IsEmpty());
+                    CHECK_FALSE(objTemplate.IsEmpty());
                     runtime->SetObjectTemplate(inInfo, objTemplate);
                 }
 

@@ -67,7 +67,7 @@ namespace v8App
 
                     if (inInfo.IsConstructCall() == false)
                     {
-                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, JSUtilities::StringToV8(isolate, "must be an instance call (new)"));
+                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, "must be an instance call (new)");
                         return;
                     }
                     V8NativeObjectHandle<TestUnnamed> instance = CreateV8NativeObjHandle(isolate, new TestUnnamed());
@@ -123,7 +123,7 @@ namespace v8App
 
                     if (inInfo.IsConstructCall() == false)
                     {
-                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, JSUtilities::StringToV8(isolate, "must be an instance call (new)"));
+                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, "must be an instance call (new)");
                         return;
                     }
                     V8NativeObjectHandle<TestNamed> instance = CreateV8NativeObjHandle(isolate, new TestNamed());

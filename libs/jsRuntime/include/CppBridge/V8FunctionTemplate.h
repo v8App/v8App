@@ -86,7 +86,7 @@ namespace v8App
                     if (inArgs->IsPropertyCallback())
                     {
                         //if it's not a FunctionCallbackInfo then we can't continue
-                        CHECK_EQ(false, true);
+                        CHECK_TRUE(false);
                     }
                     return inArgs->GetFunctionInfo();
                 }
@@ -95,7 +95,7 @@ namespace v8App
                     if (inArgs->IsPropertyCallback() == false)
                     {
                         //if it's not a PropertyCallbackInfo then we can't continue
-                        CHECK_EQ(false, true);
+                        CHECK_TRUE(false);
                     }
                     return inArgs->GetPropertyInfo();
                 }
@@ -123,7 +123,7 @@ namespace v8App
                 {
 
                     v8::Local<v8::External> v8Holder;
-                    CHECK_EQ(true, inArgs->GetData(&v8Holder));
+                    CHECK_TRUE(inArgs->GetData(&v8Holder));
                     CallbackHolderBase *holderBase = reinterpret_cast<CallbackHolderBase *>(v8Holder->Value());
 
                     using HolderInstType = CallbackHolder<Functor>;
@@ -174,7 +174,7 @@ namespace v8App
                 {
 
                     v8::Local<v8::External> v8Holder;
-                    CHECK_EQ(true, inArgs->GetData(&v8Holder));
+                    CHECK_TRUE(inArgs->GetData(&v8Holder));
                     CallbackHolderBase *holderBase = reinterpret_cast<CallbackHolderBase *>(v8Holder->Value());
 
                     using HolderInstType = CallbackHolder<Functor>;
@@ -231,7 +231,7 @@ namespace v8App
                 {
 
                     v8::Local<v8::External> v8Holder;
-                    CHECK_EQ(true, inArgs->GetData(&v8Holder));
+                    CHECK_TRUE(inArgs->GetData(&v8Holder));
                     CallbackHolderBase *holderBase = reinterpret_cast<CallbackHolderBase *>(v8Holder->Value());
 
                     using HolderInstType = CallbackHolder<Functor>;

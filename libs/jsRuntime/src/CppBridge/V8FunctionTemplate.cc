@@ -19,7 +19,7 @@ namespace v8App
 
             CallbackHolderBase::~CallbackHolderBase()
             {
-                DCHECK_EQ(true, m_ExHolder.IsEmpty());
+                DCHECK_TRUE(m_ExHolder.IsEmpty());
             }
 
             v8::Local<v8::External> CallbackHolderBase::GetExternalHandle(v8::Isolate* inIsolate)

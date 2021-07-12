@@ -242,5 +242,39 @@ namespace v8App
                 std::exit(0);
             }, ::testing::ExitedWithCode(0), "");
         }
+
+        TEST(LogDeathTest, CheckTrueMacro)
+        {
+            LogTest::LogDouble::ResetLog();
+
+            //The output for this is really a multiline message however
+            // the assert only checks the first line against what's passed 
+            //which is why it's just the first line of the log message.
+            ASSERT_DEATH({
+                CHECK_TRUE(false);
+            }, "v8App Log {");
+
+            EXPECT_EXIT({
+                CHECK_TRUE(true);
+                std::exit(0);
+            }, ::testing::ExitedWithCode(0), "");
+        }
+
+        TEST(LogDeathTest, CheckFalseMacro)
+        {
+            LogTest::LogDouble::ResetLog();
+
+            //The output for this is really a multiline message however
+            // the assert only checks the first line against what's passed 
+            //which is why it's just the first line of the log message.
+            ASSERT_DEATH({
+                CHECK_FALSE(true);
+            }, "v8App Log {");
+
+            EXPECT_EXIT({
+                CHECK_FALSE(false);
+                std::exit(0);
+            }, ::testing::ExitedWithCode(0), "");
+        }
     } // namespace Log
 } // namespace v8App

@@ -29,7 +29,7 @@ namespace v8App
                 Error
             };
 
-            void ThrowV8Error(v8::Isolate *inIsolate, V8Errors inType, v8::Local<v8::String> inMessage);
+            void ThrowV8Error(v8::Isolate *inIsolate, V8Errors inType, std::string inMessage);
 
             //Create a symbol from a std::string
             v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::string &inString);
@@ -41,9 +41,9 @@ namespace v8App
 
             std::u16string V8ToU16String(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue);
 
-            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString);
+            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString, v8::NewStringType inType = v8::NewStringType::kNormal);
 
-            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString);
+            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString, v8::NewStringType inType = v8::NewStringType::kNormal);
 
         }
     }

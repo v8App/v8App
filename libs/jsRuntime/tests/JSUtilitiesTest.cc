@@ -47,49 +47,49 @@ namespace v8App
                 v8::HandleScope scope(m_Isolate);
                 v8::TryCatch tryCatch(m_Isolate);
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::RangeError, StringToV8(m_Isolate, "Range Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::RangeError, "Range Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught RangeError: Range Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::ReferenceError, StringToV8(m_Isolate, "Reference Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::ReferenceError, "Reference Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught ReferenceError: Reference Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::SyntaxError, StringToV8(m_Isolate, "Syntax Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::SyntaxError, "Syntax Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught SyntaxError: Syntax Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::TypeError, StringToV8(m_Isolate, "Type Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::TypeError, "Type Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught TypeError: Type Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmCompileError, StringToV8(m_Isolate, "WASM Compile Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmCompileError, "WASM Compile Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught CompileError: WASM Compile Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmLinkError, StringToV8(m_Isolate, "WASM Link Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmLinkError, "WASM Link Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught LinkError: WASM Link Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmRuntimeError, StringToV8(m_Isolate, "WASM Runtime Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::WasmRuntimeError, "WASM Runtime Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught RuntimeError: WASM Runtime Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
 
                 tryCatch.Reset();
 
-                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::Error, StringToV8(m_Isolate, "Error"));
+                JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::Error, "Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
                 EXPECT_EQ("Uncaught Error: Error", V8ToString(m_Isolate, tryCatch.Message()->Get()));
             }
