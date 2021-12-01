@@ -16,6 +16,7 @@ namespace v8App
         class ILogSink
         {
         public:
+            ILogSink(const std::string& inName):m_Name(inName){}
             virtual ~ILogSink(){}
 
             virtual void SinkMessage(LogMessage &inMessage) = 0;

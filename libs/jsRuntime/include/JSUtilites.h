@@ -6,6 +6,7 @@
 #define _JS_UTILITIES_H_
 
 #include <string>
+#include <filesystem>
 
 #include "v8.h"
 
@@ -44,6 +45,9 @@ namespace v8App
             v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString, v8::NewStringType inType = v8::NewStringType::kNormal);
 
             v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString, v8::NewStringType inType = v8::NewStringType::kNormal);
+
+            //TODO:: this should part of a class that cam load scripts either from files or embedded in the binary
+            v8::Local<v8::String> ReadScriptFile(v8::Isolate* inIsolate, std::filesystem::path inFilename);
 
         }
     }

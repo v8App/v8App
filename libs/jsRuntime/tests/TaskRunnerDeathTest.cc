@@ -26,7 +26,7 @@ namespace v8App
         TEST(TaskRunnerDeathTest, TaskRunScope)
         {
 //Only applicable in debug builds
-#if V8APP_DEBUG
+#ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 std::shared_ptr<MockDeathTaskRunner> runner = std::make_shared<MockDeathTaskRunner>();
                 runner->SetNestingDepth(-1);
@@ -46,7 +46,7 @@ namespace v8App
         }
         TEST(TaskRunnerDeathTest, PostDelayedTask)
         {
-#if V8APP_DEBUG
+#ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 TaskRunner runner;
                 TaskPtr task = std::make_unique<RunnerDeathTestTask>();
@@ -57,7 +57,7 @@ namespace v8App
         }
         TEST(TaskRunnerDeathTest, PostNonNestableDelayedTask)
         {
-#if V8APP_DEBUG
+#ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 TaskRunner runner;
                 TaskPtr task = std::make_unique<RunnerDeathTestTask>();

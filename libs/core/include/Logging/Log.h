@@ -40,6 +40,8 @@ namespace v8App
             const std::string File = "File";
             const std::string Line = "Line";
             const std::string Function = "Function";
+            const std::string StackTrace = "StackTrace";
+            const std::string RootPath = "rootPath";
         } // namespace MsgKey
 
         class Log
@@ -63,6 +65,10 @@ namespace v8App
 
             static bool AddLogSink(std::unique_ptr<ILogSink>& inSink);
             static void RemoveLogSink(const std::string &inName);
+
+            //You should not store the pointer returned by this method as it's managed bya std::unique_ptr
+            //and could be destroyed at any time.
+            static ILogSink* GetLogSink(const std::string& inName);
 
             static std::string GenerateISO8601Time(bool inUTC);
 

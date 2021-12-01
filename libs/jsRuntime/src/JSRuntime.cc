@@ -20,21 +20,27 @@ namespace v8App
             m_DelayedWorkerTasks = std::make_unique<DelayedWorkerTaskQueue>();
 
             //custom deleter since we have to call dispose
-            m_Isolate = std::shared_ptr<v8::Isolate>(v8::Isolate::Allocate(), [](v8::Isolate *isolate) {
-                isolate->Dispose();
-            });
+            m_Isolate = std::shared_ptr<v8::Isolate>(v8::Isolate::Allocate(), [](v8::Isolate *isolate)
+                                                     { isolate->Dispose(); });
             m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, this);
             m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
-            
+
             v8::Isolate::CreateParams params;
             //TODO: replace with custom allocator
             params.array_buffer_allocator =
                 v8::ArrayBuffer::Allocator::NewDefaultAllocator();
             v8::Isolate::Initialize(m_Isolate.get(), params);
+
+            JSModules::SetupModulesCallbacks(m_Isolate.get());
         }
 
         JSRuntime::~JSRuntime()
         {
+            //clear the contetes before we dispose of the isolate
+            {
+            v8::HandleScope handleScope(m_Isolate.get());
+                m_Contextes.clear();
+            }
             m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, nullptr);
             m_Isolate.reset();
         }
@@ -100,7 +106,7 @@ namespace v8App
         {
             CHECK_NOT_NULL(m_Isolate.get());
             ObjectTemplateMap::iterator it = m_ObjectTemplates.find(inInfo);
-            if(it == m_ObjectTemplates.end())
+            if (it == m_ObjectTemplates.end())
             {
                 return v8::Local<v8::ObjectTemplate>();
             }
@@ -117,17 +123,25 @@ namespace v8App
         {
             CHECK_NOT_NULL(m_Isolate.get());
             FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inInfo);
-            if(it == m_FunctionTemplates.end())
+            if (it == m_FunctionTemplates.end())
             {
                 return v8::Local<v8::FunctionTemplate>();
             }
             return it->second.Get(m_Isolate.get());
         }
 
-        V8ExternalRegistry& JSRuntime::GetExternalRegistry()
+        V8ExternalRegistry &JSRuntime::GetExternalRegistry()
         {
             return m_ExternalRegistry;
         }
 
+        WeakJSContextPtr JSRuntime::CreateContext()
+        {
+            SharedJSContextPtr context = std::make_shared<JSContext>(m_Isolate.get());
+            context->InitializeContext();
+            m_Contextes.push_back(context);
+
+            return context;
+        }
     } // namespace JSRuntime
 } // namespace v8App

@@ -24,6 +24,7 @@ namespace v8App
         public:
             explicit MockJSRuntime(IdleTasksSupport inEnableIdle) : JSRuntime(inEnableIdle) {}
             DelayedWorkerTaskQueue *GetDelayedQueue() { return m_DelayedWorkerTasks.get(); }
+            const std::vector<JSContext*>& GetContextes() { return m_Contextes; }
         };
 
         class IntTask : public v8::Task
@@ -168,6 +169,18 @@ namespace v8App
             EXPECT_EQ(3, registry.size());
             EXPECT_EQ(reinterpret_cast<intptr_t>(&testPtr2), registry[1]);
             EXPECT_EQ(reinterpret_cast<intptr_t>(nullptr), registry[2]);
+
+            //test the context creation
+            v8::Local<v8::Context> context;
+            runtime->CreateContext().ToLocal(&context);
+            ASSERT_FALSE(context.IsEmpty());
+
+            //tst that the context was added to the cevtor and that we can get the JSContext from it.
+            //the rest of the JSContet testing is in a dedicated test file for it.
+            JSContext* jsContext = static_cast<JSContext*>(context->GetAlignedPointerFromEmbedderData(0));
+            std::vector<JSContext*> contextes = runtime->GetContextes();
+            ASSERT_EQ(1, contextes.size());
+            ASSERT_EQ(jsContext, contextes[0]);
 
             //test destructor
             runtime.reset();

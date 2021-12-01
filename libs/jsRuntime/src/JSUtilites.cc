@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <sstream>
+#include <fstream>
 
 #include "JSUtilites.h"
 #include "CppBridge/V8TypeConverter.h"
@@ -130,6 +131,30 @@ namespace v8App
             {
                 return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), inType, inString.length()).ToLocalChecked();
             }
+
+            v8::Local<v8::String> ReadScriptFile(v8::Isolate* inIsolate, std::filesystem::path inFilename)
+            {
+                if(std::filesystem::exists(inFilename) == false)
+                {
+                    return v8::Local<v8::String>();
+                }
+
+                std::ifstream fileStream(inFilename, std::ios::ate|std::ios::in|std::ios::binary);
+                if(fileStream.is_open() == false)
+                {
+                    return v8::Local<v8::String>();
+                }
+
+                std::streampos fileSize = fileStream.tellg();
+                fileStream.seekg(0, std::ios::beg);
+                char *contents = new char[fileSize];
+                fileStream.read(contents, fileSize);
+                fileStream.close();
+
+                //TODO:: attempt to detect encoding of the file for unicode
+                //for now just assume ascii/utf8
+
+                return StringToV8(inIsolate, contents);
             }
 
         }

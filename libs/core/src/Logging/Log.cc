@@ -77,6 +77,17 @@ namespace v8App
             m_LogSinks.erase(it);
         }
 
+        ILogSink* Log::GetLogSink(const std::string& inName)
+        {
+            auto it = m_LogSinks.find(inName);
+            if(it == m_LogSinks.end())
+            {
+                return nullptr;
+            }
+            return it->second.get();
+        }
+
+
         std::string Log::GenerateISO8601Time(bool inUTC)
         {
             auto now = std::chrono::system_clock::now();

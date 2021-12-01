@@ -20,7 +20,7 @@ namespace v8App
         TEST(DelayedWorkerTaskQueueDeathTest, PostTest)
         {
             //Only applicable in debug builds
-#if V8APP_DEBUG
+#ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 DelayedWorkerTaskQueue queue;
                 TaskPtr task = std::make_unique<DelayedWorkerDeathTestTask>();

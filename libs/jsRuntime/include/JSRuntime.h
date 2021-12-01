@@ -11,6 +11,7 @@
 #include "v8-platform.h"
 #include "v8.h"
 #include "V8ExternalRegistry.h"
+#include "JSContext.h"
 
 namespace v8App
 {
@@ -60,6 +61,8 @@ namespace v8App
 
             V8ExternalRegistry& GetExternalRegistry();
 
+            WeakJSContextPtr CreateContext();
+
         protected:
             IdleTasksSupport m_IdleEnabled;
 
@@ -67,6 +70,8 @@ namespace v8App
             //we do this so in our code we can use weak ptrs as protection agaisnt tasks using the isolate after
             //deletion
             std::shared_ptr<v8::Isolate> m_Isolate;
+            std::vector<SharedJSContextPtr> m_Contextes;
+
             //the isolate's task queues
             std::shared_ptr<TaskRunner> m_TaskRunner;
             std::unique_ptr<DelayedWorkerTaskQueue> m_DelayedWorkerTasks;

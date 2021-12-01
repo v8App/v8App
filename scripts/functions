@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+##
+# Handles getting the directory path to a base directory.
+#
+# Params
+# $1 A variable name to store the path to the directory top.
+# $2 The base directory we are looking for in the path.
+#
+# Returns
+# Success=0 or Fail=1
+##
+function find_top() {
+    if [[ "$#" -ne 2 ]]; then
+        echo "find_top requires 2 parameters"
+        echo "<ret_var_name> <directory looking for>"
+        return 1
+    fi
+
+    local l_cwd_orig
+    local l_cwd
+    local l_cwd_base
+
+    l_cwd="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" >/dev/null && pwd )"
+    l_cwd_orig=${l_cwd}
+    while [[ ! -z ${l_cwd} ]]; do
+        l_cwd_base=`basename ${l_cwd}`
+        if [[ "${2}" !=  "${l_cwd_base}" ]]; then
+            l_cwd=${l_cwd//\/$l_cwd_base/}
+            continue
+        else
+            break 2
+        fi
+    done
+    if [[ -z ${l_cwd} ]]; then
+        echo "Was expecting the top of the repo to be ${2} failed to find that in path ${l_cwd_orig}"
+        return 1
+    fi
+    eval "$1=${l_cwd}"
+    return 0
+}
