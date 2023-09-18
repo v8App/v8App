@@ -45,3 +45,11 @@ http_archive(
     sha256 = "cd06d15dd8bb59926e4d65f9003bfc20f9da4b2519985c27e190cddc8b7a7806",
     strip_prefix = "rules_android-0.1.1",
 )
+
+# f8d7d77c06936315286eb55f8de22cd23c188571  is the commit sha for v1.14.0. 
+# Periodically update to the latest to "live at head"
+http_archive(
+    name = "com_google_googletest",
+    strip_prefix = "googletest-f8d7d77c06936315286eb55f8de22cd23c188571",
+    urls = ["https://github.com/google/googletest/archive/f8d7d77c06936315286eb55f8de22cd23c188571.zip"],
+)

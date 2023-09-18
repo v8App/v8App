@@ -32,7 +32,7 @@ namespace v8App
             bool NoMessages() const;
             void FlushMessages();
 
-            bool validateMessage(const Log::LogMessage &inMessage, const IgnoreMsgKeys& inIgnoreKeys = IgnoreMsgKeys(), int skipMessages = 0);
+            bool ValidateMessage(const Log::LogMessage &inMessage, const IgnoreMsgKeys& inIgnoreKeys = IgnoreMsgKeys(), int skipMessages = 0);
 
             static const std::string GlobalTestSinkName;
         protected:

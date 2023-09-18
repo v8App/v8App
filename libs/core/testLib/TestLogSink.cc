@@ -91,7 +91,7 @@ namespace v8App
             m_Message.clear();
         }
 
-        bool TestLogSink::validateMessage(const Log::LogMessage &inExpected, const IgnoreMsgKeys &inIgnoreKeys, int skipMessages)
+        bool TestLogSink::ValidateMessage(const Log::LogMessage &inExpected, const IgnoreMsgKeys &inIgnoreKeys, int skipMessages)
         {
             Log::LogMessage message;
             if (m_Message.size() <= skipMessages)

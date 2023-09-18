@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <string>
 
-#include "Platform.h"
+#include "BasePlatform.h"
 
 namespace v8App
 {
@@ -23,7 +23,7 @@ namespace v8App
 
     protected:
         std::filesystem::path m_RootAppPath;
-        std::unique_ptr<Platform> m_PlatformInstance;
+        std::unique_ptr<BasePlatform> m_Platform;
     };
 }
 #endif //__APPLICATION_H__

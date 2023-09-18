@@ -1,6 +1,8 @@
 .idea
-build
 bazel-bin
 bazel-out
 bazel-testlogs
 bazel-v8App
+third_party/v8/include/
+
+third_party/v8/win-x64-release
