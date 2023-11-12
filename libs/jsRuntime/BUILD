@@ -1,0 +1,119 @@
+load("@v8App//:bazel/v8_app_rules.bzl", "v8App_library", "v8App_test")
+
+v8App_library(
+    name = "jsRuntime",
+    srcs = [
+        #        "src/CppBridge/V8Arguments.cc",
+        #        "src/CppBridge/V8FunctionTemplate.cc",
+        #        "src/CppBridge/V8NativeObject.cc",
+        #        "src/CppBridge/V8ObjectTemplateBuilder.cc",
+        #        "src/CppBridge/V8TypeConverter.cc",
+        #        "src/EmbeddedScripts.cc",
+        "src/ForegroundTaskRunner.cc",
+        #        "src/JSContext.cc",
+        #        "src/JSContextModules.cc",
+        "src/NestableQueue.cc",
+        #        "src/JSRuntime.cc",
+        #        "src/JSUtilities.cc",
+        #        "src/ScriptStartupDataManager.cc",
+        #        "src/StartupData.cc",
+        #        "src/V8ExternalRegistry.cc",
+        #        "src/V8Platform.cc",
+        "src/WorkerTaskRunner.cc",
+    ],
+    hdrs = [
+        #        "include/CppBridge/V8Arguments.h",
+        #        "include/CppBridge/V8FunctionTemplate.h",
+        #        "include/CppBridge/V8NativeObject.h",
+        #        "include/CppBridge/V8NativeObjectHandle.h",
+        #        "include/CppBridge/V8ObjectTemplateBuilder.h",
+        #        "include/CppBridge/V8TypeConverter.h",
+        "include/ForegroundTaskRunner.h",
+        #        "include/JSContext.h",
+        #        "include/JSContextModules.h",
+        #        "include/JSModuleInfo.h",
+        "include/NestableQueue.h",
+        #        "include/JSRuntime.h",
+        #        "include/JSUtilities.h",
+        #        "include/ScriptStartupDataManager.h",
+        #        "include/V8ExternalRegistry.h",
+        #        "include/V8Platform.h",
+        "include/V8Types.h",
+        "include/WorkerTaskRunner.h",
+    ],
+    copts = [
+        "-Ilibs/core/include",
+        "-Ilibs/jsRuntime/include",
+        "-Ithird_party/v8/include",
+    ],
+    defines = [
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//libs/core",
+        "//third_party/v8",
+    ],
+)
+
+v8App_test(
+    name = "testJSRuntime",
+    size = "small",
+    srcs = [
+        #        "tests/CppBridge/V8ArgumentsTest.cc",
+        #        "tests/CppBridge/V8FunctionTemplateTest.cc",
+        #        "tests/CppBridge/V8NativeObjecttest.cc",
+        #        "tests/CppBridge/V8ObjectTemplateTest.cc",
+        #        "tests/CppBridge/V8TypeConverterTest.cc",
+        "tests/ForegroundTaskRunnerTest.cc",
+        #        "tests/JSContextTest.cc",
+        #        "tests/JSModulesTest.cc",
+        "tests/NestableQueueTest.cc",
+        # "tests/JSRuntimeTest.cc",
+        #        "tests/ScriptStartupdataManagerTest.cc",
+        #        "tests/TaskRunnerDeathTest.cc",
+        #        "tests/V8PlatformRuntimeTest.cc",
+        #        "tests/V8PlatformWorkerTest.cc",
+        #        "tests/V8StartupICUDataTest.cc",
+        #        "tests/V8TestFixture.cc",
+        #       "tests/V8TestFixture.h",
+        "tests/WorkerTaskRunnerDeathTest.cc",
+        "tests/WorkerTaskRunnerTest.cc",
+    ],
+    copts = [
+        "-Ilibs/core/include",
+        "-Ilibs/core/testLib",
+        "-Ilibs/jsRuntime/include",
+        "-Ithird_party/v8/include",
+        "-Ithird_party/bazel-runfiles/include",
+    ],
+    data = glob(["tests/test-files/**"]) + [
+        "tests/test-files",
+        ":build-test-env-file",
+        "//third_party/v8:icu_dat",
+        "//third_party/v8:snapshot_blob",
+    ],
+    defines = [
+    ],
+    env = {
+        "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
+        "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
+    },
+    visibility = ["//visibility:public"],
+    deps = [
+        ":jsRuntime",
+        "//libs/core",
+        "//libs/core:coreTest",
+        "//third_party/v8",
+    ],
+)
+
+genrule(
+    name = "build-test-env-file",
+    srcs = [
+        "@//third_party/v8:icu_dat",
+        "@//third_party/v8:snapshot_blob",
+    ],
+    outs = ["test.env"],
+    cmd = 'echo "V8_ICU_DATA=$(rlocationpath //third_party/v8:icu_dat)" >> $@;' +
+          'echo "V8_SNAPSHOT_BIN=$(rlocationpath //third_party/v8:snapshot_blob)" >> $@;',
+)

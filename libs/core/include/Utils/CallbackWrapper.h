@@ -6,7 +6,7 @@
 #define __CALLBACK_WRAPPER_H__
 
 #include <functional>
-#include <experimental/type_traits>
+#include <type_traits>
 #include <memory>
 
 #include <Logging/LogMacros.h>

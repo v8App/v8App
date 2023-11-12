@@ -1,0 +1,73 @@
+{
+    "configurations": [
+        {
+            "name": "Win32 Release",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/third_party/v8/include",
+                "${workspaceFolder}/third_party/bazel-runfiles/include",
+                "${workspaceFolder}/libs/application/include",
+                "${workspaceFolder}/libs/core/include",
+                "${workspaceFolder}/libs/core/testLib",
+                "${workspaceFolder}/libs/jsRuntime/include"
+            ],
+            "defines": [
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64"
+        },    
+        {
+            "name": "Win32 DEBUG",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/third_party/v8/include",
+                "${workspaceFolder}/third_party/bazel-runfiles/include",
+                "${workspaceFolder}/libs/application/include",
+                "${workspaceFolder}/libs/core/include",
+                "${workspaceFolder}/libs/core/testLib",
+                "${workspaceFolder}/libs/jsRuntime/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64"
+        },    
+        {
+            "name": "Win32 Testing",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/third_party/v8/include",
+                "${workspaceFolder}/third_party/bazel-runfiles/include",
+                "${workspaceFolder}/libs/application/include",
+                "${workspaceFolder}/libs/core/include",
+                "${workspaceFolder}/libs/core/testLib",
+                "${workspaceFolder}/libs/jsRuntime/include",
+                "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googletest/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "UNIT_TESTING"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}

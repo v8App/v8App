@@ -373,7 +373,7 @@ namespace v8App
 
             resetGlobals();
 
-            auto func2 = std::function<int(int, std::string)>(testFunctionReturns);
+            auto func2 = std::function<int(float, std::string)>(testFunctionReturns);
 
             auto callback2 = MakeCallback(func2);
             EXPECT_EQ(20, callback2.Invoke(10, "test"));

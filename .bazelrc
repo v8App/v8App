@@ -1,1 +1,2 @@
-build --incompatible_enable_cc_toolchain_resolution
+startup --windows_enable_symlinks
+build:windows --features=static_link_msvcrt

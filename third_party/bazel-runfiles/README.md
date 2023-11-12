@@ -1,1 +1,0 @@
-This is a customized version of the bazel build runfiles source. It was customized to allow wild card chaaracters * and ?? in the paths. original can be found here https://github.com/bazelbuild/bazel/tree/master/tools/cpp/runfiles

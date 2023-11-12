@@ -4,7 +4,7 @@
 
 #include <mach-o/dyld.h>
 
-#include "MacPlatform.h"
+#include "plstforms/macos/MacPlatform.h"
 
 namespace v8App {
     std::filesystem::path MacPlatform::GetExecutablePath()

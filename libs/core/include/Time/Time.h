@@ -8,13 +8,38 @@
 
 #include <chrono>
 
+#ifdef UNIT_TESTING
+#include "TestTime.h"
+#endif
 namespace v8App
 {
     namespace Time
     {
+        // for when classes need to use another time function instead normal one.
+        using TimeFunction = double (*)();
+
         inline double MonotonicallyIncreasingTimeSeconds()
         {
-            return std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+            #ifdef UNIT_TESTING
+            if(TestTime::TestTimeSeconds::IsEnabled())
+            {
+                return TestTime::TestTimeSeconds::Get();
+            }
+            #endif
+            uint64_t now =  std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            return now;
+        }
+
+        inline double MonotonicallyIncreasingTimeMilliSeconds()
+        {
+            #ifdef UNIT_TESTING
+            if(TestTime::TestTimeMilliSeconds::IsEnabled())
+            {
+                return TestTime::TestTimeMilliSeconds::Get();
+            }
+            #endif
+            uint64_t now =  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            return now;
         }
     } // namespace Time
 } // namespace v8App

@@ -85,7 +85,7 @@ namespace v8App
 
         TEST(LogTest, AddRemoveLogSink)
         {
-            //NOTE: the unique_ptr owns this and will delete it when it's removed
+            // NOTE: the unique_ptr owns this and will delete it when it's removed
             TestUtils::WantsLogLevelsVector warns = {LogLevel::Warn};
             TestUtils::TestLogSink *testSink = new TestUtils::TestLogSink("TestLogSink", warns);
             std::unique_ptr<ILogSink> sinkObj(testSink);
@@ -93,25 +93,25 @@ namespace v8App
             TestUtils::WantsLogLevelsVector emptyWants;
             std::unique_ptr<ILogSink> sink2(new TestUtils::TestLogSink("TestLogSink", emptyWants));
 
-            //need to change the log level so we can see the warn
+            // need to change the log level so we can see the warn
             Log::SetLogLevel(LogLevel::Warn);
 
             ASSERT_TRUE(Log::AddLogSink(sinkObj));
             ASSERT_FALSE(Log::AddLogSink(sink2));
             EXPECT_TRUE(testSink->WantsLogMessage(LogLevel::Warn));
 
-            //there are other keys in the message but we are only concerned with the msg for this test.
+            // there are other keys in the message but we are only concerned with the msg for this test.
             LogMessage expected = {
                 {MsgKey::Msg, "Sink with name:" + testSink->GetName() + " already exists"},
                 {MsgKey::LogLevel, "Warn"},
             };
 
-            TestUtils::IgnoreMsgKeys ignore = {MsgKey::AppName, MsgKey::TimeStamp };
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            TestUtils::IgnoreMsgKeys ignore = {MsgKey::AppName, MsgKey::TimeStamp};
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //ok time to remove it.
+            // ok time to remove it.
             Log::RemoveLogSink(testSink->GetName());
-            //at this point the sinkObj isn't valid;
+            // at this point the sinkObj isn't valid;
             sinkObj = nullptr;
             ASSERT_TRUE(LogTest::LogDouble::IsSinksEmpty());
         }
@@ -119,10 +119,10 @@ namespace v8App
         TEST(LogTest, GenerateISO8601Time)
         {
             std::string time = Log::GenerateISO8601Time(true);
-            //utc version
-            //EXPECT_THAT(Log::GenerateISO8601Time(true), ::testing::MatchesRegex("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ"));
-            //non utc version
-            //EXPECT_THAT(Log::GenerateISO8601Time(false), ::testing::MatchesRegex("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d"));
+            // utc version
+            // EXPECT_THAT(Log::GenerateISO8601Time(true), ::testing::MatchesRegex("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ"));
+            // non utc version
+            // EXPECT_THAT(Log::GenerateISO8601Time(false), ::testing::MatchesRegex("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d"));
         }
 
         TEST(LogTest, testInternalLogExtended)
@@ -144,7 +144,7 @@ namespace v8App
             EXPECT_THAT(output, ::testing::HasSubstr("Line:10"));
             EXPECT_THAT(output, ::testing::HasSubstr("}"));
 
-            //test with the test sink
+            // test with the test sink
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::General});
 
             LogTest::LogDouble::TestInternalLog(message, LogLevel::General, "File", "Function", 10);
@@ -159,7 +159,7 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp};
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testInternalLog)
@@ -170,7 +170,7 @@ namespace v8App
             message.emplace(MsgKey::Msg, "Test");
             Log::SetLogLevel(LogLevel::General);
 
-            //first test with no sinks
+            // first test with no sinks
             ::testing::internal::CaptureStderr();
             LogTest::LogDouble::TestInternalLog(message, LogLevel::General);
             std::string output = ::testing::internal::GetCapturedStderr();
@@ -179,7 +179,7 @@ namespace v8App
             EXPECT_THAT(output, ::testing::HasSubstr("Message:Test"));
             EXPECT_THAT(output, ::testing::HasSubstr("}"));
 
-            //test with the test sink
+            // test with the test sink
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::General});
 
             LogTest::LogDouble::TestInternalLog(message, LogLevel::General);
@@ -191,9 +191,9 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp};
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test not logged to sink cause it doesn't want level
+            // test not logged to sink cause it doesn't want level
             testSink->FlushMessages();
             LogTest::LogDouble::TestInternalLog(message, LogLevel::Error);
             ASSERT_TRUE(testSink->NoMessages());
@@ -208,13 +208,13 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Error(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Error);
 
             Log::Error(message);
@@ -226,9 +226,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::General);
             testSink->FlushMessages();
             Log::Error(message);
@@ -244,19 +244,19 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::Error);
 
             Log::General(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::General(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::General);
 
             Log::General(message);
@@ -268,9 +268,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Warn);
             testSink->FlushMessages();
             Log::General(message);
@@ -282,23 +282,23 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Warn, LogLevel::General});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::General);
 
             Log::Warn(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Warn(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Warn);
 
             Log::Warn(message);
@@ -310,9 +310,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Debug);
             testSink->FlushMessages();
             Log::Warn(message);
@@ -328,19 +328,19 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::Warn);
 
             Log::Debug(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Debug(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Debug);
 
             Log::Debug(message);
@@ -352,9 +352,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Trace);
             testSink->FlushMessages();
             Log::Debug(message);
@@ -370,19 +370,19 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::Debug);
 
             Log::Trace(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Trace(message);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Trace);
 
             Log::Trace(message);
@@ -393,7 +393,7 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testFatal)
@@ -401,11 +401,11 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Trace});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //test sends message even though off and sink doesn't want it.
+            // test sends message even though off and sink doesn't want it.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Fatal(message);
@@ -417,7 +417,7 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testErrorExtended)
@@ -425,17 +425,17 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Error(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Error);
 
             Log::Error(message, "File", "Function", 10);
@@ -450,9 +450,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::General);
             testSink->FlushMessages();
             Log::Error(message, "File", "Function", 10);
@@ -464,23 +464,23 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error, LogLevel::General});
-  
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::Error);
 
             Log::General(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::General(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::General);
 
             Log::General(message, "File", "Function", 10);
@@ -494,9 +494,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Warn);
             testSink->FlushMessages();
             Log::General(message, "File", "Function", 10);
@@ -512,19 +512,19 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::General);
 
             Log::Warn(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Warn(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Warn);
 
             Log::Warn(message, "File", "Function", 10);
@@ -539,9 +539,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Debug);
             testSink->FlushMessages();
             Log::Warn(message, "File", "Function", 10);
@@ -557,19 +557,19 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::Warn);
 
             Log::Debug(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Debug(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Debug);
 
             Log::Debug(message, "File", "Function", 10);
@@ -584,9 +584,9 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
-            //test that the message logged on higher level
+            // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Trace);
             testSink->FlushMessages();
             Log::Debug(message, "File", "Function", 10);
@@ -602,19 +602,19 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //first test the message doesn't get logged on lower level
+            // first test the message doesn't get logged on lower level
             Log::SetLogLevel(LogLevel::Debug);
 
             Log::Trace(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test no message when level is set to off.
+            // test no message when level is set to off.
             Log::SetLogLevel(LogLevel::Off);
 
             Log::Trace(message, "File", "Function", 10);
             EXPECT_TRUE(testSink->NoMessages());
 
-            //test message gets logged on level
+            // test message gets logged on level
             Log::SetLogLevel(LogLevel::Trace);
 
             Log::Trace(message, "File", "Function", 10);
@@ -629,7 +629,7 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testFatalExtended)
@@ -641,7 +641,7 @@ namespace v8App
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
-            //test message gets ent even though off and sink doesn't want it
+            // test message gets ent even though off and sink doesn't want it
             Log::SetLogLevel(LogLevel::Trace);
 
             Log::Fatal(message, "File", "Function", 10);
@@ -656,7 +656,7 @@ namespace v8App
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testLogMacroError)
@@ -664,7 +664,7 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error, LogLevel::General, LogLevel::Warn, LogLevel::Debug, LogLevel::Trace});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
@@ -673,7 +673,7 @@ namespace v8App
             testSink->FlushMessages();
 
             LOG_ERROR(message);
-            //so the checks aren't as brittle
+            // so the checks aren't as brittle
             size_t line = __LINE__ - 2;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
@@ -691,7 +691,7 @@ namespace v8App
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
 #endif
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testLogMacroGeneral)
@@ -699,14 +699,14 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error, LogLevel::General, LogLevel::Warn, LogLevel::Debug, LogLevel::Trace});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
             Log::SetLogLevel(LogLevel::Trace);
 
             LOG_GENERAL(message);
-            //so the checks aren't as brittle
+            // so the checks aren't as brittle
             size_t line = __LINE__ - 2;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
@@ -723,7 +723,7 @@ namespace v8App
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
 #endif
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testLogMacroWarn)
@@ -731,7 +731,7 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error, LogLevel::General, LogLevel::Warn, LogLevel::Debug, LogLevel::Trace});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
@@ -740,7 +740,7 @@ namespace v8App
             testSink->FlushMessages();
 
             LOG_WARN(message);
-            //so the checks aren't as brittle
+            // so the checks aren't as brittle
             size_t line = __LINE__ - 2;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
@@ -757,7 +757,7 @@ namespace v8App
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
 #endif
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testLogMacroDebug)
@@ -772,7 +772,7 @@ namespace v8App
             Log::SetLogLevel(LogLevel::Trace);
 
             LOG_DEBUG(message);
-            //so the checks aren't as brittle
+            // so the checks aren't as brittle
             size_t line = __LINE__ - 2;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
@@ -789,7 +789,7 @@ namespace v8App
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
 #endif
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testLogMacroTrace)
@@ -797,14 +797,14 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error, LogLevel::General, LogLevel::Warn, LogLevel::Debug, LogLevel::Trace});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
             Log::SetLogLevel(LogLevel::Trace);
 
             LOG_TRACE(message);
-            //so the checks aren't as brittle
+            // so the checks aren't as brittle
             size_t line = __LINE__ - 2;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
@@ -821,7 +821,7 @@ namespace v8App
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
 #endif
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
 
         TEST(LogTest, testLogMacroFatal)
@@ -829,14 +829,14 @@ namespace v8App
             LogTest::LogDouble::ResetLog();
 
             TestUtils::TestLogSink *testSink = LogTest::SetupGlobalSink({LogLevel::Error, LogLevel::General, LogLevel::Warn, LogLevel::Debug, LogLevel::Trace});
- 
+
             LogMessage message;
             message.emplace(MsgKey::Msg, "Test");
 
             Log::SetLogLevel(LogLevel::Trace);
 
             LOG_FATAL(message);
-            //so the checks aren't as brittle
+            // so the checks aren't as brittle
             size_t line = __LINE__ - 2;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
@@ -853,7 +853,7 @@ namespace v8App
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
 #endif
-            ASSERT_TRUE(testSink->validateMessage(expected, ignore));
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
     } // namespace Log
 } // namespace v8App
