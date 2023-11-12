@@ -1,25 +1,25 @@
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
-load("@com_github_v8app_v8app//:bazel/platform_configs.bzl", "define_platform_config_settings")
+load("@v8App//:bazel/v8_app_rules.bzl", "v8App_library", "v8App_test")
+load("@v8App//:bazel/platform_configs.bzl", "define_platform_config_settings")
 
 define_platform_config_settings()
 
-cc_library(
+v8App_library(
     name = "application",
     srcs = select({
-        "macos": [
+        "//:macos": [
             "src/platforms/macos/MacPlatform.cc",
         ],
-        "windows": [
+        "//:windows": [
             "src/platforms/windows/WinPlatform.cc",
         ],
     }) + [
         "src/Application.cc",
     ],
     hdrs = select({
-        "macos": [
+        "//:macos": [
             "include/platforms/macos/MacPlatform.h",
         ],
-        "windows": [
+        "//:windows": [
             "include/platforms/windows/WinPlatform.h",
         ] + [
             "include/Application.h",
@@ -28,20 +28,21 @@ cc_library(
     }),
     copts = [
         "-Ilibs/application/include",
-        "-std:c++20",
+    ],
+    defines = [
     ],
     visibility = ["//visibility:public"],
 )
 
-cc_test(
+v8App_test(
     name = "testApplication",
-    size="small",
     srcs = [
         "tests/ApplicationTest.cc",
+    ],
+    defines = [
     ],
     visibility = ["//visibility:public"],
     deps = [
         ":application",
-        "//src:test-main",
     ],
 )

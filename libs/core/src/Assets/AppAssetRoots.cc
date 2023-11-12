@@ -250,6 +250,7 @@ namespace v8App
                     }
                 }
             }
+            return true;
         }
     }
 }

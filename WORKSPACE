@@ -2,13 +2,13 @@
 # Use of this source code is governed by the MIT license
 # that can be found in the LICENSE file.
 
-workspace(name = "com_github_v8app_v8app")
+workspace(name = "v8App")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 new_local_repository(
     name = "libuv",
-    build_file = "@com_github_v8app_v8app//:third_party/libuv.BUILD",  
+    build_file = "@v8App//:third_party/libuv.BUILD",  
     path="third_party/libuv"
 )
 

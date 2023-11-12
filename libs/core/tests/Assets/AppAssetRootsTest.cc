@@ -39,7 +39,13 @@ namespace v8App
             TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
             std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
             EXPECT_TRUE(Log::Log::AddLogSink(logSinkObj));
-            TestUtils::IgnoreMsgKeys ignoreKeys = {Log::MsgKey::AppName, Log::MsgKey::TimeStamp};
+            TestUtils::IgnoreMsgKeys ignoreKeys = {
+                Log::MsgKey::AppName, 
+                Log::MsgKey::TimeStamp, 
+                Log::MsgKey::File,
+                Log::MsgKey::Function,
+                Log::MsgKey::Line
+                };
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
             std::filesystem::path tmp = std::filesystem::temp_directory_path();

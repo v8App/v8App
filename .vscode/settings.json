@@ -105,7 +105,7 @@
         ]
     },
     "gtest-adapter.debugConfig": [
-        "test libCore"
+        "test libCore Debug"
     ],
     "gtest-adapter.supportLocation": true
 }

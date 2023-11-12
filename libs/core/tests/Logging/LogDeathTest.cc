@@ -77,6 +77,19 @@ namespace v8App
                         ::testing::ExitedWithCode(0), "");
         }
 
+       TEST(LogDeathTest, CheckUnimplemented)
+        {
+            LogTest::LogDouble::ResetLog();
+
+            // The output for this is really a multiline message however
+            //  the assert only checks the first line against what's passed
+            // which is why it's just the first line of the log message.
+            ASSERT_DEATH({
+                UNIMPLEMENTED();
+            },
+                         "v8App Log \\{");
+        }
+
         TEST(LogDeathTest, CheckMacro)
         {
             LogTest::LogDouble::ResetLog();

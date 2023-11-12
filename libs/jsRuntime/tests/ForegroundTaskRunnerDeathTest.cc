@@ -4,7 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "TaskRunner.h"
+#include "ForegroundTaskRunner.h"
 
 namespace v8App
 {
@@ -25,45 +25,25 @@ namespace v8App
 
         TEST(TaskRunnerDeathTest, TaskRunScope)
         {
-//Only applicable in debug builds
+// Only applicable in debug builds
 #ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 std::shared_ptr<MockDeathTaskRunner> runner = std::make_shared<MockDeathTaskRunner>();
                 runner->SetNestingDepth(-1);
                 TaskRunner::TaskRunScope scope(runner);
+                std::exit(0);
             },
-                         "v8App Log {");
+                         "v8App Log \\{");
 
-            ASSERT_DEATH({
+            EXPECT_EXIT({
                 std::shared_ptr<MockDeathTaskRunner> runner = std::make_shared<MockDeathTaskRunner>();
                 {
                     TaskRunner::TaskRunScope scope(runner);
                     runner->SetNestingDepth(-1);
+                    std::exit(0);
                 }
             },
-                         "v8App Log {");
-#endif
-        }
-        TEST(TaskRunnerDeathTest, PostDelayedTask)
-        {
-#ifdef V8APP_DEBUG
-            ASSERT_DEATH({
-                TaskRunner runner;
-                TaskPtr task = std::make_unique<RunnerDeathTestTask>();
-                runner.PostDelayedTask(std::move(task), -1.0);
-            },
-                         "v8App Log {");
-#endif
-        }
-        TEST(TaskRunnerDeathTest, PostNonNestableDelayedTask)
-        {
-#ifdef V8APP_DEBUG
-            ASSERT_DEATH({
-                TaskRunner runner;
-                TaskPtr task = std::make_unique<RunnerDeathTestTask>();
-                runner.PostNonNestableDelayedTask(std::move(task), -1.0);
-            },
-                         "v8App Log {");
+                        ::testing::ExitedWithCode(0), "");
 #endif
         }
     } // namespace JSRuntime

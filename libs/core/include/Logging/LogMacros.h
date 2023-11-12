@@ -25,6 +25,16 @@
         }                                                       \
     } while (0);
 
+#define UNIMPLEMENTED()                                             \
+do                                                                  \
+{                                                                   \
+        static v8App::Log::LogMessage temp;                         \
+        temp.emplace(v8App::Log::MsgKey::Msg,                       \
+        "Unimplmented Method Called");                              \
+        v8App::Log::Log::Fatal(temp, __FILE__, __func__, __LINE__); \
+        ABORT();                                                    \
+    } while (0);
+
 #define CHECK(expr) CHECK_FULL(expr, __FILE__, __func__, __LINE__)
 
 #define CHECK_EQ(a, b) CHECK((a) == (b))
@@ -37,6 +47,7 @@
 #define CHECK_NOT_NULL(a) CHECK((a) != nullptr)
 #define CHECK_TRUE(a) CHECK((a))
 #define CHECK_FALSE(a) CHECK((!a))
+
 
 #ifdef V8APP_DEBUG
 #define LOG_GENERAL(message) v8App::Log::Log::General(message, __FILE__, __func__, __LINE__)
@@ -78,4 +89,4 @@
 
 #endif
 
-#endif
+#endif // _LOG_MACROS_H_
