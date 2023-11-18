@@ -20,6 +20,6 @@ namespace v8App
             return std::string(var);
         }
     } // Utils
-} // V8App
+} // v8App
 
 #endif //__ENVIRONMENT_H__

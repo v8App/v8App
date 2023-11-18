@@ -26,13 +26,10 @@ namespace v8App
             switch (inPriority)
             {
             case ThreadPriority::kBestEffort:
-                priority = THREAD_PRIORITY_BELOW_NORMAL;
+                priority = THREAD_PRIORITY_NORMAL;
                 break;
             case ThreadPriority::kUserVisible:
                 priority = THREAD_PRIORITY_ABOVE_NORMAL;
-                break;
-            case ThreadPriority::kDefault:
-                priority = THREAD_PRIORITY_NORMAL;
                 break;
             }
             succeeded = ::SetThreadPriority(inThread->native_handle(), priority) != 0;
@@ -46,15 +43,12 @@ namespace v8App
             case ThreadPriority::kUserVisible:
                 priority = 8;
                 break;
-            case ThreadPriority::kDefault:
-                priority = 5;
-                break;
             }
             sched_param params;
             params.sched_priority = priority;
             succeeded = pthread_setschedparam(inThread->native_handle(), SCHED_RR, priority) == 0;
 #endif
-                if (succeeded == false)
+            if (succeeded == false)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, std::format("Failed to set thread priorty"));

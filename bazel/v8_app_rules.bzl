@@ -1,3 +1,5 @@
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
 def _default_args():
     return struct(
         defines = select({
@@ -22,8 +24,8 @@ def _default_args():
                       "//conditions:default": [],
                   }) +
                   selects.with_or({
-                      ("x86_64", "arm64"): ["PLATFOEM_64"],
-                      ("x86_32", "armv7"): ["PLATFORM_32"],
+                      ("@platforms//cpu:x86_64", "@platforms//cpu:arm64"): ["PLATFOEM_64"],
+                      ("@platforms//cpu:x86_32", "@platforms//cpu:armv7"): ["PLATFORM_32"],
                   }) +
                   ["V8_COMPRESS_POINTERS"],
         copts = select({

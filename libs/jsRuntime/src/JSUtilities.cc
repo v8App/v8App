@@ -5,7 +5,7 @@
 #include <sstream>
 #include <fstream>
 
-#include "JSUtilites.h"
+#include "JSUtilities.h"
 #include "CppBridge/V8TypeConverter.h"
 
 namespace v8App

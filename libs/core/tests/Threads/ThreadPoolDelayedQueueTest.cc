@@ -36,7 +36,7 @@ namespace v8App
         class TestThreadPoolDelayedQueue : public ThreadPoolDelayedQueue
         {
         public:
-            TestThreadPoolDelayedQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kDefault)
+            TestThreadPoolDelayedQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kBestEffort)
                 : ThreadPoolDelayedQueue(inNumberOfWorkers, inPriority) {}
             int GetThreadPriority(int inIndex)
             {

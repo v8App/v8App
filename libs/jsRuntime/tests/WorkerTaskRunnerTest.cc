@@ -33,7 +33,7 @@ namespace v8App
 
         TEST(WorkerTaskRunnerTest, Constrcutor)
         {
-            MockWorkerTaskRunner runner(1, Threads::ThreadPriority::kDefault);
+            MockWorkerTaskRunner runner(1, Threads::ThreadPriority::kBestEffort);
             EXPECT_FALSE(runner.IsTerminated());
             EXPECT_FALSE(runner.NonNestableTasksEnabled());
             EXPECT_FALSE(runner.NonNestableDelayedTasksEnabled());
@@ -43,7 +43,7 @@ namespace v8App
         TEST(WorkerTaskRunnerTest, Tasks)
         {
             using SharedRunner = std::shared_ptr<MockWorkerTaskRunner>;
-            SharedRunner runner = std::make_shared<MockWorkerTaskRunner>(4, Threads::ThreadPriority::kDefault);
+            SharedRunner runner = std::make_shared<MockWorkerTaskRunner>(4, Threads::ThreadPriority::kBestEffort);
             int task1Int = 0;
             int task2Int = 0;
             int task3Int = 0;
@@ -90,7 +90,7 @@ namespace v8App
         TEST(WorkerTaskRunnerTest, Terminates)
         {
             using SharedRunner = std::shared_ptr<MockWorkerTaskRunner>;
-            SharedRunner runner = std::make_shared<MockWorkerTaskRunner>(1, Threads::ThreadPriority::kDefault);
+            SharedRunner runner = std::make_shared<MockWorkerTaskRunner>(1, Threads::ThreadPriority::kBestEffort);
 
             int task1Int = 0;
             V8TaskUniquePtr task1 = std::make_unique<WorkerRunnerTestTask>(&task1Int, 1);

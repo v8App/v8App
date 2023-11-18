@@ -34,7 +34,7 @@ namespace v8App
         class TestThreadPoolQueue : public ThreadPoolQueue
         {
         public:
-            TestThreadPoolQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kDefault)
+            TestThreadPoolQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kBestEffort)
                 : ThreadPoolQueue(inNumberOfWorkers, inPriority) {}
             int GetThreadPriority(int inIndex)
             {
@@ -60,7 +60,7 @@ namespace v8App
                 EXPECT_EQ(hardwareThreads, pool.GetNumberOfWorkers());
                 // test the IsExting method
                 EXPECT_FALSE(pool.IsExiting());
-                EXPECT_EQ(ThreadPriority::kDefault, pool.GetPriority());
+                EXPECT_EQ(ThreadPriority::kBestEffort, pool.GetPriority());
                 EXPECT_EQ(hardwareThreads, pool.GetWorkersSize());
 
 #if defined(V8APP_WINDOWS)

@@ -27,7 +27,7 @@ namespace v8App
         class ThreadPoolQueue
         {
         public:
-            ThreadPoolQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kDefault);
+            ThreadPoolQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kBestEffort);
             ~ThreadPoolQueue();
 
             // Add a task to the worker queue

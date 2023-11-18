@@ -5,11 +5,12 @@
 #include <future>
 #include <functional>
 #include <chrono>
-#include "v8.h"
-#include "V8Platform.h"
+
 #include "Time/Time.h"
 #include "Logging/LogMacros.h"
-#include "DelayedWorkerTaskQueue.h"
+#include "V8Platform.h"
+#include "V8Jobs.h"
+#include "v8.h"
 
 namespace v8App
 {
@@ -19,93 +20,75 @@ namespace v8App
 
         V8Platform::V8Platform()
         {
-            m_DelayedWorkerTasks = std::make_unique<DelayedWorkerTaskQueue>();
             m_TracingController = std::make_unique<v8::TracingController>();
+            int cores = std::thread::hardware_concurrency() - 1;
+            m_NumberOfWorkers = std::max(1, cores);
+            for (int idx = 0; idx <= static_cast<int>(Threads::ThreadPriority::kMaxPriority); idx++)
+            {
+                m_WorkerRunners[idx] = std::make_shared<WorkerTaskRunner>(m_NumberOfWorkers, IntToPriority(idx));
+            }
         }
 
         V8Platform::~V8Platform()
         {
+            for (int idx = 0; idx <= static_cast<int>(Threads::ThreadPriority::kMaxPriority); idx++)
+            {
+                m_WorkerRunners[idx]->Terminate();
+            }
         }
 
-        //v8::platform interface
+        // v8::platform interface
         v8::PageAllocator *V8Platform::GetPageAllocator()
         {
-            //for now just returns a nullptr
             return m_PageAllocator.get();
         }
 
-        bool V8Platform::OnCriticalMemoryPressure(size_t inLength)
+        v8::ThreadIsolatedAllocator *V8Platform::GetThreadIsolatedAllocator()
         {
-            //for now we return false
-            return false;
+            return m_ThreadIsolatedAllocator.get();
+        }
+
+        v8::ZoneBackingAllocator *V8Platform::GetZoneBackingAllocator()
+        {
+            if (m_ZoneBlockingAllocator == nullptr)
+            {
+                return v8::Platform::GetZoneBackingAllocator();
+            }
+            return m_ZoneBlockingAllocator.get();
+        }
+
+        void V8Platform::OnCriticalMemoryPressure()
+        {
+            // for now we do nothing
         }
 
         int V8Platform::NumberOfWorkerThreads()
         {
-            //make sure it's not null in debug
-            ThreadPool::WeakThreadPoolPtr pool = ThreadPool::ThreadPool::Get();
-            DCHECK_EQ(pool.expired(), false);
-            //return the number of worker we have in the global thread pool
-            return pool.lock()->GetNumberOfWorkers();
+            return m_NumberOfWorkers;
         }
 
-        std::shared_ptr<v8::TaskRunner> V8Platform::GetForegroundTaskRunner(v8::Isolate *inIsolate)
+        std::shared_ptr<v8::TaskRunner> V8Platform::GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority inPriority)
         {
-            //make sure it's not null in debug
-            DCHECK_NE(JSRuntime::GetRuntime(inIsolate), nullptr);
-            return JSRuntime::GetRuntime(inIsolate)->GetForegroundTaskRunner();
-        }
-
-        void V8Platform::CallOnWorkerThread(TaskPtr inTask)
-        {
-            //make sure it's not null in debug
-            ThreadPool::WeakThreadPoolPtr pool = ThreadPool::ThreadPool::Get();
-            DCHECK_EQ(pool.expired(), false);
-             ThreadPool::ThreadPoolTaskPtr task = std::make_unique<V8ThreadPoolTask>(std::move(inTask));
-            pool.lock()->PostTask(std::move(task));
-        }
-
-        void V8Platform::CallBlockingTaskOnWorkerThread(TaskPtr inTask)
-        {
-            //make sure it's not null in debug
-            ThreadPool::WeakThreadPoolPtr pool = ThreadPool::ThreadPool::Get();
-            DCHECK_EQ(pool.expired(), false);
-             std::packaged_task<void()> packed([task = std::move(inTask)]() { task->Run(); });
-            //get the future
-            std::future<void> future = packed.get_future();
-            ThreadPool::ThreadPoolTaskPtr task = std::make_unique<ThreadPool::CallableThreadTask>(std::move(packed));
-            pool.lock()->PostTask(std::move(task));
-            //block till it's done
-            future.get();
-        }
-
-        void V8Platform::CallLowPriorityTaskOnWorkerThread(TaskPtr inTask)
-        {
-            //make sure it's not null in debug
-             ThreadPool::WeakThreadPoolPtr pool = ThreadPool::ThreadPool::Get();
-            DCHECK_EQ(pool.expired(), false);
-            //TODO: Add priorty to the threak pool
-            ThreadPool::ThreadPoolTaskPtr task = std::make_unique<V8ThreadPoolTask>(std::move(inTask));
-            pool.lock()->PostTask(std::move(task));
-        }
-
-        void V8Platform::CallDelayedOnWorkerThread(TaskPtr inTask, double inDelaySeconds)
-        {
-            m_DelayedWorkerTasks->PostTask(inTask, inDelaySeconds);
+            // make sure it's not null in debug
+            //JSRuntimeSharedPtr runtime(JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate));
+            //DCHECK_NE(runtime, nullptr);
+            //return runtime->GetForegroundTaskRunner();
+            return std::shared_ptr<ForegroundTaskRunner>();
         }
 
         bool V8Platform::IdleTasksEnabled(v8::Isolate *inIsolate)
         {
-            //make sure it's not null in debug
-            DCHECK_NE(JSRuntime::GetRuntime(inIsolate), nullptr);
-            return JSRuntime::GetRuntime(inIsolate)->AreIdleTasksEnabled();
+            // make sure it's not null in debug
+            //JSRuntimeSharedPtr runtime(JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate));
+            //DCHECK_NE(runtime, nullptr);
+            //return runtime->AreIdleTasksEnabled();
+            return true;
         }
 
-        std::unique_ptr<v8::JobHandle> V8Platform::PostJob(
-            v8::TaskPriority inPriority, std::unique_ptr<v8::JobTask> inJobTask)
+        std::unique_ptr<v8::ScopedBlockingCall> V8Platform::CreateBlockingScope(v8::BlockingType blocking_type)
         {
-            //for now just return the default. Looking through chromium's source don't see it used.
-            return {};
+            // For now return nullptr
+            return nullptr;
         }
 
         double V8Platform::MonotonicallyIncreasingTime()
@@ -115,50 +98,130 @@ namespace v8App
 
         double V8Platform::CurrentClockTimeMillis()
         {
-            return std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
+            return Time::MonotonicallyIncreasingTimeMilliSeconds();
+        }
+
+        V8Platform::StackTracePrinter V8Platform::GetStackTracePrinter()
+        {
+            // for now just return nullptr
+            return nullptr;
         }
 
         v8::TracingController *V8Platform::GetTracingController()
         {
+            DCHECK_NOT_NULL(m_TracingController);
             return m_TracingController.get();
         }
 
-        void V8Platform::ProcessDelayedTasks()
+        void V8Platform::DumpWithoutCrashing()
         {
-            TaskPtr task;
-            do
+            // For now do nothing
+        }
+
+        v8::HighAllocationThroughputObserver *V8Platform::GetHighAllocationThroughputObserver()
+        {
+            // for now call the base
+            if (m_HighAllocObserver == nullptr)
             {
-                task = m_DelayedWorkerTasks->PopTask();
-                if (task)
-                {
-                    ThreadPool::ThreadPoolTaskPtr ptask = std::make_unique<V8ThreadPoolTask>(std::move(task));
-                    ThreadPool::ThreadPool::Get().lock()->PostTask(std::move(ptask));
-                    continue;
-                }
-            } while (task);
+                return v8::Platform::GetHighAllocationThroughputObserver();
+            }
+            return m_HighAllocObserver.get();
+        }
+
+        void V8Platform::SetTracingController(v8::TracingController *inController)
+        {
+            if (m_V8Inited != false && inController != nullptr)
+            {
+                m_TracingController.reset(inController);
+            }
+        }
+
+        void V8Platform::SetPageAllocator(v8::PageAllocator *inAllocator)
+        {
+            if (m_V8Inited != false && inAllocator != nullptr)
+            {
+                m_PageAllocator.reset(inAllocator);
+            }
+        }
+
+        void V8Platform::SetThreadIsolatatedAllocator(v8::ThreadIsolatedAllocator *inAllocator)
+        {
+            if (m_V8Inited != false && inAllocator != nullptr)
+            {
+                m_ThreadIsolatedAllocator.reset(inAllocator);
+            }
+        }
+
+        void V8Platform::SetHighAllocatoionObserver(v8::HighAllocationThroughputObserver *inObserver)
+        {
+            if (m_V8Inited != false && inObserver != nullptr)
+            {
+                m_HighAllocObserver.reset(inObserver);
+            }
+        }
+
+        void V8Platform::SetZoneBlockingAllocator(v8::ZoneBackingAllocator *inZoneAllocator)
+        {
+            if (m_V8Inited != false && inZoneAllocator != nullptr)
+            {
+                m_ZoneBlockingAllocator.reset(inZoneAllocator);
+            }
         }
 
         void V8Platform::InitializeV8()
         {
-            if (s_Platform != nullptr)
+            if (s_Platform != nullptr && s_Platform->m_V8Inited)
             {
                 return;
             }
 
-            s_Platform = std::make_shared<V8Platform>();
-            v8::V8::InitializePlatform(s_Platform.get());
+            v8::V8::InitializePlatform(Get().get());
             v8::V8::Initialize();
+            s_Platform->m_V8Inited = true;
         }
 
         void V8Platform::ShutdownV8()
         {
-            v8::V8::ShutdownPlatform();
+            v8::V8::Dispose();
+            v8::V8::DisposePlatform();
             s_Platform.reset();
         }
 
         std::shared_ptr<V8Platform> V8Platform::Get()
         {
+            if (s_Platform == nullptr)
+            {
+                s_Platform = std::make_shared<V8Platform>();
+            }
             return s_Platform;
+        }
+
+        std::unique_ptr<v8::JobHandle> V8Platform::CreateJobImpl(
+            v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
+            const v8::SourceLocation &location)
+        {
+            size_t numWorkers = NumberOfWorkerThreads();
+            if(priority == v8::TaskPriority::kBestEffort || numWorkers >2)
+            {
+                numWorkers = 2;
+            }
+            return std::make_unique<V8JobHandle>(std::make_shared<V8JobState>(this, std::move(job_task), priority, numWorkers));
+        }
+
+        void V8Platform::PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
+                                        std::unique_ptr<v8::Task> task,
+                                        const v8::SourceLocation &location)
+        {
+            int idx = PriorityToInt(priority);
+            m_WorkerRunners[idx]->PostTask(std::move(task));
+
+        }
+        void V8Platform::PostDelayedTaskOnWorkerThreadImpl(
+            v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
+            double delay_in_seconds, const v8::SourceLocation &location)
+        {
+            int idx = PriorityToInt(priority);
+            m_WorkerRunners[idx]->PostDelayedTask(std::move(task), delay_in_seconds);
         }
 
     } // namespace JSRuntime

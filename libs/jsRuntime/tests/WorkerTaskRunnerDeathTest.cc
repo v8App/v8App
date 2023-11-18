@@ -23,7 +23,7 @@ namespace v8App
         {
 #ifdef V8APP_DEBUG
             ASSERT_DEATH({
-                WorkerTaskRunner runner(4, Threads::ThreadPriority::kDefault);
+                WorkerTaskRunner runner(4, Threads::ThreadPriority::kBestEffort);
                 V8IdleTaskUniquePtr task = std::make_unique<TestIdleDeathTask>();
                 runner.PostIdleTask(std::move(task));
             },

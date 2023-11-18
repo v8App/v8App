@@ -27,7 +27,7 @@ namespace v8App
         class ThreadPoolDelayedQueue
         {
         public:
-            ThreadPoolDelayedQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kDefault);
+            ThreadPoolDelayedQueue(int inNumberOfWorkers = -1, ThreadPriority inPriority = ThreadPriority::kBestEffort);
             ~ThreadPoolDelayedQueue();
 
             // Add a task to the worker queue

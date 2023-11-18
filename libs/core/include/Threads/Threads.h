@@ -17,8 +17,7 @@ namespace v8App
             kBestEffort,
             kUserVisible,
             kUserBlocking,
-            kDefault,
-            kMaxPriority = kDefault
+            kMaxPriority = kUserBlocking
         };
 
         // allows setting the std::thread's native priority
