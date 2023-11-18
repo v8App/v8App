@@ -106,7 +106,7 @@ namespace v8App
                 return false;
             }
 
-            std::string ext = inFileName.extension();
+            std::string ext = inFileName.extension().string();
 
             if (ext.empty() == false && ext != ".js" && ext != ".mjs")
             {

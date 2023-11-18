@@ -6,7 +6,7 @@
 #include <string>
 
 #include "../V8TestFixture.h"
-#include "JSUtilites.h"
+#include "JSUtilities.h"
 #include "CppBridge/V8FunctionTemplate.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"

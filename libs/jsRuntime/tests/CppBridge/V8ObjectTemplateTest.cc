@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-#include "JSUtilites.h"
+#include "JSUtilities.h"
 #include "CppBridge/V8NativeObject.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
 #include "CppBridge/V8NativeObjectHandle.h"
@@ -214,15 +214,15 @@ namespace v8App
                 EXPECT_FALSE(source.IsEmpty());
                 EXPECT_FALSE(tryCatch.HasCaught());
 
-                v8::Local<v8::Script> script = v8::Script::Compile(m_Context.lock().get()->GetContext(), source).ToLocalChecked();
-                v8::Local<v8::Value> value = script->Run(m_Context.lock().get()->GetContext()).ToLocalChecked();
+                v8::Local<v8::Script> script = v8::Script::Compile(m_Context->GetContext(), source).ToLocalChecked();
+                v8::Local<v8::Value> value = script->Run(m_Context->GetContext()).ToLocalChecked();
                 v8::Local<v8::Function> function;
                 EXPECT_TRUE(ConvertFromV8(m_Isolate, value, &function));
                 EXPECT_FALSE(function.IsEmpty());
 
                 v8::Local<v8::Value> argv[] = {ConvertToV8(m_Isolate, object.Get()).ToLocalChecked()};
 
-                function->Call(m_Context.lock().get()->GetContext(), v8::Undefined(m_Isolate), 1, argv).ToLocalChecked();
+                function->Call(m_Context->GetContext(), v8::Undefined(m_Isolate), 1, argv).ToLocalChecked();
                 EXPECT_FALSE(tryCatch.HasCaught());
                 EXPECT_EQ("", JSUtilities::GetStackTrace(m_Isolate, tryCatch));
 
@@ -261,7 +261,7 @@ namespace v8App
             TEST_F(V8ObjectTemplateTest, InvocationErrorOnUnnamedObjectMethods)
             {
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context.lock().get()->GetContext();
+                v8::Local<v8::Context> context = m_Context->GetContext();
 
                 V8NativeObjectHandle<TestUnnamed> object = TestUnnamed::CreateObject(m_Isolate);
 
@@ -298,7 +298,7 @@ namespace v8App
             TEST_F(V8ObjectTemplateTest, InvocationErrorsOnNamedObjectMethods)
             {
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context.lock().get()->GetContext();
+                v8::Local<v8::Context> context = m_Context->GetContext();
 
                 V8NativeObjectHandle<TestNamed> object = TestNamed::CreateObject(m_Isolate);
 
@@ -328,7 +328,7 @@ namespace v8App
             TEST_F(V8ObjectTemplateTest, TestObjectConstructionInJSUnnamed)
             {
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context.lock().get()->GetContext();
+                v8::Local<v8::Context> context = m_Context->GetContext();
                 TestUnnamed::BuildObjectTemplate(m_Isolate);
 
                 const char source[] = R"script(
@@ -373,7 +373,7 @@ namespace v8App
             TEST_F(V8ObjectTemplateTest, TestObjectConstructionInJSNamed)
             {
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context.lock().get()->GetContext();
+                v8::Local<v8::Context> context = m_Context->GetContext();
 
                 //V8NativeObjectHandle<TestNamed> handle = TestNamed::CreateObject(m_Isolate);
                 TestNamed::BuildObjectTemplate(m_Isolate);

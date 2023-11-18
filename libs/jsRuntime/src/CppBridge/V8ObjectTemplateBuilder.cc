@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 #include "Logging/LogMacros.h"
-#include "JSUtilites.h"
+#include "JSUtilities.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
 #include "CppBridge/V8NativeObject.h"
 

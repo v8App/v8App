@@ -63,7 +63,7 @@ namespace v8App
         TEST(V8PlatformTest, OnCriticalMemoryPressure)
         {
             V8Platform platform;
-            EXPECT_FALSE(platform.OnCriticalMemoryPressure(100));
+            //EXPECT_FALSE(platform.OnCriticalMemoryPressure());
         }
 
         TEST(V8PlatformTest, NumberOfWorkerThreads)

@@ -2,7 +2,7 @@
 # Use of this source code is governed by the MIT license
 # that can be found in the LICENSE file.
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("@com_github_v8app_v8app//:bazel/platform_configs.bzl", "define_platform_config_settings")
+load("@v8App//:bazel/platform_configs.bzl", "define_platform_config_settings")
 
 define_platform_config_settings()
 

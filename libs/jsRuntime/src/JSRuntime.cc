@@ -5,6 +5,8 @@
 #include "v8.h"
 
 #include "JSRuntime.h"
+#include "JSContext.h"
+#include "JSContextModules.h"
 #include "DelayedWorkerTaskQueue.h"
 #include "TaskRunner.h"
 #include "Logging/LogMacros.h"
@@ -19,28 +21,36 @@ namespace v8App
             m_TaskRunner = std::make_shared<TaskRunner>();
             m_DelayedWorkerTasks = std::make_unique<DelayedWorkerTaskQueue>();
 
-            //custom deleter since we have to call dispose
-            m_Isolate = std::shared_ptr<v8::Isolate>(v8::Isolate::Allocate(), [](v8::Isolate *isolate)
+            // custom deleter since we have to call dispose
+            v8::Isolate* temp = v8::Isolate::Allocate();
+            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
                                                      { isolate->Dispose(); });
-            m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, this);
             m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
 
             v8::Isolate::CreateParams params;
-            //TODO: replace with custom allocator
+            // TODO: replace with custom allocator
             params.array_buffer_allocator =
                 v8::ArrayBuffer::Allocator::NewDefaultAllocator();
             v8::Isolate::Initialize(m_Isolate.get(), params);
 
-            JSModules::SetupModulesCallbacks(m_Isolate.get());
+            JSContextModules::SetupModulesCallbacks(m_Isolate.get());
+        }
+
+        void JSRuntime::SetIsolateWeakRef(JSRuntimeSharedPtr runtime)
+        {
+            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(runtime);
+            m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, weakPtr);
         }
 
         JSRuntime::~JSRuntime()
         {
-            //clear the contetes before we dispose of the isolate
+            // clear the contetes before we dispose of the isolate
             {
-            v8::HandleScope handleScope(m_Isolate.get());
+                v8::HandleScope handleScope(m_Isolate.get());
                 m_Contextes.clear();
             }
+            JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(IsolateDataSlot::kJSRuntimePointer));
+            delete weakPtr;
             m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, nullptr);
             m_Isolate.reset();
         }
@@ -55,9 +65,14 @@ namespace v8App
             return m_IdleEnabled == IdleTasksSupport::kIdleTasksEnabled;
         }
 
-        JSRuntime *JSRuntime::GetRuntime(v8::Isolate *inIsloate)
+        JSRuntimeSharedPtr JSRuntime::GetJSRuntimeFromV8Isolate(v8::Isolate *inIsloate)
         {
-            return static_cast<JSRuntime *>(inIsloate->GetData(IsolateDataSlot::kJSRuntimePointer));
+            JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(inIsloate->GetData(IsolateDataSlot::kJSRuntimePointer));
+            if (weakPtr == nullptr || weakPtr->expired())
+            {
+                return JSRuntimeSharedPtr();
+            }
+            return weakPtr->lock();
         }
 
         void JSRuntime::ProcessTasks()
@@ -135,13 +150,25 @@ namespace v8App
             return m_ExternalRegistry;
         }
 
-        WeakJSContextPtr JSRuntime::CreateContext()
+        JSContextWeakPtr JSRuntime::CreateContext(std::string inName)
         {
-            SharedJSContextPtr context = std::make_shared<JSContext>(m_Isolate.get());
-            context->InitializeContext();
-            m_Contextes.push_back(context);
+
+            JSContextSharedPtr context = std::make_shared<JSContext>(shared_from_this());
+            context->InitializeContext(context);
+            m_Contextes.insert(std::make_pair(inName, context));
 
             return context;
         }
+
+        JSContextWeakPtr JSRuntime::GetContextByName(std::string inName)
+        {
+            auto it = m_Contextes.find(inName);
+            if(it == m_Contextes.end())
+            {
+                return JSContextWeakPtr();
+            }
+            return JSContextWeakPtr(it->second);
+        }
+
     } // namespace JSRuntime
 } // namespace v8App

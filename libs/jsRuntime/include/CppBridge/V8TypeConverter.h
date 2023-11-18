@@ -161,7 +161,7 @@ namespace v8App
                         bool created;
                         if (array->CreateDataProperty(context, x, element).To(&created) == false || created == false)
                         {
-                            DCHECK_TRUE(false)
+                            DCHECK_TRUE(false);
                         }
                     }
                     return array;

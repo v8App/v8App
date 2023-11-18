@@ -12,18 +12,17 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        JSContext::JSContext(v8::Isolate *inIsolate) : m_Isolate(inIsolate)
+        JSContext::JSContext(JSRuntimeSharedPtr inIsolate) : m_Isolate(inIsolate)
         {
-            m_Modules = std::make_shared<JSModules>(this, inIsolate);
         }
 
         JSContext::~JSContext()
         {
-            //make sure the context is disposed of
+            // make sure the context is disposed of
             DisposeContext();
         }
 
-        //allow only move constrcutor and assignment
+        // allow only move constrcutor and assignment
         JSContext::JSContext(JSContext &&inContext)
         {
             MoveContext(std::move(inContext));
@@ -46,33 +45,41 @@ namespace v8App
             m_Context = std::move(inContext.m_Context);
             inContext.m_Context.Reset();
 
-            m_Modules = std::move(inContext.m_Modules);
-            //reset the context's pointer to the object
-            m_Context.Get(m_Isolate)->SetAlignedPointerInEmbedderData(0, this);
+            m_Modules = inContext.m_Modules;
+            inContext.m_Modules.reset();
         }
 
-        bool JSContext::InitializeContext()
+        bool JSContext::InitializeContext(JSContextSharedPtr inSharedContext)
         {
             if (m_Initialized)
             {
                 return true;
             }
+            if (m_Isolate == nullptr)
+            {
+                return false;
+            }
+            v8::Isolate *isolate = m_Isolate->GetIsolate().get();
+            if (isolate == nullptr)
+            {
+                return false;
+            }
+            m_Modules = std::make_shared<JSContextModules>(inSharedContext);
+            
+            v8::TryCatch tryCatch(isolate);
 
-            v8::TryCatch tryCatch(m_Isolate);
+            // TODO: Hook a setup for classes to register to the global
+            v8::Local<v8::ObjectTemplate> global_template = v8::ObjectTemplate::New(isolate);
 
-            //TODO: Hook a setup for classes to register to the global
-            v8::Local<v8::ObjectTemplate> global_template = v8::ObjectTemplate::New(m_Isolate);
-
-            v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global_template);
+            v8::Local<v8::Context> context = v8::Context::New(isolate, nullptr, global_template);
             DCHECK_FALSE(tryCatch.HasCaught());
 
             if (context.IsEmpty())
             {
                 return false;
             }
-
-            context->SetAlignedPointerInEmbedderData(0, this);
-            m_Context.Reset(m_Isolate, context);
+            SetContextWeakRef(inSharedContext);
+            m_Context.Reset(isolate, context);
             m_Initialized = true;
             return true;
         }
@@ -83,22 +90,82 @@ namespace v8App
             {
                 return;
             }
-            //delink the class pointer
             if (m_Context.IsEmpty() == false)
             {
-                m_Context.Get(m_Isolate)->SetAlignedPointerInEmbedderData(0, nullptr);
-                m_Context.Reset();
+                v8::Isolate *isolate = GetIsolate();
+                if (isolate != nullptr)
+                {
+                    v8::Local<v8::Context> context = m_Context.Get(isolate);
+
+                    // delink the class pointer
+                    JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(context->GetAlignedPointerFromEmbedderData(0));
+                    if (weakPtr != nullptr)
+                    {
+                        delete weakPtr;
+                    }
+                    context->SetAlignedPointerInEmbedderData(0, nullptr);
+                }
             }
+            m_Context.Reset();
+
             m_Isolate = nullptr;
-            m_Modules = nullptr;
 
             m_Initialized = false;
         }
 
-        JSContext *JSContext::GetJSContext(v8::Local<v8::Context> inContext)
+            v8::Isolate *JSContext::GetIsolate()  
+            { 
+                return m_Isolate == nullptr? nullptr : m_Isolate->GetIsolate().get(); 
+            }
+
+        JSContextSharedPtr JSContext::GetJSContextFromV8Context(v8::Local<v8::Context> inContext)
         {
-            return static_cast<JSContext *>(inContext->GetAlignedPointerFromEmbedderData(0));
+            JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(inContext->GetAlignedPointerFromEmbedderData(0));
+            if (weakPtr == nullptr || weakPtr->expired())
+            {
+                return JSContextSharedPtr();
+            }
+            return weakPtr->lock();
         }
 
+        void JSContext::SetContextWeakRef(JSContextSharedPtr inContext)
+        {
+            JSContextWeakPtr *weakPtr = GetContextWeakRef(inContext);
+            if (weakPtr != nullptr)
+            {
+                delete weakPtr;
+            }
+            if (inContext->GetIsolate() == nullptr)
+            {
+                return;
+            }
+            weakPtr = new JSContextWeakPtr(inContext);
+
+            m_Context.Get(inContext->GetIsolate())->SetAlignedPointerInEmbedderData(0, weakPtr);
+        }
+
+        JSContextWeakPtr *JSContext::GetContextWeakRef(JSContextSharedPtr inContext)
+        {
+            v8::Isolate *isolate = inContext->GetIsolate();
+            if (isolate == nullptr || inContext->m_Context.IsEmpty())
+            {
+                return nullptr;
+            }
+            v8::Local<v8::Context> context = inContext->m_Context.Get(isolate);
+            JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(context->GetAlignedPointerFromEmbedderData(0));
+            if (weakPtr == nullptr || weakPtr->expired())
+            {
+                return nullptr;
+            }
+            return weakPtr;
+        }
     }
+}
+
+template <>
+v8App::JSRuntime::JSContextSharedPtr &v8App::JSRuntime::JSContextSharedPtr::operator=(v8App::JSRuntime::JSContextSharedPtr &&rhs) noexcept
+{
+    (*this)->MoveContext(std::move(*rhs));
+    (*this)->SetContextWeakRef(*this);
+    return *this;
 }

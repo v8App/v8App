@@ -85,7 +85,7 @@ namespace v8App
                 {
                     if (inArgs->IsPropertyCallback())
                     {
-                        //if it's not a FunctionCallbackInfo then we can't continue
+                        // if it's not a FunctionCallbackInfo then we can't continue
                         CHECK_TRUE(false);
                     }
                     return inArgs->GetFunctionInfo();
@@ -94,7 +94,7 @@ namespace v8App
                 {
                     if (inArgs->IsPropertyCallback() == false)
                     {
-                        //if it's not a PropertyCallbackInfo then we can't continue
+                        // if it's not a PropertyCallbackInfo then we can't continue
                         CHECK_TRUE(false);
                     }
                     return inArgs->GetPropertyInfo();
@@ -114,7 +114,7 @@ namespace v8App
             template <typename Signature>
             struct CallbackDispatcher;
 
-            //normal free or static functions
+            // normal free or static functions
             template <typename R, typename... Args>
             struct CallbackDispatcher<R (*)(Args...)>
             {
@@ -165,7 +165,7 @@ namespace v8App
                 }
             };
 
-            //non-const member functions
+            // non-const member functions
             template <typename R, typename C, typename... Args>
             struct CallbackDispatcher<R (C::*)(Args...)>
             {
@@ -222,7 +222,7 @@ namespace v8App
                     }
                 }
             };
-            //const member functions
+            // const member functions
             template <typename R, typename C, typename... Args>
             struct CallbackDispatcher<R (C::*)(Args...) const>
             {
@@ -287,14 +287,14 @@ namespace v8App
                 using HolderInstType = CallbackHolder<Signature>;
                 v8::Local<v8::FunctionTemplate> tmpl;
 
-                    HolderInstType *holder = new HolderInstType(inIsolate, std::move(inCallback), TypeName);
+                HolderInstType *holder = new HolderInstType(inIsolate, std::move(inCallback), TypeName);
 
-                    JSRuntime *runtime = JSRuntime::GetRuntime(inIsolate);
-                    CHECK_NE(nullptr, runtime);
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
+                CHECK_NE(nullptr, runtime);
 
                 if (isConstructor)
                 {
-                    //for the constrcutor function we don't need a holder object since it'll be creatig one when called
+                    // for the constrcutor function we don't need a holder object since it'll be creatig one when called
                     tmpl = v8::FunctionTemplate::New(inIsolate);
                     tmpl->SetCallHandler(&CallbackDispatcher<Signature>::V8CallbackForFunction, holder->GetExternalHandle(inIsolate));
                     tmpl->SetLength(1);
@@ -309,11 +309,11 @@ namespace v8App
 
                     tmpl->RemovePrototype();
                 }
-                //register the external reference
+                // register the external reference
                 runtime->GetExternalRegistry().Register((void *)&CallbackDispatcher<Signature>::V8CallbackForFunction);
                 return tmpl;
             }
         } // namespace CppBridge
-    }     // namespace JSRuntime
+    } // namespace JSRuntime
 } // namespace v8App
 #endif

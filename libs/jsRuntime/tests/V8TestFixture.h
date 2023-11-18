@@ -7,9 +7,11 @@
 
 #include "v8.h"
 #include "V8Platform.h"
+#include "JSContext.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "third_party/bazel-runfiles/runfiles_src.h"
+#include "tools/cpp/runfiles/runfiles.h"
+#include "Utils/Environment.h"
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
@@ -17,6 +19,8 @@ namespace v8App
 {
     namespace JSRuntime
     {
+        std::unique_ptr<Runfiles> InitV8Platform();
+
         class V8TestFixture : public testing::Test
         {
         public:
@@ -25,13 +29,13 @@ namespace v8App
 
             void SetUp() override;
             void TearDown() override;
-            v8::Local<v8::Context> GetContext() { return m_Context.lock().get()->GetContext(); }
+            v8::Local<v8::Context> GetContextAndEnter();
 
         protected:
             std::unique_ptr<Runfiles> m_RunFiles;
-            std::unique_ptr<JSRuntime> m_Runtime;
+            JSRuntimeSharedPtr m_Runtime;
             v8::Isolate* m_Isolate = nullptr;
-            WeakJSContextPtr m_Context;
+            JSContextSharedPtr m_Context;
 
         private:
             V8TestFixture(const V8TestFixture &) = delete;

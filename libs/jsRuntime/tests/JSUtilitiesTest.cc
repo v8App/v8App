@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 #include "V8TestFixture.h"
-#include "JSUtilites.h"
+#include "JSUtilities.h"
 
 namespace v8App
 {

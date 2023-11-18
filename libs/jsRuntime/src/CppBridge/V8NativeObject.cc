@@ -37,7 +37,7 @@ namespace v8App
 
             v8::Local<v8::ObjectTemplate> V8NativeObjectBase::GetOrCreateObjectTemplate(v8::Isolate *inIsolate, V8NativeObjectInfo *inInfo)
             {
-                JSRuntime *runtime = JSRuntime::GetRuntime(inIsolate);
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
                 v8::Local<v8::ObjectTemplate> objTemplate = runtime->GetObjectTemplate(inInfo);
                 if (objTemplate.IsEmpty())
                 {

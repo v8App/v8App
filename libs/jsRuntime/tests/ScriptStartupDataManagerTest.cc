@@ -33,7 +33,7 @@ namespace v8App
         {
             std::string source;
 
-            std::filesystem::path testFilesDir = m_RunFiles->Rlocation("com_github_v8app_v8app/libs/jsRuntime/tests/test-files/cache");
+            std::filesystem::path testFilesDir = m_RunFiles->Rlocation("v8App/libs/jsRuntime/tests/test-files/cache");
             ASSERT_FALSE(testFilesDir.empty());
 
             //test empty path
@@ -122,7 +122,7 @@ namespace v8App
         {
             std::string source;
 
-            std::filesystem::path testFiles = m_RunFiles->Rlocation("com_github_v8app_v8app/libs/jsRuntime/tests/test-files/cache");
+            std::filesystem::path testFiles = m_RunFiles->Rlocation("v8App/libs/jsRuntime/tests/test-files/cache");
             ASSERT_FALSE(testFiles.empty());
 
             std::filesystem::path filePath = testFiles;

@@ -19,8 +19,8 @@ namespace v8App
             ASSERT_EQ(0, error.length());
             ASSERT_NE(nullptr, runFiles);
 
-            std::string icuData = runFiles->Rlocation("com_github_v8app_v8app/third_party/v8/*/icudtl.dat");
-            std::string snapshotData = runFiles->Rlocation("com_github_v8app_v8app/third_party/v8/*/snapshot_blob.bin");
+            std::string icuData = runFiles->Rlocation("v8App/third_party/v8/*/icudtl.dat");
+            std::string snapshotData = runFiles->Rlocation("v8App/third_party/v8/*/snapshot_blob.bin");
 
             ASSERT_FALSE(ScriptStartupDataManager::InitializeICUData(""));
             ASSERT_FALSE(ScriptStartupDataManager::InitializeICUData("notExist"));

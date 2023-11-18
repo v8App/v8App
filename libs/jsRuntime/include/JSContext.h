@@ -8,49 +8,62 @@
 #include <unordered_map>
 
 #include "v8.h"
-#include "JSModules.h"
+#include "JSRuntime.h"
+#include "JSContextModules.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        using SharedJSContextPtr = std::shared_ptr<class JSContext>;
-        using WeakJSContextPtr = std::weak_ptr<class JSContext>;
 
         class JSContext
         {
-            public:
-            JSContext(v8::Isolate* inIsolate);
+        public:
+            JSContext(JSRuntimeSharedPtr inIsolate);
             ~JSContext();
 
-            //allow only move constrcutor and assignment
-            JSContext(JSContext&& inContext);
-            JSContext& operator=(JSContext&& inContext);
-            
-            bool InitializeContext();
+            // allow only move constrcutor and assignment
+            JSContext(JSContext &&inContext);
+            JSContext &operator=(JSContext &&inContext);
+
+            bool InitializeContext(JSContextSharedPtr inContext);
             void DisposeContext();
 
-            v8::Local<v8::Context> GetContext() { return m_Context.Get(m_Isolate); }
-            v8::Isolate* GetIsolate() const { return m_Isolate; }
+            v8::Local<v8::Context> GetContext()
+            {
+                v8::Isolate *isolate = GetIsolate();
+                if (isolate == nullptr)
+                {
+                    return v8::Local<v8::Context>();
+                }
+                return m_Context.Get(isolate);
+            }
+            v8::Isolate *GetIsolate();
+            JSRuntimeSharedPtr GetJSRuntime() { return m_Isolate; }
+            JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
 
-            WeakJSModulesPtr GetModules() { return m_Modules; }
+            static JSContextSharedPtr GetJSContextFromV8Context(v8::Local<v8::Context> inContext);
 
+        protected:
+            void SetContextWeakRef(JSContextSharedPtr inContext);
+            JSContextWeakPtr *GetContextWeakRef(JSContextSharedPtr inContext);
 
-            static JSContext* GetJSContext(v8::Local<v8::Context> inContext);
+        private:
+            void MoveContext(JSContext &&inContext);
 
-            private:
-            void MoveContext(JSContext&& inContext);
-
-            v8::Isolate* m_Isolate;
+            JSRuntimeSharedPtr m_Isolate;
             v8::Global<v8::Context> m_Context;
             bool m_Initialized = false;
+            JSContextModulesSharedPtr m_Modules;
 
-            SharedJSModulesPtr m_Modules;
+            JSContext(const JSContext &) = delete;
+            JSContext &operator=(const JSContext &) = delete;
 
-            JSContext(const JSContext&) = delete;
-            JSContext& operator=(const JSContext&) = delete;
+            friend JSContextSharedPtr;
         };
     }
 }
 
+template <>
+v8App::JSRuntime::JSContextSharedPtr &v8App::JSRuntime::JSContextSharedPtr::operator=(v8App::JSRuntime::JSContextSharedPtr &&rhs) noexcept;
 #endif
