@@ -24,6 +24,8 @@ namespace v8App
         void SetThreadPriority(std::thread *inThread, ThreadPriority inPriority);
         //allows getting the native thread priority from the std::thread
         int GetThreadPriority(std::thread *inThread);
+
+        int GetHardwareCores();
     } // namespace Threads
 } // namespace v8App
 

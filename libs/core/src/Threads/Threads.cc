@@ -67,5 +67,11 @@ namespace v8App
             return param.sched_priority;
 #endif
         }
+
+        int GetHardwareCores()
+        {
+            return std::min(1U, std::thread::hardware_concurrency() - 1);
+        }
+
     }
 } // namespace v8App

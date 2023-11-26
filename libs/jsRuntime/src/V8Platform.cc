@@ -21,7 +21,7 @@ namespace v8App
         V8Platform::V8Platform()
         {
             m_TracingController = std::make_unique<v8::TracingController>();
-            int cores = std::thread::hardware_concurrency() - 1;
+            int cores = Threads::GetHardwareCores();
             m_NumberOfWorkers = std::max(1, cores);
             for (int idx = 0; idx <= static_cast<int>(Threads::ThreadPriority::kMaxPriority); idx++)
             {

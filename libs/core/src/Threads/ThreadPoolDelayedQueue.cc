@@ -16,7 +16,7 @@ namespace v8App
         ThreadPoolDelayedQueue::ThreadPoolDelayedQueue(int inNumberOfWorkers, ThreadPriority inPriority) : m_Priority(inPriority)
         {
             // We want to leave one core for the main thread.
-            int hardwareThreads = std::thread::hardware_concurrency() - 1;
+            int hardwareThreads = GetHardwareCores();
             if (inNumberOfWorkers < 0)
             {
                 inNumberOfWorkers = hardwareThreads;

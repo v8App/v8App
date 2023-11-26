@@ -31,7 +31,7 @@ namespace v8App
             class V8JobDelegate : public ::v8::JobDelegate
             {
             public:
-                explicit V8JobDelegate(V8JobState *inState, bool isJoingThread = false);
+                explicit V8JobDelegate(V8JobState *inState, bool isJoiningThread = false);
                 ~V8JobDelegate();
 
                 // v8::JobDelegate Implmentation
@@ -40,7 +40,7 @@ namespace v8App
                 virtual uint8_t GetTaskId() override;
                 virtual bool IsJoiningThread() const override;
                 // end v8::JobDelegate Implmentation
-            private:
+            protected:
                 uint8_t m_TaskId = V8JobState::kInvalidJobId;
                 V8JobState *m_JobState;
                 bool m_JoingThread;
@@ -64,8 +64,8 @@ namespace v8App
 
             void UpdatePriority(v8::TaskPriority inPriority);
 
-        private:
-            size_t ComputeTaskToPost();
+        protected:
+            size_t ComputeTaskToPost(size_t inMaxConcurrency);
             void PostonWorkerThread(size_t inNumToPost, v8::TaskPriority inPriority);
 
             inline size_t GetMaxConcurrency(size_t inWorkerCount)
@@ -83,7 +83,7 @@ namespace v8App
             std::mutex m_Lock;
             V8JobTaskIdAtomicType m_AssignedTaskIds;
             std::atomic_bool m_Canceled{false};
-            v8::TaskPriority m_Priotiy;
+            v8::TaskPriority m_Priority;
             size_t m_ActiveTasks = 0;
             size_t m_PendingTasks = 0;
             size_t m_NumWorkersAvailable;
@@ -100,7 +100,7 @@ namespace v8App
             V8JobHandle &operator=(const V8JobHandle &) = delete;
 
             // v8::JobHandle Implementation
-             virtual void NotifyConcurrencyIncrease() override;
+            virtual void NotifyConcurrencyIncrease() override;
             virtual void Join() override;
             virtual void Cancel() override;
             virtual void CancelAndDetach() override;
@@ -110,7 +110,7 @@ namespace v8App
             virtual void UpdatePriority(v8::TaskPriority new_priority) override;
             // v8::JobHandle Implementation
 
-        private:
+        protected:
             std::shared_ptr<V8JobState> m_State;
         };
 
@@ -125,7 +125,7 @@ namespace v8App
 
             void Run() override;
 
-        private:
+        protected:
             std::weak_ptr<V8JobState> m_State;
             v8::JobTask *m_Task;
         };

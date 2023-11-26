@@ -4,8 +4,10 @@
 // found in the LICENSE file.
 
 #include <iostream>
+
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
 #include "V8Platform.h"
 
 namespace v8App
@@ -62,9 +64,23 @@ namespace v8App
             void SetInited(bool inValue) { m_V8Inited = inValue; }
         };
 
+        class TestPlatformJobTask : public v8::JobTask
+        {
+        public:
+            virtual void Run(v8::JobDelegate *delegate) override
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+                m_Concurrency--;
+            }
+            virtual size_t GetMaxConcurrency(size_t worker_count) const override{
+                return m_Concurrency;
+            }
+            size_t m_Concurrency = 2;
+        };
+
         TEST(V8PlatformTest, ConstructorDestructor)
         {
-            int cores = std::thread::hardware_concurrency() - 1;
+            int cores = Threads::GetHardwareCores();
             TestV8Platform platform;
             EXPECT_EQ(platform.NumberOfWorkerThreads(), cores);
             EXPECT_FALSE(platform.IsInited());
@@ -205,7 +221,31 @@ namespace v8App
 
         TEST(V8PlatformTest, CreateJobImpl)
         {
-            ASSERT_FALSE(true);
+            TestV8Platform platform;
+
+            std::unique_ptr<v8::JobHandle> handle;
+            std::unique_ptr<TestPlatformJobTask> task = std::make_unique<TestPlatformJobTask>();
+
+            auto start = std::chrono::high_resolution_clock::now();
+            handle = platform.PostJob(v8::TaskPriority::kBestEffort, std::move(task));
+            handle->Join();
+            auto end = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+            EXPECT_GE(elapsed, 2);
+
+            start = std::chrono::high_resolution_clock::now();
+            task = std::make_unique<TestPlatformJobTask>();
+            handle = platform.CreateJob(v8::TaskPriority::kBestEffort, std::move(task));
+            end = std::chrono::high_resolution_clock::now();
+            elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+            EXPECT_LE(elapsed, 1);
+
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            handle->NotifyConcurrencyIncrease();
+            handle->Join();
+            end = std::chrono::high_resolution_clock::now();
+            elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
+            EXPECT_GE(elapsed, 4);
         }
 
         TEST(V8PlatformTest, PostTaskOnWorkerThreadImpl)

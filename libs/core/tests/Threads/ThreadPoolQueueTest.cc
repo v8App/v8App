@@ -51,7 +51,7 @@ namespace v8App
         TEST(ThreadPoolQueueTest, Constructor)
         {
             // depending on the platfowm we are running on this can chance we get it.
-            int hardwareThreads = std::thread::hardware_concurrency() - 1;
+            int hardwareThreads = GetHardwareCores();
 
             // Test desctrutor's ability to actually end all the threads
             {

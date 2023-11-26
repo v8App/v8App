@@ -17,7 +17,7 @@ namespace v8App
             }
         };
 
-        class MockDeathTaskRunner : public TaskRunner
+        class MockDeathTaskRunner : public ForegroundTaskRunner
         {
         public:
             void SetNestingDepth(int inDepth) { m_NestingDepth = inDepth; }

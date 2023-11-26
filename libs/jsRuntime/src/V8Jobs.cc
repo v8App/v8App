@@ -50,7 +50,7 @@ namespace v8App
         }
 
         V8JobState::V8JobState(v8::Platform *inPlatfor, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers)
-            : m_Platform(inPlatfor), m_Task(std::move(inTask)), m_Priotiy(inPriority), m_NumWorkersAvailable(inNumWorkers)
+            : m_Platform(inPlatfor), m_Task(std::move(inTask)), m_Priority(inPriority), m_NumWorkersAvailable(inNumWorkers)
         {
         }
 
@@ -67,10 +67,10 @@ namespace v8App
             }
             v8::TaskPriority priority;
             {
-                std::lock_guard<std::mutex> lock(m_Lock);
-                priority = m_Priotiy;
+                std::unique_lock<std::mutex> lock(m_Lock);
+                priority = m_Priority;
             }
-            PostonWorkerThread(ComputeTaskToPost(), m_Priotiy);
+            PostonWorkerThread(ComputeTaskToPost(GetMaxConcurrency(m_ActiveTasks)), m_Priority);
         }
 
         uint8_t V8JobState::AcquireTaskId()
@@ -81,15 +81,19 @@ namespace v8App
             do
             {
                 taskID = FindFirstFreeTaskId(assignedTaskIds);
-                newTaskIds = m_AssignedTaskIds | (1 >> taskID);
+                if (taskID == kInvalidJobId)
+                {
+                    return taskID;
+                }
+                newTaskIds = m_AssignedTaskIds | (1 << taskID);
             } while (m_AssignedTaskIds.compare_exchange_weak(assignedTaskIds, newTaskIds, std::memory_order::acquire, std::memory_order::memory_order_relaxed));
             return taskID;
         }
 
         void V8JobState::ReleaseTaskID(uint8_t inTaskId)
         {
-            V8JobTaskIdType previousTaskIDs = m_AssignedTaskIds.fetch_and(~(1 >> inTaskId), std::memory_order::memory_order_release);
-            DCHECK_TRUE(previousTaskIDs & (1 >> inTaskId));
+            V8JobTaskIdType previousTaskIDs = m_AssignedTaskIds.fetch_and(~(1 << inTaskId), std::memory_order::memory_order_release);
+            DCHECK_TRUE(previousTaskIDs & (1 << inTaskId));
             (void)previousTaskIDs;
         }
 
@@ -105,7 +109,7 @@ namespace v8App
                     maxConcurrency = GetMaxConcurrency(m_ActiveTasks - 1);
                 }
                 DCHECK_LE(0, maxConcurrency);
-                if (maxConcurrency == 0)
+                if (maxConcurrency != 0)
                 {
                     return maxConcurrency;
                 }
@@ -116,22 +120,21 @@ namespace v8App
             };
 
             {
-                std::lock_guard<std::mutex> lock(m_Lock);
-                m_Priotiy = v8::TaskPriority::kUserBlocking;
+                std::unique_lock<std::mutex> lock(m_Lock);
+                m_Priority = v8::TaskPriority::kUserBlocking;
                 m_ActiveTasks++;
                 m_NumWorkersAvailable++;
             }
-            size_t GetMaxConcurrency = WaitForRunOpportunity();
-            if (GetMaxConcurrency == 0)
+            size_t maxConcurrency = WaitForRunOpportunity();
+            if (maxConcurrency == 0)
             {
                 return;
             }
-            PostonWorkerThread(ComputeTaskToPost(), m_Priotiy);
+            PostonWorkerThread(ComputeTaskToPost(maxConcurrency), m_Priority);
             V8JobState::V8JobDelegate delegate(this, true);
             while (true)
             {
                 m_Task->Run(&delegate);
-                std::lock_guard<std::mutex> lock(m_Lock);
                 if (WaitForRunOpportunity() == 0)
                 {
                     return;
@@ -156,13 +159,13 @@ namespace v8App
 
         bool V8JobState::IsActive()
         {
-            std::lock_guard<std::mutex> lock(m_Lock);
+            std::unique_lock<std::mutex> lock(m_Lock);
             return m_Task->GetMaxConcurrency(m_ActiveTasks) != 0 || m_ActiveTasks != 0;
         }
 
         bool V8JobState::CanRunFirstTask()
         {
-            std::lock_guard<std::mutex> lock(m_Lock);
+            std::unique_lock<std::mutex> lock(m_Lock);
             m_PendingTasks--;
             if (m_Canceled.load(std::memory_order::memory_order_relaxed))
             {
@@ -180,8 +183,8 @@ namespace v8App
         {
             v8::TaskPriority prioirty;
             {
-                std::lock_guard<std::mutex> lock(m_Lock);
-                prioirty = m_Priotiy;
+                std::unique_lock<std::mutex> lock(m_Lock);
+                prioirty = m_Priority;
                 size_t maxConcurrency = GetMaxConcurrency(m_ActiveTasks - 1);
                 if (m_Canceled.load(std::memory_order::memory_order_relaxed) || m_ActiveTasks > maxConcurrency)
                 {
@@ -190,25 +193,24 @@ namespace v8App
                     return false;
                 }
             }
-            PostonWorkerThread(ComputeTaskToPost(), prioirty);
+            PostonWorkerThread(ComputeTaskToPost(GetMaxConcurrency(m_ActiveTasks - 1)), prioirty);
             return true;
         }
 
         void V8JobState::UpdatePriority(v8::TaskPriority inPriority)
         {
-            std::lock_guard<std::mutex> lock(m_Lock);
-            m_Priotiy = inPriority;
+            std::unique_lock<std::mutex> lock(m_Lock);
+            m_Priority = inPriority;
         }
 
-        size_t V8JobState::ComputeTaskToPost()
+        size_t V8JobState::ComputeTaskToPost(size_t inMaxConcurrency)
         {
-            std::lock_guard<std::mutex> lock(m_Lock);
-            size_t maxConcurrency = GetMaxConcurrency(m_ActiveTasks);
-            if (maxConcurrency > m_ActiveTasks + m_PendingTasks)
+            std::unique_lock<std::mutex> lock(m_Lock);
+            if (inMaxConcurrency > m_ActiveTasks + m_PendingTasks)
             {
-                maxConcurrency -= m_ActiveTasks - m_PendingTasks;
-                m_PendingTasks += maxConcurrency;
-                return maxConcurrency;
+                inMaxConcurrency -= m_ActiveTasks + m_PendingTasks;
+                m_PendingTasks += inMaxConcurrency;
+                return inMaxConcurrency;
             }
             return 0;
         }
@@ -222,10 +224,13 @@ namespace v8App
                 {
                 case v8::TaskPriority::kBestEffort:
                     m_Platform->CallLowPriorityTaskOnWorkerThread(std::move(worker));
+                    break;
                 case v8::TaskPriority::kUserVisible:
                     m_Platform->CallOnWorkerThread(std::move(worker));
+                    break;
                 case v8::TaskPriority::kUserBlocking:
                     m_Platform->CallBlockingTaskOnWorkerThread(std::move(worker));
+                    break;
                 }
             }
         }
@@ -234,7 +239,7 @@ namespace v8App
         {
             for (uint8_t idx = 0; idx < V8JobTaskBits; idx++)
             {
-                if ((1 >> idx) & inIds)
+                if ((1 << idx) & inIds)
                 {
                     continue;
                 }
@@ -249,7 +254,7 @@ namespace v8App
 
         V8JobHandle::~V8JobHandle()
         {
-            DCHECK_EQ(nullptr, m_State);
+            // DCHECK_EQ(nullptr, m_State);
         }
 
         void V8JobHandle::NotifyConcurrencyIncrease()

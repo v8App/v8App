@@ -40,7 +40,7 @@ namespace v8App
             struct Impl : public ImplBase
             {
                 Callable m_Func;
-                Impl(Callable &&inFunc) : m_Func(std::forward<Callable>(inFunc))
+                Impl(Callable &&inFunc) : m_Func(std::move(inFunc))
                 {
                 }
                 void Run() { m_Func(); }
