@@ -3,11 +3,11 @@
 // found in the LICENSE file.
 
 #include <algorithm>
-#include <format>
 #include <regex>
 
 #include "Assets/AppAssetRoots.h"
 #include "Logging/LogMacros.h"
+#include "Utils/Format.h"
 
 namespace v8App
 {
@@ -63,7 +63,7 @@ namespace v8App
 
         void AppAssetRoots::SetModulesLatestVersion(std::string inModuleName, Utils::VersionString &inVersion)
         {
-            auto result = m_ModuleLatestVersion.insert_or_assign(inModuleName, inVersion);
+            m_ModuleLatestVersion.insert_or_assign(inModuleName, inVersion);
         }
         Utils::VersionString AppAssetRoots::GetModulesLatestVersion(const std::string &inModuleName)
         {
@@ -84,9 +84,7 @@ namespace v8App
             std::filesystem::path rootCanonical = std::filesystem::weakly_canonical(inRootPath).make_preferred();
             std::filesystem::path fileCanonical = std::filesystem::weakly_canonical(inScriptPath).make_preferred();
 
-            auto it = std::search(fileCanonical.begin(), fileCanonical.end(), rootCanonical.begin(), rootCanonical.end());
-
-            return it != fileCanonical.begin();
+            return !fileCanonical.string().starts_with(rootCanonical.string());
         }
 
         std::filesystem::path AppAssetRoots::MakeRelativePathToAppRoot(std::string inPath)
@@ -150,7 +148,7 @@ namespace v8App
         {
             if (inPath.is_absolute())
             {
-                return inPath;
+                return NormalizePathSeperator(inPath);
             }
 
             return std::filesystem::absolute(std::filesystem::path(NormalizePathSeperator(inPath)));
@@ -193,21 +191,21 @@ namespace v8App
             if (foundJS == false)
             {
                 Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, std::format("Failed to find the {} directory in the app root", c_RootJS));
+                msg.emplace(Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootJS));
                 LOG_ERROR(msg);
                 return false;
             }
             if (foundModules == false)
             {
                 Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, std::format("Failed to find the {} directory in the app root", c_RootModules));
+                msg.emplace(Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootModules));
                 LOG_ERROR(msg);
                 return false;
             }
             if (foundResources == false)
             {
                 Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, std::format("Failed to find the {} directory in the app root", c_RootResource));
+                msg.emplace(Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootResource));
                 LOG_ERROR(msg);
                 return false;
             }

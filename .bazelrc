@@ -1,2 +1,3 @@
 startup --windows_enable_symlinks
 build:windows --features=static_link_msvcrt
+build --cxxopt=-std=c++20

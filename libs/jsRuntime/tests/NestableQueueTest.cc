@@ -62,25 +62,25 @@ namespace v8App
             queue.PushItemDelayed(4.0, std::move(taskPtr3));
             queue.PushNonNestableItemDelayed(6.0, std::move(taskPtr4));
 
-            auto opt = std::move(queue.GetNextItem(0));
+            auto opt = queue.GetNextItem(0);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task1);
             EXPECT_EQ(0, queue.GetQueueSize());
 
             TestTime::TestTimeSeconds::Set(5);
 
-            opt = std::move(queue.GetNextItem(0));
+            opt = queue.GetNextItem(0);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task2);
             EXPECT_EQ(1, queue.GetQueueSize());
 
-            opt = std::move(queue.GetNextItem(0));
+            opt = queue.GetNextItem(0);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task3);
             EXPECT_EQ(0, queue.GetQueueSize());
 
             TestTime::TestTimeSeconds::Set(7);
-            opt = std::move(queue.GetNextItem(0));
+            opt = queue.GetNextItem(0);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task4);
             EXPECT_EQ(0, queue.GetQueueSize());
@@ -107,27 +107,27 @@ namespace v8App
             queue.PushItem(std::move(taskPtr4));
             EXPECT_EQ(4, queue.GetQueueSize());
 
-            auto opt = std::move(queue.GetNextItem(2));
+            auto opt = queue.GetNextItem(2);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task2);
             EXPECT_EQ(3, queue.GetQueueSize());
 
-            opt = std::move(queue.GetNextItem(2));
+            opt = queue.GetNextItem(2);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task4);
             EXPECT_EQ(2, queue.GetQueueSize());
 
-            opt = std::move(queue.GetNextItem(2));
+            opt = queue.GetNextItem(2);
             EXPECT_FALSE(opt.has_value());
             EXPECT_EQ(2, queue.GetQueueSize());
 
             // set nesting to 0 and we should get our 2 non nestable tasks
-            opt = std::move(queue.GetNextItem(0));
+            opt = queue.GetNextItem(0);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task1);
             EXPECT_EQ(1, queue.GetQueueSize());
 
-            opt = std::move(queue.GetNextItem(0));
+            opt = queue.GetNextItem(0);
             EXPECT_TRUE(opt.has_value());
             ASSERT_EQ(opt.value().get(), task3);
             EXPECT_EQ(0, queue.GetQueueSize());

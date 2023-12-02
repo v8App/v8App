@@ -73,8 +73,8 @@ namespace v8App
             const V8JobTaskIdType GetInvalidId() { return kInvalidJobId; }
             void TestPostonWorkerThread(size_t inNumToPost, v8::TaskPriority inPriority) { PostonWorkerThread(inNumToPost, inPriority); }
 
-            V8JobTaskIdType GetAssignedTasks() { return m_AssignedTaskIds.load(std::memory_order::memory_order_relaxed); }
-            bool GetCancelled() { return m_Canceled.load(std::memory_order::memory_order_relaxed); }
+            V8JobTaskIdType GetAssignedTasks() { return m_AssignedTaskIds.load(std::memory_order::relaxed); }
+            bool GetCancelled() { return m_Canceled.load(std::memory_order::relaxed); }
             v8::TaskPriority GetPriority() { return m_Priority; }
             size_t GetActiveTasks() { return m_ActiveTasks; }
             size_t GetPendingTasks() { return m_PendingTasks; }
@@ -82,7 +82,7 @@ namespace v8App
 
             void SetActiveTasks(size_t num) { m_ActiveTasks = num; }
             void SetPendingTasks(size_t num) { m_PendingTasks = num; }
-            void SetCancelled(bool value) { m_Canceled.store(value, std::memory_order::memory_order_relaxed); }
+            void SetCancelled(bool value) { m_Canceled.store(value, std::memory_order::relaxed); }
         };
 
         class TestJobsPostTaskCancel : public v8::JobTask
@@ -163,7 +163,6 @@ namespace v8App
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
 
             TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 10);
-            size_t expected = Threads::GetHardwareCores();
 
             EXPECT_EQ(5, state.TestGetMaxConcurrency(10));
             EXPECT_EQ(5, state.TestGetMaxConcurrency(2));

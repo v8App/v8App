@@ -8,6 +8,7 @@
 
 #include "Threads/ThreadPoolDelayedQueue.h"
 #include "Logging/LogMacros.h"
+#include "Utils/Format.h"
 
 namespace v8App
 {
@@ -25,18 +26,19 @@ namespace v8App
             m_NumWorkers = std::max(1, std::min(inNumberOfWorkers, hardwareThreads));
             for (int x = 0; x < m_NumWorkers; x++)
             {
+                std::string name;
                 if (x == 0)
                 {
-                    std::unique_ptr<std::thread> thread = std::make_unique<std::thread>([this]()
-                                                                                        { this->PumpQueue(); });
-                    SetThreadPriority(thread.get(), m_Priority);
+                    name = Utils::format("DelayedThreadPoolPumper #{}", x);
+                    std::unique_ptr<Thread> thread = std::make_unique<ThreadPoolThread>(name, m_Priority, this, true);
+                    thread->Start();
                     m_Workers.push_back(std::move(thread));
                 }
                 else
                 {
-                    std::unique_ptr<std::thread> thread = std::make_unique<std::thread>([this]()
-                                                                                        { this->ProcessTasks(); });
-                    SetThreadPriority(thread.get(), m_Priority);
+                    name = Utils::format("DelayedThreadPool #{}", x);
+                    std::unique_ptr<Thread> thread = std::make_unique<ThreadPoolThread>(name, m_Priority, this, false);
+                    thread->Start();
                     m_Workers.push_back(std::move(thread));
                 }
             }
@@ -84,7 +86,7 @@ namespace v8App
             m_QueueWaiter.notify_all();
             for (auto &it : m_Workers)
             {
-                it->join();
+                it->Join();
             }
             m_Workers.clear();
         }
@@ -107,7 +109,7 @@ namespace v8App
                 }
                 if (m_Queue.MayHaveItems())
                 {
-                    std::optional<ThreadPoolTaskUniquePtr> task = std::move(m_Queue.GetNextItem());
+                    std::optional<ThreadPoolTaskUniquePtr> task = m_Queue.GetNextItem();
                     if (task)
                     {
                         task.value()->Run();
@@ -128,7 +130,7 @@ namespace v8App
                     return;
                 }
 
-                std::optional<ThreadPoolTaskUniquePtr> task = std::move(m_Queue.GetNextItem());
+                std::optional<ThreadPoolTaskUniquePtr> task = m_Queue.GetNextItem();
                 if (task)
                 {
                     task.value()->Run();

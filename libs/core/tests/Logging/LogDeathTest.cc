@@ -38,7 +38,7 @@ namespace v8App
             class TestSink : public ILogSink
             {
             public:
-                TestSink(std::string inName) : ILogSink(inName){}
+                TestSink(std::string inName) : ILogSink(inName) {}
 
                 virtual ~TestSink() {}
 
@@ -60,6 +60,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckFullMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -77,8 +78,9 @@ namespace v8App
                         ::testing::ExitedWithCode(0), "");
         }
 
-       TEST(LogDeathTest, CheckUnimplemented)
+        TEST(LogDeathTest, CheckUnimplemented)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -92,6 +94,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -111,6 +114,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckEqualMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -130,6 +134,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckNotEqualMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -149,6 +154,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckGreaterThanMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -168,6 +174,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckGreaterThanEqualMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -193,6 +200,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckLessThanMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -212,6 +220,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckLessThanEqualMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -237,6 +246,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckNullMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -257,6 +267,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckNotNullMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -277,6 +288,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckTrueMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however
@@ -296,6 +308,7 @@ namespace v8App
 
         TEST(LogDeathTest, CheckFalseMacro)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             LogTest::LogDouble::ResetLog();
 
             // The output for this is really a multiline message however

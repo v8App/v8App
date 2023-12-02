@@ -129,19 +129,19 @@ namespace v8App
             V8IdleTaskUniquePtr opt;
 
             EXPECT_FALSE(runner->MaybeHasIdleTask());
-            opt = std::move(runner->GetNextIdleTask());
+            opt = runner->GetNextIdleTask();
             EXPECT_EQ(opt, nullptr);
 
             runner->PostIdleTask(std::move(task1));
             runner->PostIdleTask(std::move(task2));
             EXPECT_TRUE(runner->MaybeHasIdleTask());
 
-            opt = std::move(runner->GetNextIdleTask());
+            opt = runner->GetNextIdleTask();
             EXPECT_NE(opt, nullptr);
             EXPECT_EQ(opt.get(), ptask1);
             EXPECT_TRUE(runner->MaybeHasIdleTask());
 
-            opt = std::move(runner->GetNextIdleTask());
+            opt = runner->GetNextIdleTask();
             EXPECT_NE(opt, nullptr);
             EXPECT_EQ(opt.get(), ptask2);
             EXPECT_FALSE(runner->MaybeHasIdleTask());

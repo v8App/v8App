@@ -10,6 +10,7 @@
 #include "gmock/gmock.h"
 
 #include "Utils/VersionString.h"
+#include "Utils/Format.h"
 #include "Logging/Log.h"
 #include "Logging/ILogSink.h"
 #include "TestLogSink.h"
@@ -72,7 +73,7 @@ namespace v8App
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot));
             Log::LogMessage expected = {
-                {Log::MsgKey::Msg, std::format("Failed to find the {} directory in the app root", c_RootJS)},
+                {Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootJS)},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
@@ -83,7 +84,7 @@ namespace v8App
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot));
             expected = {
-                {Log::MsgKey::Msg, std::format("Failed to find the {} directory in the app root", c_RootModules)},
+                {Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootModules)},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
@@ -95,7 +96,7 @@ namespace v8App
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot));
             expected = {
-                {Log::MsgKey::Msg, std::format("Failed to find the {} directory in the app root", c_RootResource)},
+                {Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootResource)},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
@@ -171,6 +172,9 @@ namespace v8App
             EXPECT_FALSE(appAssetRoot->DidPathEscapeRoot(tmp, tmp / "test"));
             EXPECT_FALSE(appAssetRoot->DidPathEscapeRoot(tmp, tmp / "test/test"));
             EXPECT_TRUE(appAssetRoot->DidPathEscapeRoot(tmp, tmp / "../test"));
+            EXPECT_TRUE(appAssetRoot->DidPathEscapeRoot(tmp, "/test"));
+            EXPECT_TRUE(appAssetRoot->DidPathEscapeRoot(tmp, ""));
+            EXPECT_TRUE(appAssetRoot->DidPathEscapeRoot(tmp, "/"));
         }
 
         TEST(AppAssetRootsTest, MakeRelativePathTo)
@@ -188,7 +192,7 @@ namespace v8App
             EXPECT_EQ(appAssetRoot->MakeRelativePathToRoot(tmp3, root), "test/test2");
             EXPECT_EQ(appAssetRoot->MakeRelativePathToRoot(tmpWin, root), "test/test2");
             EXPECT_EQ(appAssetRoot->MakeRelativePathToRoot(tmp2.string(), root.string()), "test/test2");
-            EXPECT_TRUE(appAssetRoot->MakeRelativePathToRoot(tmp4, root.string()).empty());
+            EXPECT_TRUE(appAssetRoot->MakeRelativePathToRoot(tmp4.string(), root.string()).empty());
 
             EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(tmp2), "test/test2");
             EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(tmpWin), "test/test2");

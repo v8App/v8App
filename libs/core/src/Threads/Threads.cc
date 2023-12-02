@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
+#include "Threads/Threads.h"
 #include <format>
 
 #if defined(V8APP_WINDOWS)
@@ -18,53 +19,157 @@ namespace v8App
 {
     namespace Threads
     {
-        void SetThreadPriority(std::thread *inThread, ThreadPriority inPriority)
+        Thread::Thread(std::string inName, ThreadPriority inPriority) : m_Name(inName), m_Priority(inPriority)
+        {
+            if (m_Name.length() > kMaxThreadName)
+            {
+                m_Name.resize(kMaxThreadName);
+            }
+        }
+
+        Thread::~Thread()
+        {
+            Join();
+        }
+
+        void Thread::Start()
+        {
+            if (m_Running)
+            {
+                return;
+            }
+            m_Thread = std::make_unique<std::thread>([this]()
+                                                     {
+                this->m_Running = true;
+                this->SetThreadPriority();
+                this->SetThreadName();
+                this->RunImpl();
+                this->m_Running = false; });
+        }
+
+        void Thread::Join()
+        {
+            if (m_Thread != nullptr && m_Thread->joinable())
+            {
+                m_Thread->join();
+            }
+        }
+
+        int Thread::GetNativePriority()
+        {
+            if (m_Thread == nullptr || m_Running == false)
+            {
+                return -1;
+            }
+#if defined(V8APP_WINDOWS)
+            return ::GetThreadPriority(m_Thread->native_handle());
+#elif defined(V8APP_MACOS) || defined(V8APP_IOS)
+            qos_class_t policy;
+            int priorty;
+            pthread_get_qos_class_np(m_Thread->native_handle(), &policy, &priorty);
+            return policy;
+#endif
+        }
+
+        std::string Thread::GetNativeName()
+        {
+            if (m_Thread != nullptr && m_Running)
+            {
+#if defined(V8APP_WINDOWS)
+                PWSTR name;
+                HRESULT result = ::GetThreadDescription(m_Thread->native_handle(), &name);
+                if (SUCCEDED(result))
+                {
+                    std::wstring wtemp(name);
+                    std::string temp = std::string_convert<std::codecvt_utf8<char_t>>().from_bytes(wtemp)
+                                           LocalFree(name);
+                    return temp;
+                }
+#elif defined(V8APP_MACOS) || defined(V8APP_IOS)
+                char temp[kMaxThreadName + 1];
+
+                if (pthread_getname_np(m_Thread->native_handle(), temp, kMaxThreadName) == 0)
+                {
+                    return std::string(temp);
+                }
+#endif
+            }
+            return std::string();
+        }
+
+        void Thread::SetThreadPriority()
         {
             bool succeeded = true;
 #if defined(V8APP_WINDOWS)
-            int priority = THREAD_PRIORITY_TIME_CRITICAL; // kUserBlocking
-            switch (inPriority)
+            if (GetCurrentThread() != m_Thread->native_handle())
             {
-            case ThreadPriority::kBestEffort:
-                priority = THREAD_PRIORITY_NORMAL;
-                break;
-            case ThreadPriority::kUserVisible:
-                priority = THREAD_PRIORITY_ABOVE_NORMAL;
-                break;
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, "Tried to se the thread priorty for this thread on a different thread");
+                LOG_WARN(msg);
+
+                succeeded = false;
             }
-            succeeded = ::SetThreadPriority(inThread->native_handle(), priority) != 0;
+            else
+            {
+                int priority = -1; // kUserBlocking
+                switch (m_Priority)
+                {
+                case ThreadPriority::kBestEffort:
+                    priority = THREAD_PRIORITY_NORMAL;
+                    break;
+                case ThreadPriority::kUserVisible:
+                    priority = THREAD_PRIORITY_ABOVE_NORMAL;
+                    break;
+                case ThreadPriority::kUserBlocking:
+                    priority = THREAD_PRIORITY_TIME_CRITICAL default : succeeded = true;
+                }
+                if (priority != -1)
+                {
+                    succeeded = ::SetThreadPriority(m_Thread->native_handle(), priority) != 0;
+                }
+            }
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-            int priority = 10; // kUserBlocking
-            switch (inPriority)
+            if (pthread_self() != m_Thread->native_handle())
             {
-            case ThreadPriority::kBestEffort:
-                priority = 5;
-                break;
-            case ThreadPriority::kUserVisible:
-                priority = 8;
-                break;
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, "Tried to se the thread priorty for this thread on a different thread");
+                LOG_WARN(msg);
+
+                succeeded = false;
             }
-            sched_param params;
-            params.sched_priority = priority;
-            succeeded = pthread_setschedparam(inThread->native_handle(), SCHED_RR, priority) == 0;
+            else
+            {
+                switch (m_Priority)
+                {
+                case ThreadPriority::kBestEffort:
+                    succeeded = pthread_set_qos_class_self_np(QOS_CLASS_BACKGROUND, 0) == 0;
+                    break;
+                case ThreadPriority::kUserVisible:
+                    succeeded = pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, -1) == 0;
+                    break;
+                case ThreadPriority::kUserBlocking:
+                    succeeded = pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0) == 0;
+                    break;
+                default:
+                    succeeded = true;
+                }
+            }
 #endif
             if (succeeded == false)
             {
                 Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, std::format("Failed to set thread priorty"));
+                msg.emplace(Log::MsgKey::Msg, "Failed to set thread priorty");
                 LOG_WARN(msg);
             }
         }
 
-        int GetThreadPriority(std::thread *inThread)
+        void Thread::SetThreadName()
         {
 #if defined(V8APP_WINDOWS)
-            return ::GetThreadPriority(inThread->native_handle());
+            std::wstring temp = std::wstring(m_Name.begin(), m_Name.end());
+            SetThreadDescription(m_Thread->native_handle(), temp.c_str());
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-            int policy;
-            sched_param param;
-            pthread_getschedparam(inThread->native_handle(), &policy, &param);
-            return param.sched_priority;
+            pthread_setname_np(m_Name.c_str());
 #endif
         }
 

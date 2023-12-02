@@ -53,9 +53,14 @@ namespace v8App
             void PushNonNestableItemDelayed(double inDelaySeconds, V8TaskUniquePtr inItem);
 
             std::optional<V8TaskUniquePtr> GetNextItem(int inNestingDepth);
-            bool MayHaveItems();
+            virtual bool MayHaveItems() override;
 
-            void Terminate();
+            virtual void Terminate() override;
+
+        private:
+            using TThreadSafeDelayedQueue::PushItem;
+            using TThreadSafeDelayedQueue::PushItemDelayed;
+            using TThreadSafeDelayedQueue::GetNextItem;
         };
     } // namespace Queues
 } // namespace v8App

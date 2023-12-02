@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <string>
+#include <iostream>
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -15,9 +16,9 @@ namespace v8App
     {
         TEST(EnvironmentTest, GetEnvironmentVar)
         {
+
             EXPECT_EQ("", GetEnvironmentVar("NotExist"));
             EXPECT_EQ("test", GetEnvironmentVar("VarExists"));
-
         }
-    } //Utils
+    } // Utils
 } // v8App

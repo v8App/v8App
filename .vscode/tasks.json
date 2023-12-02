@@ -11,9 +11,9 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/application:application",
+			"command": "bazel build //libs/application:application -c dbg",
 			"windows":{
-				"command": "bazel build //libs/application:application --config=windows -c dbg"
+				"command": "bazel build //libs/application:application --config=windows-debug"
 			},
 			"label": "Bazel Build libapplication Debug"
 		},
@@ -27,7 +27,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/application:testApplication",
+			"command": "bazel build //libs/application:testApplication -c dbg",
 			"windows":{
 				"command": "bazel build //libs/application:testApplication --config=windows -c dbg"
 			},
@@ -43,7 +43,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/core:core",
+			"command": "bazel build //libs/core:core -c dbg",
 			"windows":{
 				"command": "bazel build //libs/core:core --config=windows -c dbg"
 			},
@@ -59,7 +59,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/core:testCore",
+			"command": "bazel build //libs/core:testCore -c dbg",
 			"windows":{
 				"command": "bazel build //libs/core:testCore --config=windows -c dbg"
 			},
@@ -75,7 +75,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:jsRuntime",
+			"command": "bazel build //libs/jsRuntime:jsRuntime -c dbg",
 			"windows":{
 				"command": "bazel build //libs/jsRuntime:jsRuntime --config=windows -c dbg"
 			},
@@ -91,7 +91,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:testJSRuntime",
+			"command": "bazel build //libs/jsRuntime:testJSRuntime -c dbg",
 			"windows":{
 				"command": "bazel build //libs/jsRuntime:testJSRuntime --config=windows -c dbg"
 			},

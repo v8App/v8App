@@ -26,7 +26,7 @@ namespace v8App
         bool V8JobState::V8JobDelegate::ShouldYield()
         {
             DCHECK_FALSE(m_Yielded);
-            m_Yielded |= m_JobState->m_Canceled.load(std::memory_order::memory_order_relaxed);
+            m_Yielded |= m_JobState->m_Canceled.load(std::memory_order::relaxed);
             return m_Yielded;
         }
 
@@ -61,7 +61,7 @@ namespace v8App
 
         void V8JobState::NotifyConcurrencyIncrease()
         {
-            if (m_Canceled.load(std::memory_order::memory_order_relaxed))
+            if (m_Canceled.load(std::memory_order::relaxed))
             {
                 return;
             }
@@ -70,12 +70,12 @@ namespace v8App
                 std::unique_lock<std::mutex> lock(m_Lock);
                 priority = m_Priority;
             }
-            PostonWorkerThread(ComputeTaskToPost(GetMaxConcurrency(m_ActiveTasks)), m_Priority);
+            PostonWorkerThread(ComputeTaskToPost(GetMaxConcurrency(m_ActiveTasks)), priority);
         }
 
         uint8_t V8JobState::AcquireTaskId()
         {
-            V8JobTaskIdType assignedTaskIds = m_AssignedTaskIds.load(std::memory_order::memory_order_relaxed);
+            V8JobTaskIdType assignedTaskIds = m_AssignedTaskIds.load(std::memory_order::relaxed);
             V8JobTaskIdType newTaskIds;
             uint8_t taskID;
             do
@@ -86,13 +86,13 @@ namespace v8App
                     return taskID;
                 }
                 newTaskIds = m_AssignedTaskIds | (1 << taskID);
-            } while (m_AssignedTaskIds.compare_exchange_weak(assignedTaskIds, newTaskIds, std::memory_order::acquire, std::memory_order::memory_order_relaxed));
+            } while (m_AssignedTaskIds.compare_exchange_weak(assignedTaskIds, newTaskIds, std::memory_order::acquire, std::memory_order::relaxed));
             return taskID;
         }
 
         void V8JobState::ReleaseTaskID(uint8_t inTaskId)
         {
-            V8JobTaskIdType previousTaskIDs = m_AssignedTaskIds.fetch_and(~(1 << inTaskId), std::memory_order::memory_order_release);
+            V8JobTaskIdType previousTaskIDs = m_AssignedTaskIds.fetch_and(~(1 << inTaskId), std::memory_order::release);
             DCHECK_TRUE(previousTaskIDs & (1 << inTaskId));
             (void)previousTaskIDs;
         }
@@ -115,7 +115,7 @@ namespace v8App
                 }
                 DCHECK_EQ(1, m_ActiveTasks);
                 m_ActiveTasks = 0;
-                m_Canceled.store(true, std::memory_order::memory_order_relaxed);
+                m_Canceled.store(true, std::memory_order::relaxed);
                 return 0;
             };
 
@@ -145,7 +145,7 @@ namespace v8App
         void V8JobState::CancelAndWait()
         {
             std::unique_lock<std::mutex> lock(m_Lock);
-            m_Canceled.store(true, std::memory_order::memory_order_relaxed);
+            m_Canceled.store(true, std::memory_order::relaxed);
             while (m_ActiveTasks > 0)
             {
                 m_WorkerReleased.wait(lock);
@@ -154,7 +154,7 @@ namespace v8App
 
         void V8JobState::CancelAndDetach()
         {
-            m_Canceled.store(true, std::memory_order::memory_order_relaxed);
+            m_Canceled.store(true, std::memory_order::relaxed);
         }
 
         bool V8JobState::IsActive()
@@ -167,7 +167,7 @@ namespace v8App
         {
             std::unique_lock<std::mutex> lock(m_Lock);
             m_PendingTasks--;
-            if (m_Canceled.load(std::memory_order::memory_order_relaxed))
+            if (m_Canceled.load(std::memory_order::relaxed))
             {
                 return false;
             }
@@ -186,7 +186,7 @@ namespace v8App
                 std::unique_lock<std::mutex> lock(m_Lock);
                 prioirty = m_Priority;
                 size_t maxConcurrency = GetMaxConcurrency(m_ActiveTasks - 1);
-                if (m_Canceled.load(std::memory_order::memory_order_relaxed) || m_ActiveTasks > maxConcurrency)
+                if (m_Canceled.load(std::memory_order::relaxed) || m_ActiveTasks > maxConcurrency)
                 {
                     m_ActiveTasks--;
                     m_WorkerReleased.notify_one();

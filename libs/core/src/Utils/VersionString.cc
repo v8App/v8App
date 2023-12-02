@@ -96,7 +96,7 @@ namespace v8App
                 int result = left.compare(right);
                 if(result != 0)
                 {
-                    return result;
+                    return result < 0 ? -1 : 1;
                 }
             }
             if(preRelease.size() == inPreRelease.size())

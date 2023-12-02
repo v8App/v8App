@@ -9,7 +9,6 @@
 #include <condition_variable>
 #include <functional>
 #include <vector>
-#include <thread>
 #include <atomic>
 #include <future>
 
@@ -44,6 +43,29 @@ namespace v8App
             void Terminate();
 
         protected:
+            class ThreadPoolThread : public Thread
+            {
+            public:
+                ThreadPoolThread(std::string inName, ThreadPriority inPriority, ThreadPoolDelayedQueue *inPool, bool inPumper) : Thread(inName, inPriority), m_Pool(inPool), m_Pumper(inPumper) {}
+
+            protected:
+                virtual void RunImpl() override
+                {
+                    if (m_Pumper)
+                    {
+                        m_Pool->PumpQueue();
+                    }
+                    else
+                    {
+                        m_Pool->ProcessTasks();
+                    }
+                }
+
+            protected:
+                ThreadPoolDelayedQueue *m_Pool;
+                bool m_Pumper;
+            };
+
             // queue calls this when delayed tasks are ready to be run
             void DelayedJobsReady();
             // pumps the queue to process the delayed tasks.
@@ -56,7 +78,7 @@ namespace v8App
             std::atomic_bool m_Exiting{false};
             std::condition_variable m_QueueWaiter;
             Queues::TThreadSafeDelayedQueue<ThreadPoolTaskUniquePtr> m_Queue;
-            std::vector<std::unique_ptr<std::thread>> m_Workers;
+            std::vector<std::unique_ptr<Thread>> m_Workers;
             ThreadPriority m_Priority;
         };
     } // namespace Threads

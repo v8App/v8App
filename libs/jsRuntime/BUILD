@@ -1,4 +1,5 @@
 load("@v8App//:bazel/v8_app_rules.bzl", "v8App_library", "v8App_test")
+load("@v8App//:bazel/platform_configs.bzl", "define_platform_config_settings")
 
 v8App_library(
     name = "jsRuntime",

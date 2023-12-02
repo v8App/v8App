@@ -21,32 +21,32 @@ namespace v8App
 
         void NestableQueue::PushItem(V8TaskUniquePtr inItem)
         {
-            QueueEntry temp;
+            internal::QueueEntry temp;
             temp.m_Nestable = Nestability::kNestable;
             temp.m_Task = std::move(inItem);
-            DelayedQueue::PushItem(std::move(temp));
+            PushItem(std::move(temp));
         }
         void NestableQueue::PushItemDelayed(double inDelaySeconds, V8TaskUniquePtr inItem)
         {
-            QueueEntry temp;
+            internal::QueueEntry temp;
             temp.m_Nestable = Nestability::kNestable;
             temp.m_Task = std::move(inItem);
-            DelayedQueue::PushItemDelayed(inDelaySeconds, std::move(temp));
+            PushItemDelayed(inDelaySeconds, std::move(temp));
         }
 
         void NestableQueue::PushNonNestableItem(V8TaskUniquePtr inItem)
         {
-            QueueEntry temp;
+            internal::QueueEntry temp;
             temp.m_Nestable = Nestability::kNonstable;
             temp.m_Task = std::move(inItem);
-            DelayedQueue::PushItem(std::move(temp));
+            PushItem(std::move(temp));
         }
         void NestableQueue::PushNonNestableItemDelayed(double inDelaySeconds, V8TaskUniquePtr inItem)
         {
-            QueueEntry temp;
+            internal::QueueEntry temp;
             temp.m_Nestable = Nestability::kNonstable;
             temp.m_Task = std::move(inItem);
-            DelayedQueue::PushItemDelayed(inDelaySeconds, std::move(temp));
+            PushItemDelayed(inDelaySeconds, std::move(temp));
         }
 
         std::optional<V8TaskUniquePtr> NestableQueue::GetNextItem(int inNestingDepth)

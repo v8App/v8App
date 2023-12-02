@@ -39,6 +39,9 @@ def _default_args():
                 "winmm.lib",
                 "advapi32.lib",
             ],
+            "//:macos":{
+                
+            },
             "//conditions:default": [
                 "-pthread",
             ],

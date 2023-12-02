@@ -6,7 +6,8 @@
 
 #include "Threads/ThreadPoolQueue.h"
 #include "Logging/LogMacros.h"
-
+#include "Utils/Format.h"
+        
 namespace v8App
 {
     namespace Threads
@@ -22,9 +23,9 @@ namespace v8App
             m_NumWorkers = std::max(1, std::min(inNumberOfWorkers, hardwareThreads));
             for (int x = 0; x < m_NumWorkers; x++)
             {
-                std::unique_ptr<std::thread> thread = std::make_unique<std::thread>([this]()
-                                                                                    { this->ProcessTasks(); });
-                SetThreadPriority(thread.get(), m_Priority);
+                std::string name = Utils::format("ThreadPool #{}", x);
+                std::unique_ptr<Thread> thread = std::make_unique<ThreadPoolThread>(name, m_Priority, this);
+                thread->Start();
                 m_Workers.push_back(std::move(thread));
             }
         }
@@ -61,7 +62,7 @@ namespace v8App
             m_QueueWaiter.notify_all();
             for (auto &it : m_Workers)
             {
-                it->join();
+                it->Join();
             }
             m_Workers.clear();
         }
@@ -78,7 +79,7 @@ namespace v8App
                     return;
                 }
 
-                std::optional<ThreadPoolTaskUniquePtr> task = std::move(m_Queue.GetNextItem());
+                std::optional<ThreadPoolTaskUniquePtr> task = m_Queue.GetNextItem();
                 if (task)
                 {
                     task.value()->Run();

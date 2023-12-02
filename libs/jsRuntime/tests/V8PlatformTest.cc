@@ -253,15 +253,15 @@ namespace v8App
             TestV8Platform platform;
 
             EXPECT_EQ(testPlatformInt1, 0);
-            platform.CallOnWorkerThread(std::move(std::make_unique<TestPlatformTask>(&testPlatformInt1, 2)));
+            platform.CallOnWorkerThread(std::make_unique<TestPlatformTask>(&testPlatformInt1, 2));
             std::this_thread::sleep_for(std::chrono::seconds(2));
             EXPECT_EQ(testPlatformInt1, 2);
 
-            platform.CallBlockingTaskOnWorkerThread(std::move(std::make_unique<TestPlatformTask>(&testPlatformInt1, 4)));
+            platform.CallBlockingTaskOnWorkerThread(std::make_unique<TestPlatformTask>(&testPlatformInt1, 4));
             std::this_thread::sleep_for(std::chrono::seconds(2));
             EXPECT_EQ(testPlatformInt1, 4);
 
-            platform.CallLowPriorityTaskOnWorkerThread(std::move(std::make_unique<TestPlatformTask>(&testPlatformInt1, 6)));
+            platform.CallLowPriorityTaskOnWorkerThread(std::make_unique<TestPlatformTask>(&testPlatformInt1, 6));
             std::this_thread::sleep_for(std::chrono::seconds(2));
             EXPECT_EQ(testPlatformInt1, 6);
         }
@@ -271,7 +271,7 @@ namespace v8App
             TestV8Platform platform;
 
             EXPECT_EQ(testPlatformInt2, 0);
-            platform.CallDelayedOnWorkerThread(std::move(std::make_unique<TestPlatformTask>(&testPlatformInt2, 2)), 10);
+            platform.CallDelayedOnWorkerThread(std::make_unique<TestPlatformTask>(&testPlatformInt2, 2), 10);
             std::this_thread::sleep_for(std::chrono::seconds(2));
             EXPECT_EQ(testPlatformInt2, 0);
             std::this_thread::sleep_for(std::chrono::seconds(8));

@@ -23,6 +23,7 @@ namespace v8App
         class IThreadPoolTask
         {
         public:
+            virtual ~IThreadPoolTask() = default;
             virtual void Run() = 0;
         };
 

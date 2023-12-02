@@ -9,7 +9,6 @@
 #include <condition_variable>
 #include <functional>
 #include <vector>
-#include <thread>
 #include <atomic>
 #include <future>
 
@@ -43,6 +42,21 @@ namespace v8App
             void Terminate();
 
         protected:
+            class ThreadPoolThread : public Thread
+            {
+            public:
+                ThreadPoolThread(std::string inName, ThreadPriority inPriority, ThreadPoolQueue *inPool) : Thread(inName, inPriority), m_Pool(inPool) {}
+
+            protected:
+                virtual void RunImpl() override
+                {
+                    m_Pool->ProcessTasks();
+                }
+
+            protected:
+                ThreadPoolQueue *m_Pool;
+            };
+
             // Hnadles removing a task form the queue and running it.
             void ProcessTasks();
 
@@ -51,7 +65,7 @@ namespace v8App
             std::atomic_bool m_Exiting{false};
             std::condition_variable m_QueueWaiter;
             Queues::TThreadSafeQueue<ThreadPoolTaskUniquePtr> m_Queue;
-            std::vector<std::unique_ptr<std::thread>> m_Workers;
+            std::vector<std::unique_ptr<Thread>> m_Workers;
             ThreadPriority m_Priority;
         };
     } // namespace Threads

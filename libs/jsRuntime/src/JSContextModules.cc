@@ -3,10 +3,10 @@
 // found in the LICENSE file.
 
 #include <algorithm>
-#include <format>
 #include <regex>
 
 #include "Assets/AppAssetRoots.h"
+#include "Utils/Format.h"
 #include "JSContext.h"
 #include "JSContextModules.h"
 #include "JSUtilities.h"
@@ -424,7 +424,7 @@ namespace v8App
             if (assertionInfo.m_Type == JSModuleInfo::ModuleType::kInvalid)
             {
                 std::string specifierStr = JSUtilities::V8ToString(isolate, specifier);
-                JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, std::format("Import '{}' had an invalid type of '{}'", specifierStr, assertionInfo.m_TypeString));
+                JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, Utils::format("Import '{}' had an invalid type of '{}'", specifierStr, assertionInfo.m_TypeString));
                 resolver->Reject(context, tryCatch.Exception()).ToChecked();
                 return;
             }

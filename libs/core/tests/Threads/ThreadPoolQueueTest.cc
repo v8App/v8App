@@ -42,7 +42,8 @@ namespace v8App
                 {
                     return -9999;
                 }
-                return Threads::GetThreadPriority(m_Workers[inIndex].get());
+                int priority = m_Workers[inIndex]->GetNativePriority();
+                return priority;
             }
             size_t GetWorkersSize() { return m_Workers.size(); }
             bool HasTask() { return m_Queue.MayHaveItems(); }
@@ -66,7 +67,9 @@ namespace v8App
 #if defined(V8APP_WINDOWS)
                 EXPECT_EQ(THREAD_PRIORITY_NORMAL, pool.GetThreadPriority(0));
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-                EXPECT_EQ(5, pool.GetThreadPriority(0));
+                //need to yeild apparently to give the OS time to set stuff
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                EXPECT_EQ(QOS_CLASS_BACKGROUND, pool.GetThreadPriority(0));
 #endif
             }
 
@@ -77,7 +80,9 @@ namespace v8App
 #if defined(V8APP_WINDOWS)
                 EXPECT_EQ(THREAD_PRIORITY_TIME_CRITICAL, pool.GetThreadPriority(0));
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-                EXPECT_EQ(10, pool.GetThreadPriority(0));
+                //need to yeild apparently to give the OS time to set stuff
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                EXPECT_EQ(QOS_CLASS_USER_INITIATED, pool.GetThreadPriority(0));
 #endif
             }
             {
