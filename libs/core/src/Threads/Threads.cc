@@ -7,7 +7,9 @@
 
 #if defined(V8APP_WINDOWS)
 #include <windows.h>
+#include <winerror.h>
 #include <processthreadsapi.h>
+#include <codecvt>
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
 #include <pthread.h>
 #endif
@@ -78,11 +80,14 @@ namespace v8App
 #if defined(V8APP_WINDOWS)
                 PWSTR name;
                 HRESULT result = ::GetThreadDescription(m_Thread->native_handle(), &name);
-                if (SUCCEDED(result))
+                if (SUCCEEDED(result))
                 {
                     std::wstring wtemp(name);
-                    std::string temp = std::string_convert<std::codecvt_utf8<char_t>>().from_bytes(wtemp)
-                                           LocalFree(name);
+                    //NOTE: codecvt is being removed in c++26 so when we get to that point we'll
+                    //have to convert this to what ever replaces it.
+                    std::string temp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wtemp);
+                    LocalFree(name);
+
                     return temp;
                 }
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
@@ -100,8 +105,7 @@ namespace v8App
         void Thread::SetThreadPriority()
         {
             bool succeeded = true;
-#if defined(V8APP_WINDOWS)
-            if (GetCurrentThread() != m_Thread->native_handle())
+            if (std::this_thread::get_id() != m_Thread->get_id())
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, "Tried to se the thread priorty for this thread on a different thread");
@@ -111,6 +115,7 @@ namespace v8App
             }
             else
             {
+#if defined(V8APP_WINDOWS)
                 int priority = -1; // kUserBlocking
                 switch (m_Priority)
                 {
@@ -121,24 +126,15 @@ namespace v8App
                     priority = THREAD_PRIORITY_ABOVE_NORMAL;
                     break;
                 case ThreadPriority::kUserBlocking:
-                    priority = THREAD_PRIORITY_TIME_CRITICAL default : succeeded = true;
+                    priority = THREAD_PRIORITY_TIME_CRITICAL;
+                default:
+                    succeeded = true;
                 }
                 if (priority != -1)
                 {
                     succeeded = ::SetThreadPriority(m_Thread->native_handle(), priority) != 0;
                 }
-            }
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-            if (pthread_self() != m_Thread->native_handle())
-            {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, "Tried to se the thread priorty for this thread on a different thread");
-                LOG_WARN(msg);
-
-                succeeded = false;
-            }
-            else
-            {
                 switch (m_Priority)
                 {
                 case ThreadPriority::kBestEffort:
@@ -153,8 +149,8 @@ namespace v8App
                 default:
                     succeeded = true;
                 }
-            }
 #endif
+            }
             if (succeeded == false)
             {
                 Log::LogMessage msg;

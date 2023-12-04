@@ -285,9 +285,10 @@ namespace v8App
             int max = static_cast<int>(Threads::ThreadPriority::kMaxPriority) + 1;
 
             EXPECT_EQ(Threads::ThreadPriority::kBestEffort, platform.TestIntToPriority(-1));
-            EXPECT_EQ(Threads::ThreadPriority::kBestEffort, platform.TestIntToPriority(0));
-            EXPECT_EQ(Threads::ThreadPriority::kUserVisible, platform.TestIntToPriority(1));
-            EXPECT_EQ(Threads::ThreadPriority::kUserBlocking, platform.TestIntToPriority(2));
+            EXPECT_EQ(Threads::ThreadPriority::kDefault, platform.TestIntToPriority(0));
+            EXPECT_EQ(Threads::ThreadPriority::kBestEffort, platform.TestIntToPriority(1));
+            EXPECT_EQ(Threads::ThreadPriority::kUserVisible, platform.TestIntToPriority(2));
+            EXPECT_EQ(Threads::ThreadPriority::kUserBlocking, platform.TestIntToPriority(3));
             EXPECT_EQ(Threads::ThreadPriority::kBestEffort, platform.TestIntToPriority(max));
         }
 
@@ -295,10 +296,10 @@ namespace v8App
         {
             TestV8Platform platform;
 
-            EXPECT_EQ(0, platform.TestPriorityToInt(v8::TaskPriority::kBestEffort));
-            EXPECT_EQ(1, platform.TestPriorityToInt(v8::TaskPriority::kUserVisible));
-            EXPECT_EQ(2, platform.TestPriorityToInt(v8::TaskPriority::kUserBlocking));
-            EXPECT_EQ(2, platform.TestPriorityToInt(v8::TaskPriority::kMaxPriority));
+            EXPECT_EQ(1, platform.TestPriorityToInt(v8::TaskPriority::kBestEffort));
+            EXPECT_EQ(2, platform.TestPriorityToInt(v8::TaskPriority::kUserVisible));
+            EXPECT_EQ(3, platform.TestPriorityToInt(v8::TaskPriority::kUserBlocking));
+            EXPECT_EQ(3, platform.TestPriorityToInt(v8::TaskPriority::kMaxPriority));
         }
     } // namespace JSRuntime
 } // namespace v8App

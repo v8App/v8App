@@ -65,11 +65,11 @@ namespace v8App
                 EXPECT_FALSE(pool.IsExiting());
                 EXPECT_EQ(hardwareThreads, pool.GetWorkersSize());
 
+                //need to yeild apparently to give the OS time to set stuff
+                std::this_thread::sleep_for(std::chrono::seconds(1));
 #if defined(V8APP_WINDOWS)
                 EXPECT_EQ(THREAD_PRIORITY_NORMAL, pool.GetThreadPriority(0));
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-                //need to yeild apparently to give the OS time to set stuff
-                std::this_thread::sleep_for(std::chrono::seconds(1));
                 EXPECT_EQ(QOS_CLASS_BACKGROUND, pool.GetThreadPriority(0));
 #endif
             }
@@ -78,11 +78,12 @@ namespace v8App
                 int numThreads = std::min(2, hardwareThreads);
                 TestThreadPoolDelayedQueue pool = TestThreadPoolDelayedQueue(numThreads, ThreadPriority::kUserBlocking);
                 EXPECT_EQ(numThreads, pool.GetNumberOfWorkers());
+
+                //need to yeild apparently to give the OS time to set stuff
+                std::this_thread::sleep_for(std::chrono::seconds(1));
 #if defined(V8APP_WINDOWS)
                 EXPECT_EQ(THREAD_PRIORITY_TIME_CRITICAL, pool.GetThreadPriority(0));
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-                //need to yeild apparently to give the OS time to set stuff
-                std::this_thread::sleep_for(std::chrono::seconds(1));
                 EXPECT_EQ(QOS_CLASS_USER_INITIATED, pool.GetThreadPriority(0));
 #endif
             }

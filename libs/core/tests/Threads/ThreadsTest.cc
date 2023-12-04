@@ -45,25 +45,24 @@ namespace v8App
             std::unique_ptr<TestThread> thread;
 #if defined(V8APP_WINDOWS)
             thread = std::make_unique<TestThread>("test", ThreadPriority::kUserBlocking);
-            EXPECT_EQ(-1, thread->GetNativePriority();
-            thread->Start();
-            EXPECT_EQ("test", thread->GetNativeName());
-            EXPECT_EQ(ThreadPriority::kUserBlocking, thread->GetPriortiy());
-            EXPECT_EQ(THREAD_PRIORITY_TIME_CRITICAL, thread->GetNativePriority();
-            thread->Join();
 #elif defined(V8APP_MACOS) || defined(V8APP_IOS)
-             thread = std::make_unique<TestThread>("test", ThreadPriority::kBestEffort);
+            thread = std::make_unique<TestThread>("test", ThreadPriority::kBestEffort);
+#endif
             EXPECT_EQ(-1, thread->GetNativePriority());
             thread->Start();
-            //need to yeild apparently to give the OS time to set stuff
+            // need to yeild apparently to give the OS time to set stuff
             std::this_thread::sleep_for(std::chrono::seconds(1));
             EXPECT_EQ("test", thread->GetNativeName());
+#if defined(V8APP_WINDOWS)
+            EXPECT_EQ(ThreadPriority::kUserBlocking, thread->GetPriortiy());
+            EXPECT_EQ(THREAD_PRIORITY_TIME_CRITICAL, thread->GetNativePriority());
+#elif defined(V8APP_MACOS) || defined(V8APP_IOS)
             EXPECT_EQ(ThreadPriority::kBestEffort, thread->GetPriortiy());
             EXPECT_EQ(QOS_CLASS_BACKGROUND, thread->GetNativePriority());
-            thread->Join();
 #endif
+            thread->Join();
 
-            //when the thread is joined and we come back the native thread functions won't work so test
+            // when the thread is joined and we come back the native thread functions won't work so test
             thread = std::make_unique<TestThread>("test", ThreadPriority::kUserBlocking);
             thread->Start();
             thread->Join();
