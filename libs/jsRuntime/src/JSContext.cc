@@ -45,8 +45,8 @@ namespace v8App
             m_Context = std::move(inContext.m_Context);
             inContext.m_Context.Reset();
 
-            m_Modules = inContext.m_Modules;
-            inContext.m_Modules.reset();
+            //m_Modules = inContext.m_Modules;
+            //inContext.m_Modules.reset();
         }
 
         bool JSContext::InitializeContext(JSContextSharedPtr inSharedContext)
@@ -64,7 +64,7 @@ namespace v8App
             {
                 return false;
             }
-            m_Modules = std::make_shared<JSContextModules>(inSharedContext);
+            //m_Modules = std::make_shared<JSContextModules>(inSharedContext);
             
             v8::TryCatch tryCatch(isolate);
 

@@ -100,7 +100,8 @@
         "stack": "cpp",
         "string_view": "cpp",
         "variant": "cpp",
-        "any": "cpp"
+        "any": "cpp",
+        "codecvt": "cpp"
     },
     "editor.tokenColorCustomizations": {
         "textMateRules": [
@@ -125,7 +126,7 @@
         ]
     },
     "gtest-adapter.debugConfig": [
-        "test libCore Debug"
+        "test libJSRuntime Debug"
     ],
     "gtest-adapter.supportLocation": true
 }

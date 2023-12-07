@@ -9,7 +9,7 @@
 
 #include "v8.h"
 #include "JSRuntime.h"
-#include "JSContextModules.h"
+//#include "JSContextModules.h"
 
 namespace v8App
 {
@@ -40,7 +40,7 @@ namespace v8App
             }
             v8::Isolate *GetIsolate();
             JSRuntimeSharedPtr GetJSRuntime() { return m_Isolate; }
-            JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
+            //JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
 
             static JSContextSharedPtr GetJSContextFromV8Context(v8::Local<v8::Context> inContext);
 
@@ -54,7 +54,7 @@ namespace v8App
             JSRuntimeSharedPtr m_Isolate;
             v8::Global<v8::Context> m_Context;
             bool m_Initialized = false;
-            JSContextModulesSharedPtr m_Modules;
+            //JSContextModulesSharedPtr m_Modules;
 
             JSContext(const JSContext &) = delete;
             JSContext &operator=(const JSContext &) = delete;

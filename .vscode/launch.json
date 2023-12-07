@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/libs/application/",
             "environment": [
                 {
                     "name": "RUNFILES_MANIFEST_FILE",
@@ -41,7 +41,7 @@
             "program": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/libs/application/",
             "environment": [
                 {
                     "name": "RUNFILES_MANIFEST_FILE",
@@ -70,7 +70,7 @@
             "program": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/libs/core/",
             "environment": [
                 {
                     "name": "RUNFILES_MANIFEST_FILE",
@@ -104,7 +104,7 @@
             "program": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/libs/core/",
             "environment": [
                 {
                     "name": "RUNFILES_MANIFEST_FILE",
@@ -119,6 +119,7 @@
                     "value": "test"
                 },
             ],
+            "console": "externalTerminal",
             "preLaunchTask": "Bazel Build testCore Debug",
             "osx": {
                 "program": "${workspaceFolder}/bazel-bin/libs/core/testCore",
@@ -137,7 +138,7 @@
             "program": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/libs/jsRuntime/",
             "environment": [
                 {
                     "name": "RUNFILES_MANIFEST_FILE",
@@ -167,7 +168,7 @@
             "program": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/libs/jsRuntime/",
             "environment": [
                 {
                     "name": "RUNFILES_MANIFEST_FILE",

@@ -8,8 +8,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 new_local_repository(
     name = "libuv",
-    build_file = "@v8App//:third_party/libuv.BUILD",  
-    path="third_party/libuv"
+    build_file = "@v8App//:third_party/libuv.BUILD",
+    path = "third_party/libuv",
 )
 
 http_archive(
@@ -45,14 +45,15 @@ load(
 )
 
 apple_support_dependencies()
+
 http_archive(
     name = "build_bazel_rules_android",
-    urls = ["https://github.com/bazelbuild/rules_android/archive/v0.1.1.zip"],
     sha256 = "cd06d15dd8bb59926e4d65f9003bfc20f9da4b2519985c27e190cddc8b7a7806",
     strip_prefix = "rules_android-0.1.1",
+    urls = ["https://github.com/bazelbuild/rules_android/archive/v0.1.1.zip"],
 )
 
-# f8d7d77c06936315286eb55f8de22cd23c188571  is the commit sha for v1.14.0. 
+# f8d7d77c06936315286eb55f8de22cd23c188571  is the commit sha for v1.14.0.
 # Periodically update to the latest to "live at head"
 http_archive(
     name = "com_google_googletest",

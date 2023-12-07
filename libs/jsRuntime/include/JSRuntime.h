@@ -9,33 +9,15 @@
 #include <map>
 
 #include "Assets/AppAssetRoots.h"
-#include "V8ExternalRegistry.h"
-
-#include "v8-platform.h"
-#include "v8.h"
-
-#ifdef UNIT_TESTING
-#include <gtest/gtest_prod.h>
-#endif
+// #include "V8ExternalRegistry.h"
+#include "V8Types.h"
+#include "V8Platform.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        class TaskRunner;
-        class DelayedWorkerTaskQueue;
         class JSContext;
-
-        using TimeFunction = std::function<double()>;
-        using TaskPtr = std::unique_ptr<v8::Task>;
-        using IdleTaskPtr = std::unique_ptr<v8::IdleTask>;
-        using JSRuntimeWeakPtr = std::weak_ptr<class JSRuntime>;
-        using JSRuntimeSharedPtr = std::shared_ptr<class JSRuntime>;
-        using IsolateSharedPtr = std::shared_ptr<v8::Isolate>;
-        using IsolateWeakPtr = std::weak_ptr<v8::Isolate>;
-        using JSContextSharedPtr = std::shared_ptr<class JSContext>;
-        using JSContextWeakPtr = std::weak_ptr<class JSContext>;
-        using V8TaskRunnerSharedPtr = std::shared_ptr<v8::TaskRunner>;
 
         enum IsolateDataSlot
         {
@@ -48,25 +30,35 @@ namespace v8App
             kIdleTasksEnabled
         };
 
-        class JSRuntime : std::enable_shared_from_this<JSRuntime>
+        class JSContextCreationHelper
+        {
+        public:
+            virtual ~JSContextCreationHelper() = default;
+            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime) = 0;
+        };
+
+        using JSContextCreationHelperUniquePtr = std::unique_ptr<JSContextCreationHelper>;
+
+        class JSRuntime : public std::enable_shared_from_this<JSRuntime>
         {
         public:
             explicit JSRuntime(IdleTasksSupport inEnableIdle);
-            JSRuntime(JSRuntime&&) = default;
+            JSRuntime(JSRuntime &&) = default;
 
             static JSRuntimeSharedPtr CreateJSRuntime(IdleTasksSupport inEnableIdle)
             {
-                JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(inEnableIdle);
-                runtime->SetIsolateWeakRef(runtime);
-                return runtime;
+                JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inEnableIdle);
+                temp->CreateIsolate();
+                return temp;
             }
+
             virtual ~JSRuntime();
 
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner();
-            virtual bool AreIdleTasksEnabled();
+            virtual bool IdleTasksEnabled();
 
             static JSRuntimeSharedPtr GetJSRuntimeFromV8Isolate(v8::Isolate *inIsloate);
-            const IsolateSharedPtr GetIsolate() { return m_Isolate; }
+            const V8IsolateSharedPtr GetIsolate() { return m_Isolate; }
 
             void ProcessTasks();
             void ProcessIdleTasks(double inTimeLeft);
@@ -77,8 +69,9 @@ namespace v8App
             void SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate);
             v8::Local<v8::FunctionTemplate> GetFunctionTemplate(void *inInfo);
 
-            V8ExternalRegistry &GetExternalRegistry();
+            // V8ExternalRegistry &GetExternalRegistry();
 
+            void SetContextCreationHelper(JSContextCreationHelperUniquePtr inCreator);
             JSContextWeakPtr CreateContext(std::string inName);
             JSContextWeakPtr GetContextByName(std::string inName);
 
@@ -86,19 +79,18 @@ namespace v8App
             const Assets::AppAssetRootsSharedPtr &GetAppRoots() const { return m_AppRoots; }
 
         protected:
-            void SetIsolateWeakRef(JSRuntimeSharedPtr runtime);
+            void CreateIsolate();
 
             IdleTasksSupport m_IdleEnabled;
 
             // this has a custom no op deleter since we can't call delete on the pointer.
             // we do this so in our code we can use weak ptrs as protection agaisnt tasks using the isolate after
             // deletion
-            IsolateSharedPtr m_Isolate;
+            V8IsolateSharedPtr m_Isolate;
             std::map<std::string, JSContextSharedPtr> m_Contextes;
 
             // the isolate's task queues
-            std::shared_ptr<TaskRunner> m_TaskRunner;
-            std::unique_ptr<DelayedWorkerTaskQueue> m_DelayedWorkerTasks;
+            std::shared_ptr<class ForegroundTaskRunner> m_TaskRunner;
 
             using ObjectTemplateMap = std::map<void *, v8::Eternal<v8::ObjectTemplate>>;
             using FunctionTemplateMap = std::map<void *, v8::Eternal<v8::FunctionTemplate>>;
@@ -106,17 +98,33 @@ namespace v8App
             ObjectTemplateMap m_ObjectTemplates;
             FunctionTemplateMap m_FunctionTemplates;
 
-            V8ExternalRegistry m_ExternalRegistry;
+            // V8ExternalRegistry m_ExternalRegistry;
 
             Assets::AppAssetRootsSharedPtr m_AppRoots;
 
+            JSContextCreationHelperUniquePtr m_ContextCreation;
+
             JSRuntime(const JSRuntime &) = delete;
             JSRuntime &operator=(const JSRuntime &) = delete;
-
-#ifdef UNIT_TESTING
-            FRIEND_TEST(JSRuntimeTest, ConstrcutorRelated);
-#endif
         };
+
+        class JSRuntimeIsolateHelper : public PlatformIsolateHelper
+        {
+        public:
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority)
+            {
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
+                DCHECK_NOT_NULL(runtime);
+                return runtime->GetForegroundTaskRunner();
+            };
+            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate)
+            {
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
+                DCHECK_NOT_NULL(runtime.get());
+                return runtime->IdleTasksEnabled();
+            };
+        };
+
     } // namespace JSRuntime
 } // namespace v8App
 #endif

@@ -14,7 +14,20 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        class V8Platform : public v8::Platform
+        /**
+         * A Helper class to remove a reference to the JSRuntime and isolate for testing.
+        */
+        class PlatformIsolateHelper
+        {
+            public:
+            virtual ~PlatformIsolateHelper() = default;
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) = 0;
+            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) = 0;
+        };
+
+        using PlatformIsolateHelperUniquePtr = std::unique_ptr<PlatformIsolateHelper>;
+        
+         class V8Platform : public v8::Platform
         {
         public:
             V8Platform();
@@ -26,7 +39,7 @@ namespace v8App
             virtual v8::ZoneBackingAllocator *GetZoneBackingAllocator() override;
             virtual void OnCriticalMemoryPressure() override;
             virtual int NumberOfWorkerThreads() override;
-            virtual std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) override;
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) override;
 
             virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) override;
 
@@ -48,13 +61,14 @@ namespace v8App
             void SetHighAllocatoionObserver(v8::HighAllocationThroughputObserver *inObserver);
             void SetZoneBlockingAllocator(v8::ZoneBackingAllocator *inZoneAllocator);
 
-            static void InitializeV8();
+            void SetIsolateHelper(PlatformIsolateHelperUniquePtr inHelper);
+
+            static void InitializeV8(PlatformIsolateHelperUniquePtr inHelper);
             static void ShutdownV8();
 
             static std::shared_ptr<V8Platform> Get();
 
         protected:
-
             V8Platform(const V8Platform &) = delete;
             V8Platform &operator=(const V8Platform &) = delete;
 
@@ -102,6 +116,10 @@ namespace v8App
 
             bool m_V8Inited = false;
             int m_NumberOfWorkers;
+
+            static bool s_PlatformDestoryed;
+
+            PlatformIsolateHelperUniquePtr m_IsolateHelper;
 
             static std::shared_ptr<V8Platform> s_Platform;
         };

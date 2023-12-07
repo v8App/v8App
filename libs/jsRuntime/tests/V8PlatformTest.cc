@@ -14,6 +14,27 @@ namespace v8App
 {
     namespace JSRuntime
     {
+        class TestForegroundTaskRunner : public v8::TaskRunner
+        {
+        public:
+            virtual void PostTask(std::unique_ptr<v8::Task> task) override {}
+
+            virtual void PostDelayedTask(std::unique_ptr<v8::Task> task,
+                                         double delay_in_seconds) override {}
+            virtual void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override {}
+            virtual bool IdleTasksEnabled() override {return true;}
+        };
+
+        class TestIsolateHelper : public PlatformIsolateHelper
+        {
+        public:
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) override
+            {
+                return std::make_shared<TestForegroundTaskRunner>();
+            };
+            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) override { return true; }
+        };
+
         class TestPageAllocator : public v8::PageAllocator
         {
         public:
@@ -72,7 +93,8 @@ namespace v8App
                 std::this_thread::sleep_for(std::chrono::seconds(2));
                 m_Concurrency--;
             }
-            virtual size_t GetMaxConcurrency(size_t worker_count) const override{
+            virtual size_t GetMaxConcurrency(size_t worker_count) const override
+            {
                 return m_Concurrency;
             }
             size_t m_Concurrency = 2;
@@ -210,14 +232,28 @@ namespace v8App
             observer.release();
         }
 
+        TEST(V8PlatformTest, GetForegroundTaskRunner)
+        {
+            std::shared_ptr<V8Platform> platform = V8Platform::Get();
+            PlatformIsolateHelperUniquePtr helper = std::make_unique<TestIsolateHelper>();
+            platform->SetIsolateHelper(std::move(helper));
+            EXPECT_NE(nullptr, platform->GetForegroundTaskRunner(nullptr, v8::TaskPriority::kBestEffort).get());
+        }
+
+        TEST(V8PlatformTest, IdleTasksEnabled)
+        {
+            std::shared_ptr<V8Platform> platform = V8Platform::Get();
+            PlatformIsolateHelperUniquePtr helper = std::make_unique<TestIsolateHelper>();
+            platform->SetIsolateHelper(std::move(helper));
+            EXPECT_TRUE(platform->IdleTasksEnabled(nullptr));
+        }
+
         TEST(V8PlatformTest, Get)
         {
             std::shared_ptr<V8Platform> platform = V8Platform::Get();
             EXPECT_NE(platform, nullptr);
             EXPECT_EQ(platform, V8Platform::Get());
         }
-
-        // NOTE: GetForegroundTaskRunner and IdleTasksEnabled are tested with the JSRuntime class
 
         TEST(V8PlatformTest, CreateJobImpl)
         {
@@ -274,7 +310,7 @@ namespace v8App
             platform.CallDelayedOnWorkerThread(std::make_unique<TestPlatformTask>(&testPlatformInt2, 2), 10);
             std::this_thread::sleep_for(std::chrono::seconds(2));
             EXPECT_EQ(testPlatformInt2, 0);
-            std::this_thread::sleep_for(std::chrono::seconds(8));
+            std::this_thread::sleep_for(std::chrono::seconds(10));
             EXPECT_EQ(testPlatformInt2, 2);
         }
 

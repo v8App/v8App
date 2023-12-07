@@ -34,7 +34,7 @@ def define_platform_config_settings(name = ""):
         name = "macos-arm64",
         constraint_values = [
             "@platforms//os:macos",
-            "@platforms//cpu:arm64e",
+            "@platforms//cpu:arm64",
         ],
         visibility = ["//visibility:public"],
     )
@@ -42,7 +42,7 @@ def define_platform_config_settings(name = ""):
         name = "macos-arm64-debug",
         constraint_values = [
             "@platforms//os:macos",
-            "@platforms//cpu:arm64e",
+            "@platforms//cpu:arm64",
         ],
         values = {
             "compilation_mode": "dbg",

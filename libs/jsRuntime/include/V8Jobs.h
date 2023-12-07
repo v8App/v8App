@@ -44,7 +44,8 @@ namespace v8App
                 uint8_t m_TaskId = V8JobState::kInvalidJobId;
                 V8JobState *m_JobState;
                 bool m_JoingThread;
-                bool m_Yielded;
+                //for some resons on a mac this wanted to default to true.
+                bool m_Yielded = {false};
             };
 
             V8JobState(v8::Platform *inPlatform, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers);

@@ -4,13 +4,14 @@
 
 #include "v8.h"
 
-#include "JSRuntime.h"
-#include "JSContext.h"
-#include "JSContextModules.h"
-#include "DelayedWorkerTaskQueue.h"
-#include "TaskRunner.h"
 #include "Logging/LogMacros.h"
 #include "Time/Time.h"
+#include "Utils/Format.h"
+
+#include "JSRuntime.h"
+// #include "JSContext.h"
+// #include "JSContextModules.h"
+#include "ForegroundTaskRunner.h"
 
 namespace v8App
 {
@@ -18,34 +19,15 @@ namespace v8App
     {
         JSRuntime::JSRuntime(IdleTasksSupport inEnableIdle) : m_IdleEnabled(inEnableIdle)
         {
-            m_TaskRunner = std::make_shared<TaskRunner>();
-            m_DelayedWorkerTasks = std::make_unique<DelayedWorkerTaskQueue>();
-
-            // custom deleter since we have to call dispose
-            v8::Isolate* temp = v8::Isolate::Allocate();
-            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
-                                                     { isolate->Dispose(); });
-            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
-
-            v8::Isolate::CreateParams params;
-            // TODO: replace with custom allocator
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(m_Isolate.get(), params);
-
-            JSContextModules::SetupModulesCallbacks(m_Isolate.get());
-        }
-
-        void JSRuntime::SetIsolateWeakRef(JSRuntimeSharedPtr runtime)
-        {
-            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(runtime);
-            m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, weakPtr);
+            m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
         }
 
         JSRuntime::~JSRuntime()
         {
             // clear the contetes before we dispose of the isolate
             {
+                v8::Isolate::Scope isolateScope(m_Isolate.get());
+                v8::Locker locker(m_Isolate.get());
                 v8::HandleScope handleScope(m_Isolate.get());
                 m_Contextes.clear();
             }
@@ -55,12 +37,31 @@ namespace v8App
             m_Isolate.reset();
         }
 
-        std::shared_ptr<v8::TaskRunner> JSRuntime::GetForegroundTaskRunner()
+        void JSRuntime::CreateIsolate()
+        {
+            // custom deleter since we have to call dispose
+            v8::Isolate *temp = v8::Isolate::Allocate();
+            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
+                                                     { isolate->Dispose(); });
+            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
+            m_Isolate->SetData(IsolateDataSlot::kJSRuntimePointer, weakPtr);
+
+            v8::Isolate::CreateParams params;
+            // TODO: replace with custom allocator
+            params.array_buffer_allocator =
+                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+            v8::Isolate::Initialize(m_Isolate.get(), params);
+
+            //            JSContextModules::SetupModulesCallbacks(m_Isolate.get());
+        }
+
+        V8TaskRunnerSharedPtr JSRuntime::GetForegroundTaskRunner()
         {
             return m_TaskRunner;
         }
 
-        bool JSRuntime::AreIdleTasksEnabled()
+        bool JSRuntime::IdleTasksEnabled()
         {
             return m_IdleEnabled == IdleTasksSupport::kIdleTasksEnabled;
         }
@@ -77,37 +78,36 @@ namespace v8App
 
         void JSRuntime::ProcessTasks()
         {
-            TaskPtr task = m_TaskRunner->PopTask();
-            while (task)
+            while (m_TaskRunner->MaybeHasTask())
             {
+                V8TaskUniquePtr task = m_TaskRunner->GetNextTask();
                 {
+                    v8::Isolate::Scope isolateScope(m_Isolate.get());
                     v8::Locker locker(m_Isolate.get());
-                    TaskRunner::TaskRunScope runScope(m_TaskRunner);
+                    ForegroundTaskRunner::TaskRunScope runScope(m_TaskRunner);
                     task->Run();
                 }
-                task = m_TaskRunner->PopTask();
             }
         }
 
         void JSRuntime::ProcessIdleTasks(double inTimeLeft)
         {
-            if (AreIdleTasksEnabled() == false)
+            if (IdleTasksEnabled() == false)
             {
                 return;
             }
 
             double deadline = Time::MonotonicallyIncreasingTimeSeconds() + inTimeLeft;
 
-            IdleTaskPtr task = m_TaskRunner->PopIdleTask();
-
-            while (deadline > Time::MonotonicallyIncreasingTimeSeconds() && task)
+            while (deadline > Time::MonotonicallyIncreasingTimeSeconds() && m_TaskRunner->MaybeHasIdleTask())
             {
+                V8IdleTaskUniquePtr task = m_TaskRunner->GetNextIdleTask();
                 {
+                    v8::Isolate::Scope isolateScope(m_Isolate.get());
                     v8::Locker locker(m_Isolate.get());
-                    TaskRunner::TaskRunScope runScope(m_TaskRunner);
+                    ForegroundTaskRunner::TaskRunScope runScope(m_TaskRunner);
                     task->Run(deadline);
                 }
-                task = m_TaskRunner->PopIdleTask();
             }
         }
 
@@ -145,26 +145,41 @@ namespace v8App
             return it->second.Get(m_Isolate.get());
         }
 
-        V8ExternalRegistry &JSRuntime::GetExternalRegistry()
-        {
-            return m_ExternalRegistry;
-        }
+        //        V8ExternalRegistry &JSRuntime::GetExternalRegistry()
+        //        {
+        //            return m_ExternalRegistry;
+        //        }
 
+        void JSRuntime::SetContextCreationHelper(JSContextCreationHelperUniquePtr inCreator)
+        {
+            m_ContextCreation = std::move(inCreator);
+        }
         JSContextWeakPtr JSRuntime::CreateContext(std::string inName)
         {
-
-            JSContextSharedPtr context = std::make_shared<JSContext>(shared_from_this());
-            context->InitializeContext(context);
-            m_Contextes.insert(std::make_pair(inName, context));
-
+            DCHECK_NOT_NULL(m_ContextCreation);
+            JSContextSharedPtr context = m_ContextCreation->CreateContext(shared_from_this());
+            if (context == nullptr)
+            {
+                Log::LogMessage message;
+                message.emplace(Log::MsgKey::Msg, "ContextHelper returned a nullptr for the context");
+                Log::Log::Error(message);
+            }
+            else
+            {
+                m_Contextes.insert(std::make_pair(inName, context));
+            }
             return context;
         }
 
         JSContextWeakPtr JSRuntime::GetContextByName(std::string inName)
         {
             auto it = m_Contextes.find(inName);
-            if(it == m_Contextes.end())
+            if (it == m_Contextes.end())
             {
+                Log::LogMessage message;
+                message.emplace(Log::MsgKey::Msg, Utils::format("Failed to find JSContext with name {}", inName));
+                Log::Log::Warn(message);
+
                 return JSContextWeakPtr();
             }
             return JSContextWeakPtr(it->second);

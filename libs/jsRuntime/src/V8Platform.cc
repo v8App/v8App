@@ -8,15 +8,18 @@
 
 #include "Time/Time.h"
 #include "Logging/LogMacros.h"
+#include "Logging/Log.h"
 #include "V8Platform.h"
 #include "V8Jobs.h"
 #include "v8.h"
+#include "JSRuntime.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
         std::shared_ptr<V8Platform> V8Platform::s_Platform;
+        bool V8Platform::s_PlatformDestoryed = false;
 
         V8Platform::V8Platform()
         {
@@ -70,19 +73,15 @@ namespace v8App
         std::shared_ptr<v8::TaskRunner> V8Platform::GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority inPriority)
         {
             // make sure it's not null in debug
-            //JSRuntimeSharedPtr runtime(JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate));
-            //DCHECK_NE(runtime, nullptr);
-            //return runtime->GetForegroundTaskRunner();
-            return std::shared_ptr<ForegroundTaskRunner>();
+            DCHECK_NE(m_IsolateHelper, nullptr);
+            return m_IsolateHelper->GetForegroundTaskRunner(inIsolate, inPriority);
         }
 
         bool V8Platform::IdleTasksEnabled(v8::Isolate *inIsolate)
         {
             // make sure it's not null in debug
-            //JSRuntimeSharedPtr runtime(JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate));
-            //DCHECK_NE(runtime, nullptr);
-            //return runtime->AreIdleTasksEnabled();
-            return true;
+            DCHECK_NE(m_IsolateHelper, nullptr);
+            return m_IsolateHelper->IdleTasksEnabled(inIsolate);
         }
 
         std::unique_ptr<v8::ScopedBlockingCall> V8Platform::CreateBlockingScope(v8::BlockingType blocking_type)
@@ -168,13 +167,27 @@ namespace v8App
             }
         }
 
-        void V8Platform::InitializeV8()
+        void V8Platform::SetIsolateHelper(PlatformIsolateHelperUniquePtr inHelper)
+        {
+            m_IsolateHelper = std::move(inHelper);
+        }
+
+        void V8Platform::InitializeV8(PlatformIsolateHelperUniquePtr inHelper)
         {
             if (s_Platform != nullptr && s_Platform->m_V8Inited)
             {
                 return;
             }
-
+            if (s_PlatformDestoryed)
+            {
+                Log::LogMessage message;
+                message.emplace(Log::MsgKey::Msg, "Tried to initialize the V8 Platform after it's been destroyed");
+                //this will abort the app
+                Log::Log::Fatal(message);
+                ABORT();
+                return;
+            }
+            Get()->SetIsolateHelper(std::move(inHelper));
             v8::V8::InitializePlatform(Get().get());
             v8::V8::Initialize();
             s_Platform->m_V8Inited = true;
@@ -182,9 +195,14 @@ namespace v8App
 
         void V8Platform::ShutdownV8()
         {
+            if(s_PlatformDestoryed)
+            {
+                return;
+            }
             v8::V8::Dispose();
             v8::V8::DisposePlatform();
             s_Platform.reset();
+            s_PlatformDestoryed = true;
         }
 
         std::shared_ptr<V8Platform> V8Platform::Get()
@@ -201,7 +219,7 @@ namespace v8App
             const v8::SourceLocation &location)
         {
             size_t numWorkers = NumberOfWorkerThreads();
-            if(priority == v8::TaskPriority::kBestEffort || numWorkers >2)
+            if (priority == v8::TaskPriority::kBestEffort || numWorkers > 2)
             {
                 numWorkers = 2;
             }
@@ -209,12 +227,11 @@ namespace v8App
         }
 
         void V8Platform::PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
-                                        std::unique_ptr<v8::Task> task,
-                                        const v8::SourceLocation &location)
+                                                    std::unique_ptr<v8::Task> task,
+                                                    const v8::SourceLocation &location)
         {
             int idx = PriorityToInt(priority);
             m_WorkerRunners[idx]->PostTask(std::move(task));
-
         }
         void V8Platform::PostDelayedTaskOnWorkerThreadImpl(
             v8::TaskPriority priority, std::unique_ptr<v8::Task> task,

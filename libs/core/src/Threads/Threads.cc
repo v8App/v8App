@@ -36,15 +36,22 @@ namespace v8App
 
         void Thread::Start()
         {
+            std::lock_guard<std::mutex> lock(m_Lock);
             if (m_Running)
             {
                 return;
             }
             m_Thread = std::make_unique<std::thread>([this]()
                                                      {
-                this->m_Running = true;
-                this->SetThreadPriority();
-                this->SetThreadName();
+                {
+                    //we use a mutex to prevent the thread from precedding till after
+                    // the Start call has finished due to m_Thread being null still when
+                    // it some code that expects it to be set and needs to be set. 
+                    std::lock_guard<std::mutex> lock(m_Lock);
+                    this->m_Running = true;
+                    this->SetThreadPriority();
+                    this->SetThreadName();
+                }
                 this->RunImpl();
                 this->m_Running = false; });
         }
@@ -83,8 +90,8 @@ namespace v8App
                 if (SUCCEEDED(result))
                 {
                     std::wstring wtemp(name);
-                    //NOTE: codecvt is being removed in c++26 so when we get to that point we'll
-                    //have to convert this to what ever replaces it.
+                    // NOTE: codecvt is being removed in c++26 so when we get to that point we'll
+                    // have to convert this to what ever replaces it.
                     std::string temp = std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t>().to_bytes(wtemp);
                     LocalFree(name);
 

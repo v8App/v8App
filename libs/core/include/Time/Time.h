@@ -15,9 +15,6 @@ namespace v8App
 {
     namespace Time
     {
-        // for when classes need to use another time function instead normal one.
-        using TimeFunction = double (*)();
-
         inline double MonotonicallyIncreasingTimeSeconds()
         {
             #ifdef UNIT_TESTING

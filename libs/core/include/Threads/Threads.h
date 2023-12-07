@@ -50,6 +50,7 @@ namespace v8App
             ThreadPriority m_Priority;
             std::unique_ptr<std::thread> m_Thread;
             bool m_Running = false;
+            std::mutex m_Lock;
         };
         // These mirror the v8 Thread Priorities
 

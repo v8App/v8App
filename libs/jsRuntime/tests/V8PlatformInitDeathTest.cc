@@ -12,6 +12,16 @@ namespace v8App
 {
     namespace JSRuntime
     {
+        class TestInitIsolateHelper : public PlatformIsolateHelper
+        {
+        public:
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) override
+            {
+                return std::shared_ptr<v8::TaskRunner>();
+            };
+            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) override { return true; }
+        };
+
         class TestV8Platform : public V8Platform
         {
         public:
@@ -21,12 +31,15 @@ namespace v8App
             int TestPriorityToInt(v8::TaskPriority inPriority) { return PriorityToInt(inPriority); }
             bool IsInited() { return m_V8Inited; }
             void SetInited(bool inValue) { m_V8Inited = inValue; }
+            bool IsDestoryed() { return s_PlatformDestoryed; }
+            void SetDestoryed(bool inValue) { s_PlatformDestoryed = inValue; }
         };
 
-        TEST(V8PlatformInitTest, InitializeShutdownV8StaticNull)
+        TEST(V8PlatformInitDeathTest, InitializeShutdownV8StaticNull)
         {
-            EXPECT_EXIT({
-                V8Platform::InitializeV8();
+            ASSERT_EXIT({
+                PlatformIsolateHelperUniquePtr helper = std::make_unique<TestInitIsolateHelper>();
+                V8Platform::InitializeV8(std::move(helper));
                 std::shared_ptr<V8Platform> platform = V8Platform::Get();
 
                 std::unique_ptr<v8::HighAllocationThroughputObserver> observer = std::make_unique<v8::HighAllocationThroughputObserver>();
@@ -35,16 +48,18 @@ namespace v8App
                 observer.release();
                 V8Platform::ShutdownV8();
                 EXPECT_NE(platform, V8Platform::Get());
+
                 std::exit(0);
             },
                         ::testing::ExitedWithCode(0), "");
         }
 
-        TEST(V8PlatformInitTest, InitializeShutdownV8GetCalledBeforeInit)
+        TEST(V8PlatformInitDeathTest, InitializeShutdownV8GetCalledBeforeInit)
         {
-            EXPECT_EXIT({
+            ASSERT_EXIT({
+                PlatformIsolateHelperUniquePtr helper = std::make_unique<TestInitIsolateHelper>();
+                V8Platform::InitializeV8(std::move(helper));
                 std::shared_ptr<V8Platform> platform = V8Platform::Get();
-                V8Platform::InitializeV8();
 
                 std::unique_ptr<v8::HighAllocationThroughputObserver> observer = std::make_unique<v8::HighAllocationThroughputObserver>();
                 platform->SetHighAllocatoionObserver(observer.get());
@@ -52,8 +67,10 @@ namespace v8App
                 observer.release();
                 V8Platform::ShutdownV8();
                 EXPECT_NE(platform, V8Platform::Get());
-                 std::exit(0);
-           },
+                //sould just reutrn and thus not cause any issue
+                V8Platform::ShutdownV8();
+                std::exit(0);
+            },
                         ::testing::ExitedWithCode(0), "");
         }
     } // namespace JSRuntime
