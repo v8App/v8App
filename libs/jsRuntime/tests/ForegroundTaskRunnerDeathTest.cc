@@ -23,14 +23,15 @@ namespace v8App
             void SetNestingDepth(int inDepth) { m_NestingDepth = inDepth; }
         };
 
-        TEST(TaskRunnerDeathTest, TaskRunScope)
+        TEST(ForegroundTaskRunnerDeathTest, TaskRunScope)
         {
-// Only applicable in debug builds
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
+            // Only applicable in debug builds
 #ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 std::shared_ptr<MockDeathTaskRunner> runner = std::make_shared<MockDeathTaskRunner>();
                 runner->SetNestingDepth(-1);
-                TaskRunner::TaskRunScope scope(runner);
+                ForegroundTaskRunner::TaskRunScope scope(runner);
                 std::exit(0);
             },
                          "v8App Log \\{");
@@ -38,7 +39,7 @@ namespace v8App
             EXPECT_EXIT({
                 std::shared_ptr<MockDeathTaskRunner> runner = std::make_shared<MockDeathTaskRunner>();
                 {
-                    TaskRunner::TaskRunScope scope(runner);
+                    ForegroundTaskRunner::TaskRunScope scope(runner);
                     runner->SetNestingDepth(-1);
                     std::exit(0);
                 }

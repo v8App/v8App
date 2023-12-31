@@ -620,7 +620,7 @@ namespace v8App
             EXPECT_GE(5, testInt);
         }
 
-        TEST(V8JobTaskWroker, Constrcutor)
+        TEST(V8JobTaskWorker, Constrcutor)
         {
             size_t testInt = 0;
             std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
@@ -634,7 +634,7 @@ namespace v8App
             EXPECT_EQ(taskPtr, worker.GetTask());
         }
 
-        TEST(V8JobTaskWroker, Run)
+        TEST(V8JobTaskWorker, Run)
         {
             size_t testInt = 0;
             std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();

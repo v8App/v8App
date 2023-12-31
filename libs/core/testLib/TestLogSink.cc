@@ -20,7 +20,7 @@ namespace v8App
             ILogSink* sink = Log::Log::GetLogSink(GlobalTestSinkName);
             TestLogSink* testSink;
 
-            //if we get backa sink then we need to make sure it's a TestLogSink
+            //if we get back a sink then we need to make sure it's a TestLogSink
             if(sink != nullptr)
             {
                 testSink = dynamic_cast<TestLogSink*>(sink);

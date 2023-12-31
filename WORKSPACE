@@ -4,7 +4,7 @@
 
 workspace(name = "v8App")
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 
 new_local_repository(
     name = "libuv",
@@ -59,4 +59,11 @@ http_archive(
     name = "com_google_googletest",
     strip_prefix = "googletest-f8d7d77c06936315286eb55f8de22cd23c188571",
     urls = ["https://github.com/google/googletest/archive/f8d7d77c06936315286eb55f8de22cd23c188571.zip"],
+)
+
+http_file(
+    name = "std_uuid",
+    downloaded_file_path = "uuid.h",
+    url = "https://github.com/mariusbancila/stduuid/releases/download/v1.2.3/uuid.h",
+    sha256="8b329afa7e099e632c2e992e02ddb9fc4627c772dfd5fd42b069752ea0f8ec7f",
 )

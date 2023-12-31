@@ -28,7 +28,7 @@ namespace v8App
             TestV8JobStateDeath(v8::Platform *inPlatform, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers)
                 : V8JobState(inPlatform, std::move(inTask), inPriority, inNumWorkers) {}
 
-            void SetCancelled(bool value) { m_Canceled.store(value, std::memory_order::memory_order_relaxed); }
+            void SetCancelled(bool value) { m_Canceled.store(value, std::memory_order_relaxed); }
         };
 
         TEST(V8JobDelegateDeathTest, ShouldYield)

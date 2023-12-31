@@ -7,21 +7,21 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "tools/cpp/runfiles/runfiles.h"
 
 #include "TestLogSink.h"
 #include "Utils/Environment.h"
+#include "Utils/Format.h"
 
 #include "JSRuntime.h"
-// #include "JSContext.h"
 #include "V8Platform.h"
 
-using bazel::tools::cpp::runfiles::Runfiles;
+#include "V8PlatformInitFixture.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
+        using JSRuntimeTest = V8PlatformInitFixture;
         struct TemplateInfo
         {
             bool m_Bool;
@@ -58,85 +58,50 @@ namespace v8App
             int m_Sleep;
         };
 
-        class JSContext
+        class TestContext : public JSContext
         {
         public:
-            JSContext() {}
+            TestContext(JSRuntimeSharedPtr inRuntime, std::string inName) : JSContext(inRuntime, inName) {}
+            void TestDisposeContext() { m_Runtime = nullptr; }
         };
 
         class TestContextCreator : public JSContextCreationHelper
         {
         public:
-            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime) override
+            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName) override
             {
                 return m_Context;
             }
-            JSContextSharedPtr m_Context;
-        };
+            virtual void DisposeContext(JSContextSharedPtr inContext) override { m_Context->TestDisposeContext(); }
 
-        class JSRuntimeTest : public testing::Test
-        {
-        public:
-            JSRuntimeTest() {}
-            ~JSRuntimeTest() {}
-
-            static void SetUpTestSuite()
-            {
-                std::string icu_name = Utils::GetEnvironmentVar("V8_ICU_DATA");
-                std::string snapshot_name = Utils::GetEnvironmentVar("V8_SNAPSHOT_BIN");
-
-                if (icu_name.empty() || snapshot_name.empty())
-                {
-                    EXPECT_TRUE(false) << "Failed to find one or both of env vars V8_ICU_DATA, V8_SNAPSHOT_BIN";
-                }
-
-                std::string error;
-                std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&error));
-                if (error.empty() == false)
-                {
-                    EXPECT_TRUE(false) << error;
-                }
-                std::string icuData = runfiles->Rlocation(icu_name);
-                std::string snapshotData = runfiles->Rlocation(snapshot_name);
-
-                EXPECT_NE("", icuData);
-                EXPECT_NE("", snapshotData);
-
-                v8::V8::InitializeICU(icuData.c_str());
-                v8::V8::InitializeExternalStartupDataFromFile(snapshotData.c_str());
-
-                PlatformIsolateHelperUniquePtr helper = std::make_unique<JSRuntimeIsolateHelper>();
-                V8Platform::InitializeV8(std::move(helper));
-            }
-            static void TearDownTestSuite()
-            {
-                V8Platform::ShutdownV8();
-            }
+            std::shared_ptr<TestContext> m_Context;
         };
 
         TEST_F(JSRuntimeTest, CreateJSRuntime)
         {
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(IdleTasksSupport::kIdleTasksEnabled);
+            JSAppSharedPtr app = std::make_shared<JSApp>("test");
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME());
             EXPECT_TRUE(runtimePtr->IdleTasksEnabled());
             EXPECT_NE(runtimePtr->GetForegroundTaskRunner().get(), nullptr);
             EXPECT_NE(runtimePtr->GetIsolate().get(), nullptr);
             EXPECT_EQ(runtimePtr, JSRuntime::GetJSRuntimeFromV8Isolate(runtimePtr->GetIsolate().get()));
             runtimePtr.reset();
 
-            runtimePtr = JSRuntime::CreateJSRuntime(IdleTasksSupport::kIdleTasksDisabled);
+            runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksDisabled, GENERATE_JSRUNTIME_NAME());
             EXPECT_FALSE(runtimePtr->IdleTasksEnabled());
         }
 
         TEST_F(JSRuntimeTest, ProcessTaskIdleTask)
         {
-            //make sure the time function is clear of any testing
+            // make sure the time function is clear of any testing
             TestTime::TestTimeSeconds::Clear();
             int taskInt = 0;
             int taskInt2 = 0;
             int idleTaskInt = 0;
             int idleTaskInt2 = 0;
 
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(IdleTasksSupport::kIdleTasksEnabled);
+            JSAppSharedPtr app = std::make_shared<JSApp>("test");
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME());
             V8TaskRunnerSharedPtr runner = runtimePtr->GetForegroundTaskRunner();
             runner->PostTask(std::make_unique<IntTask>(&taskInt, 10));
             runner->PostTask(std::make_unique<IntTask>(&taskInt2, 20));
@@ -165,7 +130,8 @@ namespace v8App
 
         TEST_F(JSRuntimeTest, SetGetObjectTemplate)
         {
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(IdleTasksSupport::kIdleTasksEnabled);
+            JSAppSharedPtr app = std::make_shared<JSApp>("test");
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME());
             v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
             v8::HandleScope scope(runtimePtr->GetIsolate().get());
 
@@ -182,7 +148,8 @@ namespace v8App
 
         TEST_F(JSRuntimeTest, SetGetFunctionTemplate)
         {
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(IdleTasksSupport::kIdleTasksEnabled);
+            JSAppSharedPtr app = std::make_shared<JSApp>("test");
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME());
             v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
             v8::HandleScope scope(runtimePtr->GetIsolate().get());
 
@@ -211,7 +178,8 @@ namespace v8App
                 Log::MsgKey::Line};
             Log::Log::SetLogLevel(Log::LogLevel::Warn);
 
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(IdleTasksSupport::kIdleTasksEnabled);
+            JSAppSharedPtr app = std::make_shared<JSApp>("test");
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME());
             v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
 
             std::unique_ptr<TestContextCreator> helper = std::make_unique<TestContextCreator>();
@@ -236,11 +204,17 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
             logSink->FlushMessages();
 
-            createPtr->m_Context = std::make_shared<JSContext>();
+            createPtr->m_Context = std::make_shared<TestContext>(runtimePtr, "test");
 
             EXPECT_NE(nullptr, runtimePtr->CreateContext("test").lock());
             EXPECT_TRUE(logSink->NoMessages());
             EXPECT_NE(nullptr, runtimePtr->GetContextByName("test").lock());
+            createPtr->DisposeContext(std::shared_ptr<TestContext>());
+        }
+
+        TEST_F(JSRuntimeTest, GenerateRuntimeName)
+        {
+            EXPECT_EQ(Utils::format("JSRuntime_{}_{}_{}", __FILE__, __func__, __LINE__), GENERATE_JSRUNTIME_NAME());
         }
     }
 }

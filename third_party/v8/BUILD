@@ -40,6 +40,7 @@ cc_library(
         ":macos-x64":glob(['macos-x64-release/*.a']),
         ":macos-x64-debug":glob(['macos-x64-debug/*.a']),
     }),
+    include_prefix="v8",
     visibility = ["//visibility:public"],
     data = [":snapshot_blob", ":icu_dat"],
 )

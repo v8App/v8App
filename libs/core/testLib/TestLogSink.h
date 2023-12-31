@@ -2,6 +2,9 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
+#ifndef __TEST_LOG_SINK_H__
+#define __TEST_LOG_SINK_H__
+
 #include <deque>
 #include <iostream>
 
@@ -44,3 +47,4 @@ namespace v8App
 
     }
 }
+#endif //__TEST_LOG_SINK_H__

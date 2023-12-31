@@ -8,8 +8,9 @@
 #include <memory>
 #include <map>
 
-#include "Assets/AppAssetRoots.h"
-// #include "V8ExternalRegistry.h"
+#include "Utils/Format.h"
+
+#include "JSApp.h"
 #include "V8Types.h"
 #include "V8Platform.h"
 
@@ -19,9 +20,9 @@ namespace v8App
     {
         class JSContext;
 
-        enum IsolateDataSlot
+        enum class IsolateDataSlot : uint32_t
         {
-            kJSRuntimePointer
+            kJSRuntimeWeakPtr = 0
         };
 
         enum class IdleTasksSupport
@@ -34,20 +35,29 @@ namespace v8App
         {
         public:
             virtual ~JSContextCreationHelper() = default;
-            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime) = 0;
+            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName) = 0;
+            virtual void DisposeContext(JSContextSharedPtr inContext) = 0;
         };
 
         using JSContextCreationHelperUniquePtr = std::unique_ptr<JSContextCreationHelper>;
 
+
+        inline std::string GenerateRuntimeName(std::string inFile, std::string inFunc, int inLine)
+        {
+            return Utils::format("JSRuntime_{}_{}_{}", inFile, inFunc, inLine);
+        }
+
+        #define GENERATE_JSRUNTIME_NAME() GenerateRuntimeName(__FILE__, __func__, __LINE__)
+
         class JSRuntime : public std::enable_shared_from_this<JSRuntime>
         {
         public:
-            explicit JSRuntime(IdleTasksSupport inEnableIdle);
+            explicit JSRuntime(JSAppWeakPtr inApp, IdleTasksSupport inEnableIdle, std::string inName);
             JSRuntime(JSRuntime &&) = default;
 
-            static JSRuntimeSharedPtr CreateJSRuntime(IdleTasksSupport inEnableIdle)
+            static JSRuntimeSharedPtr CreateJSRuntime(JSAppWeakPtr inApp, IdleTasksSupport inEnableIdle, std::string inName)
             {
-                JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inEnableIdle);
+                JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
                 temp->CreateIsolate();
                 return temp;
             }
@@ -69,19 +79,23 @@ namespace v8App
             void SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate);
             v8::Local<v8::FunctionTemplate> GetFunctionTemplate(void *inInfo);
 
-            // V8ExternalRegistry &GetExternalRegistry();
-
             void SetContextCreationHelper(JSContextCreationHelperUniquePtr inCreator);
             JSContextWeakPtr CreateContext(std::string inName);
             JSContextWeakPtr GetContextByName(std::string inName);
+            void DisposeContext(std::string inName);
+            void DisposeContext(JSContextWeakPtr inContext);
 
-            void SetAppAssetRoots(Assets::AppAssetRootsSharedPtr inRoots) { m_AppRoots = inRoots; }
-            const Assets::AppAssetRootsSharedPtr &GetAppRoots() const { return m_AppRoots; }
+            void DisposeRuntime();
+
+            JSAppSharedPtr GetApp() { return m_App.lock(); }
+            std::string GetName() { return m_Name; }
 
         protected:
             void CreateIsolate();
 
             IdleTasksSupport m_IdleEnabled;
+            JSAppWeakPtr m_App;
+            std::string m_Name;
 
             // this has a custom no op deleter since we can't call delete on the pointer.
             // we do this so in our code we can use weak ptrs as protection agaisnt tasks using the isolate after
@@ -99,8 +113,6 @@ namespace v8App
             FunctionTemplateMap m_FunctionTemplates;
 
             // V8ExternalRegistry m_ExternalRegistry;
-
-            Assets::AppAssetRootsSharedPtr m_AppRoots;
 
             JSContextCreationHelperUniquePtr m_ContextCreation;
 
@@ -124,7 +136,6 @@ namespace v8App
                 return runtime->IdleTasksEnabled();
             };
         };
-
     } // namespace JSRuntime
 } // namespace v8App
 #endif

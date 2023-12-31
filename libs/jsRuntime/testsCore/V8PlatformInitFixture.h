@@ -2,8 +2,8 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#ifndef __V8_TEST_SUITE_H__
-#define __V8_TEST_SUITE_H__
+#include <iostream>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -11,9 +11,8 @@
 
 #include "Utils/Environment.h"
 
-#include "TestLogSink.h"
-
 #include "V8Platform.h"
+#include "JSRuntime.h"
 #include "JSContext.h"
 
 using bazel::tools::cpp::runfiles::Runfiles;
@@ -75,35 +74,25 @@ namespace v8App
         // process singleton for v8 Init/Tear down
         static std::unique_ptr<InitializeV8Testing> s_InitSingleton;
 
-        class V8TestFixture : public testing::Test
+        class V8PlatformInitFixture : public testing::Test
         {
         public:
-            V8TestFixture() = default;
-            ~V8TestFixture() = default;
+            V8PlatformInitFixture()
+            {
+                if (s_InitSingleton == nullptr)
+                {
+                    s_InitSingleton = std::make_unique<InitializeV8Testing>();
+                }
+                m_App = std::make_shared<JSApp>("testCore");
+                m_App->Initialize();
+            }
+            ~V8PlatformInitFixture() {
+                m_App->DisposeApp();
+                m_App.reset();
+            }
 
-            void SetUp() override;
-            void TearDown() override;
-            v8::Local<v8::Context> GetContextAndEnter();
-
-        protected:
-            static std::unique_ptr<Runfiles> s_RunFiles;
-            JSRuntimeSharedPtr m_Runtime;
             JSAppSharedPtr m_App;
-            v8::Isolate *m_Isolate = nullptr;
-            JSContextSharedPtr m_Context;
-
-            TestUtils::IgnoreMsgKeys m_IgnoreKeys = {
-                Log::MsgKey::AppName,
-                Log::MsgKey::TimeStamp,
-                Log::MsgKey::File,
-                Log::MsgKey::Function,
-                Log::MsgKey::Line};
-
-        private:
-            V8TestFixture(const V8TestFixture &) = delete;
-            V8TestFixture &operator=(const V8TestFixture &) = delete;
         };
-    } // namespace JSRuntime
-} // namespace v8App
 
-#endif
+    }
+}

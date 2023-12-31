@@ -22,19 +22,24 @@ namespace v8App
                         }
                 )script";
 
+                V8Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
                 v8::TryCatch tryCatch(m_Isolate);
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
+                v8::Context::Scope cScope(context);
 
-                v8::Local<v8::String> source = StringToV8(m_Isolate, scriptStr);
+                v8::Local<v8::String> v8SourceStr = StringToV8(m_Isolate, scriptStr);
+                v8::Local<v8::String> origin_name = StringToV8(m_Isolate, "test.js");
+                v8::ScriptOrigin origin(m_Isolate, origin_name);
+                V8ScriptSource source(v8SourceStr, origin);
 
                 v8::Local<v8::Script> script;
-                EXPECT_FALSE(v8::Script::Compile(context, source).ToLocal(&script));
+                EXPECT_FALSE(v8::ScriptCompiler::Compile(context, &source).ToLocal(&script));
 
                 EXPECT_TRUE(tryCatch.HasCaught());
 
-                std::string error(R"error(Uncaught SyntaxError: Unexpected identifier
+                std::string error(R"error(Uncaught SyntaxError: Unexpected identifier 'x'
                             let x = 5;
 )error");
 
@@ -43,8 +48,11 @@ namespace v8App
 
             TEST_F(V8UtilitiesTest, TestThrowError)
             {
+                V8Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
                 v8::TryCatch tryCatch(m_Isolate);
+                V8LocalContext context = v8::Context::New(m_Isolate);
+                v8::Context::Scope cScope(context);
 
                 JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::RangeError, "Range Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
@@ -95,6 +103,7 @@ namespace v8App
 
             TEST_F(V8UtilitiesTest, TestStdStringConversion)
             {
+                V8Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
 
                 std::string str = "";
@@ -123,7 +132,7 @@ namespace v8App
 
             TEST_F(V8UtilitiesTest, TestStdU16StringConversion)
             {
-
+                V8Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
 
                 std::u16string str = u"";

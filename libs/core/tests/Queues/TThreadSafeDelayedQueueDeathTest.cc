@@ -17,7 +17,7 @@ namespace v8App
             }
         };
 
-        TEST(TThreadSafeDelayedQueue, PushItemDelayed)
+        TEST(TThreadSafeDelayedQueueDeathTest, PushItemDelayed)
         {
             // Only applicable in debug builds
 #ifdef V8APP_DEBUG

@@ -9,61 +9,70 @@
 
 #include "v8.h"
 #include "JSRuntime.h"
-//#include "JSContextModules.h"
+#include "JSContextModules.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
+        enum class ContextDataSlot : int
+        {
+            kJSContextWeakPtr = 0
+        };
 
-        class JSContext
+        class JSContextCreator : public JSContextCreationHelper
         {
         public:
-            JSContext(JSRuntimeSharedPtr inIsolate);
+            virtual ~JSContextCreator() = default;
+            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName) override;
+            virtual void DisposeContext(JSContextSharedPtr inContext) override;
+        };
+
+        class JSContext : public std::enable_shared_from_this<JSContext>
+        {
+        public:
+            JSContext(JSRuntimeSharedPtr inRuntime, std::string inName);
             ~JSContext();
 
             // allow only move constrcutor and assignment
             JSContext(JSContext &&inContext);
             JSContext &operator=(JSContext &&inContext);
 
-            bool InitializeContext(JSContextSharedPtr inContext);
-            void DisposeContext();
+            v8::Isolate *GetIsolate() { return m_Runtime == nullptr ? nullptr : m_Runtime->GetIsolate().get(); }
+            JSRuntimeSharedPtr GetJSRuntime() { return m_Runtime; }
+            JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
+            std::string GetName() { return m_Name; }
 
-            v8::Local<v8::Context> GetContext()
-            {
-                v8::Isolate *isolate = GetIsolate();
-                if (isolate == nullptr)
-                {
-                    return v8::Local<v8::Context>();
-                }
-                return m_Context.Get(isolate);
-            }
-            v8::Isolate *GetIsolate();
-            JSRuntimeSharedPtr GetJSRuntime() { return m_Isolate; }
-            //JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
+            static JSContextSharedPtr GetJSContextFromV8Context(V8LocalContext inContext);
 
-            static JSContextSharedPtr GetJSContextFromV8Context(v8::Local<v8::Context> inContext);
+            V8LocalContext GetLocalContext();
+
+            static void SetupShadowRealmCallback(V8Isolate *inIsolate);
 
         protected:
-            void SetContextWeakRef(JSContextSharedPtr inContext);
-            JSContextWeakPtr *GetContextWeakRef(JSContextSharedPtr inContext);
+            std::string GenerateShadowName();
+            static V8MaybeLocalContext HostCreateShadowRealmContext(V8LocalContext inInitiator);
+            JSContextWeakPtr *GetContextWeakRef();
 
-        private:
+            void CreateContext();
+            void DisposeContext();
+
             void MoveContext(JSContext &&inContext);
 
-            JSRuntimeSharedPtr m_Isolate;
-            v8::Global<v8::Context> m_Context;
+            JSRuntimeSharedPtr m_Runtime;
+            V8GlobalContext m_Context;
             bool m_Initialized = false;
-            //JSContextModulesSharedPtr m_Modules;
+            JSContextModulesSharedPtr m_Modules;
+            std::string m_Name;
 
             JSContext(const JSContext &) = delete;
             JSContext &operator=(const JSContext &) = delete;
 
-            friend JSContextSharedPtr;
+            friend JSContextCreator;
         };
     }
 }
 
-template <>
-v8App::JSRuntime::JSContextSharedPtr &v8App::JSRuntime::JSContextSharedPtr::operator=(v8App::JSRuntime::JSContextSharedPtr &&rhs) noexcept;
+// template <>
+// v8App::JSRuntime::JSContextSharedPtr &v8App::JSRuntime::JSContextSharedPtr::operator=(v8App::JSRuntime::JSContextSharedPtr &&rhs) noexcept;
 #endif

@@ -83,6 +83,22 @@
 		},
 		{
 			"type": "shell",
+			"command": "bazel build //libs/jsRuntime:testJSRuntimeCore",
+			"windows":{
+				"command": "bazel build //libs/jsRuntime:testJSRuntimeCore --config=windows"
+			},
+			"label": "Bazel Build testJSRuntimeCore Release"
+		},
+		{
+			"type": "shell",
+			"command": "bazel build //libs/jsRuntime:testJSRuntimeCore -c dbg",
+			"windows":{
+				"command": "bazel build //libs/jsRuntime:testJSRuntimeCore --config=windows -c dbg"
+			},
+			"label": "Bazel Build testJSRuntimeCore Debug"
+		},
+		{
+			"type": "shell",
 			"command": "bazel build //libs/jsRuntime:testJSRuntime",
 			"windows":{
 				"command": "bazel build //libs/jsRuntime:testJSRuntime --config=windows"

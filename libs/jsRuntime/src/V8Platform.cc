@@ -201,7 +201,6 @@ namespace v8App
             }
             v8::V8::Dispose();
             v8::V8::DisposePlatform();
-            s_Platform.reset();
             s_PlatformDestoryed = true;
         }
 

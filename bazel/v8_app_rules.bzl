@@ -21,6 +21,7 @@ def _default_args():
                   }) +
                   select({
                       "//:windows-debug": ["V8APP_DEBUG"],
+                      "//:macos-debug": ["V8APP_DEBUG"],
                       "//conditions:default": [],
                   }) +
                   selects.with_or({

@@ -24,6 +24,8 @@ namespace v8App
 
         TEST(V8PlatformDeathTest, GetForgroundTaskRunnerHelperNull)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
                 std::shared_ptr<V8Platform> platform = V8Platform::Get();
                 V8TaskRunnerSharedPtr runner = platform->GetForegroundTaskRunner(nullptr, v8::TaskPriority::kBestEffort);
@@ -34,6 +36,7 @@ namespace v8App
 
         TEST(V8PlatformDeathTest, IdleTaskEnabledHelperNull)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
                 std::shared_ptr<V8Platform> platform = V8Platform::Get();
                 platform->IdleTasksEnabled(nullptr);
@@ -44,7 +47,8 @@ namespace v8App
 
         TEST(V8PlatformDeathTest, InitAfterDestory)
         {
-            ASSERT_DEATH({
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
+            ASSERT_EXIT({
                 PlatformIsolateHelperUniquePtr helper = std::make_unique<TestDeathIsolateHelper>();
                 V8Platform::InitializeV8(std::move(helper));
                 std::shared_ptr<V8Platform> platform = V8Platform::Get();
@@ -58,7 +62,7 @@ namespace v8App
 
                 std::exit(0);
             },
-                         "");
+                        testing::ExitedWithCode(0), "");
         }
     } // namespace JSRuntime
 } // namespace v8App

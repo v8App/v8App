@@ -107,6 +107,7 @@ namespace v8App
 
         std::filesystem::path AppAssetRoots::MakeRelativePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot)
         {
+            inPath = ReplaceTokens(inPath, true);
             if (inPath.is_absolute())
             {
                 if (DidPathEscapeRoot(inRoot, inPath))
@@ -146,6 +147,7 @@ namespace v8App
 
         std::filesystem::path AppAssetRoots::MakeAbsolutePath(std::filesystem::path inPath)
         {
+            inPath = ReplaceTokens(inPath, false);
             if (inPath.is_absolute())
             {
                 return NormalizePathSeperator(inPath);
@@ -249,6 +251,51 @@ namespace v8App
                 }
             }
             return true;
+        }
+
+        std::filesystem::path AppAssetRoots::ReplaceTokens(std::filesystem::path inPath, bool makeRelative)
+        {
+            std::string strPath = inPath.string();
+            int subStrLen = -1;
+            std::string tokenReplace = "";
+            if (strPath.starts_with("%APPROOT%"))
+            {
+                subStrLen = 9;
+            }
+            else if (strPath.starts_with("%JS%"))
+            {
+                subStrLen = 4;
+                tokenReplace = "js";
+            }
+            else if (strPath.starts_with("%MODULES%"))
+            {
+                subStrLen = 9;
+                tokenReplace = "modules";
+            }
+            else if (strPath.starts_with("%RESOURCES%"))
+            {
+                subStrLen = 11;
+                tokenReplace = "resources";
+            }
+            if(subStrLen == -1)
+            {
+                return inPath;
+            }
+            //we want to make sure that the slash at the begining is removed as it seems it might
+            //prevent the paths from concating correctly
+            inPath = std::filesystem::path(strPath.substr(subStrLen)).lexically_relative(std::filesystem::path("/"));
+            if(tokenReplace != "")
+            {
+                inPath = std::filesystem::path(tokenReplace) / inPath;
+            }
+            if (makeRelative)
+            {
+                return inPath;
+            }
+            else
+            {
+                return m_AppRoot / inPath;
+            }
         }
     }
 }

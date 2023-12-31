@@ -19,8 +19,10 @@ namespace v8App
             void Run(double deadline_in_seconds) {}
         };
 
-        TEST(TaskRunnerTest, IdleTaskDeath)
+        TEST(WorkerTaskRunnerDeathTest, IdleTaskDeath)
         {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
+
 #ifdef V8APP_DEBUG
             ASSERT_DEATH({
                 WorkerTaskRunner runner(4, Threads::ThreadPriority::kBestEffort);

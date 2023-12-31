@@ -2,64 +2,38 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#include "TestLogSink.h"
 #include "V8TestFixture.h"
-#include "ScriptStartupDataManager.h"
+#include "JSContext.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        std::unique_ptr<Runfiles> InitV8Platform()
-        {
-            std::string icu_name = Utils::GetEnvironmentVar("V8_ICU_DATA");
-            std::string snapshot_name = Utils::GetEnvironmentVar("V8_SNAPSHOT_BIN");
-
-            if(icu_name.empty() || snapshot_name.empty())
-            {
-                EXPECT_TRUE(false) << "Failed to find one or both of env vars V8_ICU_DATA, V8_SNAPSHOT_BIN";
-            }
-
-            std::string error;
-            std::unique_ptr<Runfiles> runfiles(Runfiles::CreateForTest(&error));
-            if(error.empty() == false)
-            {
-                EXPECT_TRUE(false) << error;
-            }
-            std::string icuData = runfiles->Rlocation(icu_name);
-            std::string snapshotData = runfiles->Rlocation(snapshot_name);
-
-            EXPECT_NE("", icuData);
-            EXPECT_NE("", snapshotData);
-
-            EXPECT_TRUE(ScriptStartupDataManager::InitializeICUData(icuData));
-            EXPECT_TRUE(ScriptStartupDataManager::InitializeStartupData(snapshotData));
-
-            V8Platform::InitializeV8();
-            return runfiles;
-        }
-
-        V8TestFixture::V8TestFixture()
-        {
-        }
-
-        V8TestFixture::~V8TestFixture() = default;
-
         void V8TestFixture::SetUp()
         {
             // setup the global test log
             TestUtils::TestLogSink *testSink = TestUtils::TestLogSink::GetGlobalSink();
             testSink->FlushMessages();
-            m_RunFiles = InitV8Platform();
-            EXPECT_NE(nullptr, m_RunFiles);
-           
-            m_Runtime = std::make_unique<JSRuntime>(IdleTasksSupport::kIdleTasksEnabled);
 
-            IsolateWeakPtr isolate = m_Runtime->GetIsolate();
-            ASSERT_FALSE(isolate.expired());
-            m_Isolate = isolate.lock().get();
-            m_Isolate->Enter();
-            m_Context = m_Runtime->CreateContext("test").lock();
+            if (s_InitSingleton == nullptr)
+            {
+                s_InitSingleton = std::make_unique<InitializeV8Testing>();
+            }
+
+            std::string test_dir = Utils::GetEnvironmentVar("TEST_SRCDIR");
+            EXPECT_NE("", test_dir);
+
+            m_App = std::make_shared<JSApp>("test");
+            m_App->Initialize();
+            m_Runtime = m_App->CreateJSRuntime("libJSRuntimeTest");
+            m_Runtime->SetContextCreationHelper(std::make_unique<JSContextCreator>());
+
+            m_Isolate = m_Runtime->GetIsolate().get();
+            ASSERT_NE(m_Isolate, nullptr);
+            m_Context = m_Runtime->CreateContext("libJSRuntimeTest").lock();
+            //MANIFEST has the path to the original ones we want the copies under-bazel-bin
+            std::filesystem::path testFiles = std::filesystem::path(test_dir) / std::filesystem::path("v8App/libs/jsRuntime/tests/test-files/app-root");
+            m_App->GetAppRoots()->SetAppRootPath(testFiles);
         }
 
         void V8TestFixture::TearDown()
@@ -69,18 +43,20 @@ namespace v8App
                 return;
             }
             {
+                v8::Isolate::Scope isolateScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
-                m_Context->GetContext()->Exit();
+                m_Runtime->DisposeContext(m_Context);
             }
-            m_Isolate->Exit();
             m_Isolate = nullptr;
             m_Runtime.reset();
+            m_App->DisposeApp();
+            m_App.reset();
         }
 
         v8::Local<v8::Context> V8TestFixture::GetContextAndEnter()
         {
             v8::EscapableHandleScope scope(m_Isolate);
-            v8::Local<v8::Context> context = m_Context->GetContext();
+            v8::Local<v8::Context> context = m_Context->GetLocalContext();
             context->Enter();
             return scope.Escape(context);
         }

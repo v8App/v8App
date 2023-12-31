@@ -48,13 +48,13 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/third_party/v8/include",
-                "${workspaceFolder}/third_party/bazel-runfiles/include",
                 "${workspaceFolder}/libs/application/include",
                 "${workspaceFolder}/libs/core/include",
                 "${workspaceFolder}/libs/core/testLib",
                 "${workspaceFolder}/libs/jsRuntime/include",
                 "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googlemock/include",
-                "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googletest/include"
+                "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/bazel-v8app/external/bazel_tools"
             ],
             "defines": [
                 "_DEBUG",

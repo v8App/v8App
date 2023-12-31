@@ -60,13 +60,18 @@
  *  ]
  * }
  *
+ * Special tokens that will be replaced
+ * %APP_ROOT% - willl be replaced with the app's root path set
+ * %JS% will be replaced with the path to the js directory
+ * %MODULES% - will be replaced with the path to the module directory
+ * %RESOURCES% - will be replaced with the path to the recource directory
  */
 namespace v8App
 {
     namespace Assets
     {
         static const std::string c_RootJS = "js";
-        static const std::string c_RootResource = "resource";
+        static const std::string c_RootResource = "resources";
         static const std::string c_RootModules = "modules";
 
         class AppAssetRoots
@@ -140,11 +145,14 @@ namespace v8App
             */
             std::string NormalizePathSeperator(const std::filesystem::path& inPath );
 
+
+
         protected:
             /**
              * Scans the app root for the js direcotry and modules directory and then add the modules roots and latest version
              */
             bool FindAssetRoots(std::filesystem::path inRootPath);
+            std::filesystem::path ReplaceTokens(std::filesystem::path inPath, bool makeRelative);
 
             std::map<std::string, std::filesystem::path> m_ModuleRoots;
             std::map<std::string, Utils::VersionString> m_ModuleLatestVersion;
