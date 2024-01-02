@@ -65,6 +65,14 @@
  * %JS% will be replaced with the path to the js directory
  * %MODULES% - will be replaced with the path to the module directory
  * %RESOURCES% - will be replaced with the path to the recource directory
+ * 
+ * No App Asset outside of the app's root path.
+ * Pats that start with / are anchroed to the app root that is set. example app root is /opt/JSApp/
+ * and path is given as /js/file.js then it's abs path for the file system is /opt/JSApp/js/file.js
+ * A file given as js/file.js would also have an abs of /opt/JSApp/js/file.js.
+ * If a path is given as ./file.js then it'll be relative to what ever file is importing it or the app root path if not an import.
+ * .. paths will work as well and the std filesystem will resolve it. Paths are checked to make sure they don't leave the app root.
+ * Something like js../modules/test/test.js would resolve to /opt/JSApp/modules/test/test.js.
  */
 namespace v8App
 {
@@ -73,6 +81,11 @@ namespace v8App
         static const std::string c_RootJS = "js";
         static const std::string c_RootResource = "resources";
         static const std::string c_RootModules = "modules";
+
+        static const std::string c_AppRoot_Token = "%APPROOT%";
+        static const std::string c_Js_Token = "%JS%";
+        static const std::string c_Resources_Token = "%RESOURCES%";
+        static const std::string c_Modules_Token = "%MODULES%";
 
         class AppAssetRoots
         {
@@ -112,47 +125,25 @@ namespace v8App
              * Removes modules latest version
             */
            void RemoveModulesLatestVersion(std::string inModule);
-            /**
-             * Check to see if a relative path escaped out of the specified root path
-             */
-            bool DidPathEscapeRoot(std::filesystem::path inRootPath, std::filesystem::path inScriptPath);
 
             /**
              * Make a relative path from the set app root. If the relative path escapes the app root then an empty path is returned.
              */
             std::filesystem::path MakeRelativePathToAppRoot(std::string inPath);
             std::filesystem::path MakeRelativePathToAppRoot(std::filesystem::path inPath);
-            /**
-             * Make a relative path from the specified root. If the relative path escapes the specified root then an empty path is returned.
-             */
-            std::filesystem::path MakeRelativePathToRoot(std::string inPath, std::string inRoot);
-            std::filesystem::path MakeRelativePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot);
-            /**
-             * Creates an absolute path from a relative path. If the path escapes the app root it returns an empty path.
-             * An absolute path can be passed as well and it'll just check that it didn't escape.
-             */
-            std::filesystem::path MakeAbsolutePathChecked(std::string inPath);
-            std::filesystem::path MakeAbsolutePathChecked(std::filesystem::path inPath);
-            /**
-             * Creates an absolute path from a relative path.
-             * An absolute path can be passed as well and it'll just check that it didn't escape.
-             */
-            std::filesystem::path MakeAbsolutePath(std::string inPath);
-            std::filesystem::path MakeAbsolutePath(std::filesystem::path inPath);
 
             /**
-             * Normalizes the path sperator to a forward slash
-            */
-            std::string NormalizePathSeperator(const std::filesystem::path& inPath );
-
-
+             * Make a absolute path from the set app root. If the relative path escapes the app root then an empty path is returned.
+             */
+            std::filesystem::path MakeAbsolutePathToAppRoot(std::string inPath);
+            std::filesystem::path MakeAbsolutePathToAppRoot(std::filesystem::path inPath);
 
         protected:
             /**
              * Scans the app root for the js direcotry and modules directory and then add the modules roots and latest version
              */
             bool FindAssetRoots(std::filesystem::path inRootPath);
-            std::filesystem::path ReplaceTokens(std::filesystem::path inPath, bool makeRelative);
+            std::filesystem::path ReplaceTokens(std::filesystem::path inPath);
 
             std::map<std::string, std::filesystem::path> m_ModuleRoots;
             std::map<std::string, Utils::VersionString> m_ModuleLatestVersion;

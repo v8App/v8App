@@ -9,6 +9,7 @@ v8App_library(
         "src/Threads/ThreadPoolDelayedQueue.cc",
         "src/Threads/ThreadPoolQueue.cc",
         "src/Threads/Threads.cc",
+        "src/Utils/Paths.cc",
         "src/Utils/VersionString.cc",
     ],
     hdrs = [
@@ -28,6 +29,7 @@ v8App_library(
         "include/Utils/CallbackWrapper.h",
         "include/Utils/Environment.h",
         "include/Utils/Format.h",
+        "include/Utils/Paths.h",
         "include/Utils/VersionString.h",
     ],
     copts = [
@@ -74,6 +76,7 @@ v8App_test(
         "tests/Threads/ThreadsTest.cc",
         "tests/Utils/CallbackWrapperTest.cc",
         "tests/Utils/EnvironmentTest.cc",
+        "tests/Utils/PathsTest.cc",
         "tests/Utils/VersionStringTest.cc",
     ],
     copts = [

@@ -92,6 +92,20 @@ namespace v8App
                          "v8App Log \\{");
         }
 
+        TEST(LogDeathTest, CheckUnreachable)
+        {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
+            LogTest::LogDouble::ResetLog();
+
+            // The output for this is really a multiline message however
+            //  the assert only checks the first line against what's passed
+            // which is why it's just the first line of the log message.
+            ASSERT_DEATH({
+                UNREACHABLE();
+            },
+                         "v8App Log \\{");
+        }
+
         TEST(LogDeathTest, CheckMacro)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");

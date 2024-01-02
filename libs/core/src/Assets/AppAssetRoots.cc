@@ -8,6 +8,7 @@
 #include "Assets/AppAssetRoots.h"
 #include "Logging/LogMacros.h"
 #include "Utils/Format.h"
+#include "Utils/Paths.h"
 
 namespace v8App
 {
@@ -17,6 +18,7 @@ namespace v8App
         {
             return SetAppRootPath(std::filesystem::path(inAppRootPath));
         }
+
         bool AppAssetRoots::SetAppRootPath(std::filesystem::path inAppRootPath)
         {
             if (m_AppRoot.empty())
@@ -65,6 +67,7 @@ namespace v8App
         {
             m_ModuleLatestVersion.insert_or_assign(inModuleName, inVersion);
         }
+
         Utils::VersionString AppAssetRoots::GetModulesLatestVersion(const std::string &inModuleName)
         {
             auto it = m_ModuleLatestVersion.find(inModuleName);
@@ -74,94 +77,32 @@ namespace v8App
             }
             return it->second;
         }
+
         void AppAssetRoots::RemoveModulesLatestVersion(std::string inModule)
         {
             m_ModuleLatestVersion.erase(inModule);
         }
 
-        bool AppAssetRoots::DidPathEscapeRoot(std::filesystem::path inRootPath, std::filesystem::path inScriptPath)
-        {
-            std::filesystem::path rootCanonical = std::filesystem::weakly_canonical(inRootPath).make_preferred();
-            std::filesystem::path fileCanonical = std::filesystem::weakly_canonical(inScriptPath).make_preferred();
-
-            return !fileCanonical.string().starts_with(rootCanonical.string());
-        }
-
         std::filesystem::path AppAssetRoots::MakeRelativePathToAppRoot(std::string inPath)
         {
-            std::filesystem::path path(inPath);
-            return MakeRelativePathToRoot(path, m_AppRoot);
+            return MakeRelativePathToAppRoot(std::filesystem::path(inPath));
         }
 
         std::filesystem::path AppAssetRoots::MakeRelativePathToAppRoot(std::filesystem::path inPath)
         {
-            return MakeRelativePathToRoot(inPath, m_AppRoot);
+            inPath = ReplaceTokens(inPath);
+            return Utils::MakeRelativePathToRoot(inPath, m_AppRoot);
         }
 
-        std::filesystem::path AppAssetRoots::MakeRelativePathToRoot(std::string inPath, std::string inRoot)
+        std::filesystem::path AppAssetRoots::MakeAbsolutePathToAppRoot(std::string inPath)
         {
-            std::filesystem::path path(inPath);
-            std::filesystem::path root(inRoot);
-            return MakeRelativePathToRoot(path, root);
+            return MakeAbsolutePathToAppRoot(std::filesystem::path(inPath));
         }
 
-        std::filesystem::path AppAssetRoots::MakeRelativePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot)
+        std::filesystem::path AppAssetRoots::MakeAbsolutePathToAppRoot(std::filesystem::path inPath)
         {
-            inPath = ReplaceTokens(inPath, true);
-            if (inPath.is_absolute())
-            {
-                if (DidPathEscapeRoot(inRoot, inPath))
-                {
-                    return std::filesystem::path();
-                }
-                inPath = inPath.lexically_relative(inRoot);
-            }
-
-            return std::filesystem::path(NormalizePathSeperator(inPath));
-        }
-
-        std::filesystem::path AppAssetRoots::MakeAbsolutePathChecked(std::string inPath)
-        {
-            std::filesystem::path path(inPath);
-            return MakeAbsolutePathChecked(path);
-        }
-        std::filesystem::path AppAssetRoots::MakeAbsolutePathChecked(std::filesystem::path inPath)
-        {
-            std::filesystem::path path = MakeAbsolutePath(inPath);
-            if (path.empty())
-            {
-                return path;
-            }
-            if (DidPathEscapeRoot(m_AppRoot, path))
-            {
-                return std::filesystem::path();
-            }
-            return path;
-        }
-
-        std::filesystem::path AppAssetRoots::MakeAbsolutePath(std::string inPath)
-        {
-            std::filesystem::path path(inPath);
-            return MakeAbsolutePath(path);
-        }
-
-        std::filesystem::path AppAssetRoots::MakeAbsolutePath(std::filesystem::path inPath)
-        {
-            inPath = ReplaceTokens(inPath, false);
-            if (inPath.is_absolute())
-            {
-                return NormalizePathSeperator(inPath);
-            }
-
-            return std::filesystem::absolute(std::filesystem::path(NormalizePathSeperator(inPath)));
-        }
-
-        std::string AppAssetRoots::NormalizePathSeperator(const std::filesystem::path &inPath)
-        {
-            std::string path = inPath.string();
-            std::replace(path.begin(), path.end(), '\\', '/');
-
-            return path;
+            inPath = ReplaceTokens(inPath);
+            return Utils::MakeAbsolutePathToRoot(inPath, m_AppRoot);
         }
 
         bool AppAssetRoots::FindAssetRoots(std::filesystem::path inRootPath)
@@ -233,7 +174,7 @@ namespace v8App
                     Utils::VersionString moduleVersion(versionEntry.path().filename().string());
                     if (moduleVersion.IsVersionString())
                     {
-                        std::string moduleNameStr = NormalizePathSeperator((moduleName / versionEntry.path().filename()));
+                        std::string moduleNameStr = Utils::NormalizePath((moduleName / versionEntry.path().filename()));
                         AddModuleRootPath(moduleNameStr, versionEntry.path());
                         Utils::VersionString latest = GetModulesLatestVersion(moduleName.string());
                         if (latest.IsVersionString())
@@ -253,49 +194,42 @@ namespace v8App
             return true;
         }
 
-        std::filesystem::path AppAssetRoots::ReplaceTokens(std::filesystem::path inPath, bool makeRelative)
+        std::filesystem::path AppAssetRoots::ReplaceTokens(std::filesystem::path inPath)
         {
             std::string strPath = inPath.string();
             int subStrLen = -1;
             std::string tokenReplace = "";
-            if (strPath.starts_with("%APPROOT%"))
+            if (strPath.starts_with(c_AppRoot_Token))
             {
                 subStrLen = 9;
             }
-            else if (strPath.starts_with("%JS%"))
+            else if (strPath.starts_with(c_Js_Token))
             {
                 subStrLen = 4;
                 tokenReplace = "js";
             }
-            else if (strPath.starts_with("%MODULES%"))
+            else if (strPath.starts_with(c_Modules_Token))
             {
                 subStrLen = 9;
                 tokenReplace = "modules";
             }
-            else if (strPath.starts_with("%RESOURCES%"))
+            else if (strPath.starts_with(c_Resources_Token))
             {
                 subStrLen = 11;
                 tokenReplace = "resources";
             }
-            if(subStrLen == -1)
+            if (subStrLen == -1)
             {
                 return inPath;
             }
-            //we want to make sure that the slash at the begining is removed as it seems it might
-            //prevent the paths from concating correctly
+            // we want to make sure that the slash at the begining is removed as it seems it might
+            // prevent the paths from concating correctly
             inPath = std::filesystem::path(strPath.substr(subStrLen)).lexically_relative(std::filesystem::path("/"));
-            if(tokenReplace != "")
+            if (tokenReplace != "")
             {
                 inPath = std::filesystem::path(tokenReplace) / inPath;
             }
-            if (makeRelative)
-            {
-                return inPath;
-            }
-            else
-            {
-                return m_AppRoot / inPath;
-            }
+            return m_AppRoot / inPath;
         }
     }
 }

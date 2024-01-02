@@ -35,6 +35,16 @@ do                                                                  \
         ABORT();                                                    \
     } while (0);
 
+#define UNREACHABLE()                                             \
+do                                                                  \
+{                                                                   \
+        static v8App::Log::LogMessage temp;                         \
+        temp.emplace(v8App::Log::MsgKey::Msg,                       \
+        "Hit a supposedly unreacable code point");                  \
+        v8App::Log::Log::Fatal(temp, __FILE__, __func__, __LINE__); \
+        ABORT();                                                    \
+    } while (0);
+
 #define CHECK(expr) CHECK_FULL(expr, __FILE__, __func__, __LINE__)
 
 #define CHECK_EQ(a, b) CHECK((a) == (b))
