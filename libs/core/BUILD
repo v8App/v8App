@@ -5,6 +5,8 @@ v8App_library(
     name = "core",
     srcs = [
         "src/Assets/AppAssetRoots.cc",
+        "src/Assets/BinaryAsset.cc",
+        "src/Assets/TextAsset.cc",
         "src/Logging/Log.cc",
         "src/Threads/ThreadPoolDelayedQueue.cc",
         "src/Threads/ThreadPoolQueue.cc",
@@ -14,6 +16,9 @@ v8App_library(
     ],
     hdrs = [
         "include/Assets/AppAssetRoots.h",
+        "include/Assets/BaseAsset.h",
+        "include/Assets/BinaryAsset.h",
+        "include/Assets/TextAsset.h",
         "include/Logging/ILogSink.h",
         "include/Logging/Log.h",
         "include/Logging/LogMacros.h",
@@ -66,6 +71,9 @@ v8App_test(
     srcs = [
         "testLib/TestLogSink.cc",
         "tests/Assets/AppAssetRootsTest.cc",
+        "tests/Assets/BaseAssettest.cc",
+        "tests/Assets/BinaryAssettest.cc",
+        "tests/Assets/TextAssetTest.cc",
         "tests/Logging/LogDeathTest.cc",
         "tests/Logging/LogTest.cc",
         "tests/Queues/TThreadSafeDelayedQueueDeathTest.cc",
@@ -85,6 +93,9 @@ v8App_test(
     ],
     defines = [
     ],
+    env ={
+        "VarExists":"test"
+    },
     visibility = ["//visibility:public"],
     deps = [
         ":core",
