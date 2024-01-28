@@ -1,15 +1,18 @@
 {
     "configurations": [
         {
-            "name": "Win32 Release",
+            "name": "Release",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/third_party/v8/include",
-                "${workspaceFolder}/third_party/bazel-runfiles/include",
-                "${workspaceFolder}/libs/application/include",
-                "${workspaceFolder}/libs/core/include",
-                "${workspaceFolder}/libs/core/testLib",
-                "${workspaceFolder}/libs/jsRuntime/include"
+                "${workspaceFolder}/src/libs/application/include",
+                "${workspaceFolder}/src/libs/core/include",
+                "${workspaceFolder}/src/libs/jsRuntime/include",
+                "${workspaceFolder}/src/testing/",
+                "${workspaceFolder}/src/testing/libs/testUtils",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
             ],
             "defines": [
                 "UNICODE",
@@ -22,17 +25,21 @@
             "intelliSenseMode": "windows-msvc-x64"
         },    
         {
-            "name": "Win32 DEBUG",
+            "name": "DEBUG",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/third_party/v8/include",
-                "${workspaceFolder}/third_party/bazel-runfiles/include",
-                "${workspaceFolder}/libs/application/include",
-                "${workspaceFolder}/libs/core/include",
-                "${workspaceFolder}/libs/core/testLib",
-                "${workspaceFolder}/libs/jsRuntime/include"
+                "${workspaceFolder}/src/libs/application/include",
+                "${workspaceFolder}/src/libs/core/include",
+                "${workspaceFolder}/src/libs/jsRuntime/include",
+                "${workspaceFolder}/src/testing/",
+                "${workspaceFolder}/src/testing/libs/testUtils",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
             ],
             "defines": [
+                "V8APP_DEBUG",
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE"
@@ -44,19 +51,46 @@
             "intelliSenseMode": "windows-msvc-x64"
         },    
         {
-            "name": "Win32 Testing",
+            "name": "Testing Release",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/third_party/v8/include",
-                "${workspaceFolder}/libs/application/include",
-                "${workspaceFolder}/libs/core/include",
-                "${workspaceFolder}/libs/core/testLib",
-                "${workspaceFolder}/libs/jsRuntime/include",
-                "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googlemock/include",
-                "${workspaceFolder}/bazel-v8app/external/com_google_googletest/googletest/include",
-                "${workspaceFolder}/bazel-v8app/external/bazel_tools"
+                "${workspaceFolder}/src/libs/application/include",
+                "${workspaceFolder}/src/libs/core/include",
+                "${workspaceFolder}/src/libs/jsRuntime/include",
+                "${workspaceFolder}/src/testing/",
+                "${workspaceFolder}/src/testing/libs/testUtils",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/bazel-v8App/external/bazel_tools"
             ],
             "defines": [
+                "UNICODE",
+                "_UNICODE",
+                "UNIT_TESTING"
+            ],
+            "windowsSdkVersion": "10.0.22621.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-msvc-x64"
+        },
+        {
+            "name": "Testing Debug",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/third_party/v8/include",
+                "${workspaceFolder}/src/libs/application/include",
+                "${workspaceFolder}/src/libs/core/include",
+                "${workspaceFolder}/src/libs/jsRuntime/include",
+                "${workspaceFolder}/src/testing/",
+                "${workspaceFolder}/src/testing/libs/testUtils",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
+            ],
+            "defines": [
+                "V8APP_DEBUG",
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",

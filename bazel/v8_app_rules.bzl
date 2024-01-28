@@ -109,7 +109,7 @@ def v8App_test(
         size = size,
         srcs = srcs,
         deps = deps + [
-            "@com_google_googletest//:gtest_main",
+            "@com_google_googletest//:gtest",
             "@bazel_tools//tools/cpp/runfiles",
         ],
         defines = defines + default.defines + ["UNIT_TESTING"],

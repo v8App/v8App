@@ -3,113 +3,129 @@
 	"tasks": [
 		{
 			"type": "shell",
-			"command": "bazel build //libs/application:application",
+			"command": "bazel build //src/libs/application:application",
 			"windows":{
-				"command": "bazel build //libs/application:application --config=windows"
+				"command": "bazel build //src/libs/application:application --config=windows"
 			},
 			"label": "Bazel Build libapplication Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/application:application -c dbg",
+			"command": "bazel build //src/libs/application:application -c dbg",
 			"windows":{
-				"command": "bazel build //libs/application:application --config=windows-debug"
+				"command": "bazel build //src/libs/application:application --config=windows-debug"
 			},
 			"label": "Bazel Build libapplication Debug"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/application:testApplication",
+			"command": "bazel build //src/testing/libs/application:testApplication",
 			"windows":{
-				"command": "bazel build //libs/application:testApplication --config=windows"
+				"command": "bazel build //src/testing/libs/application:testApplication --config=windows"
 			},
 			"label": "Bazel Build testApplication Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/application:testApplication -c dbg",
+			"command": "bazel build //src/testing/libs/application:testApplication -c dbg",
 			"windows":{
-				"command": "bazel build //libs/application:testApplication --config=windows -c dbg"
+				"command": "bazel build //src/testing/libs/application:testApplication --config=windows -c dbg"
 			},
 			"label": "Bazel Build testApplication Debug"
 		},	
 		{
 			"type": "shell",
-			"command": "bazel build //libs/core:core",
+			"command": "bazel build //src/libs/core:core",
 			"windows":{
-				"command": "bazel build //libs/core:core --config=windows"
+				"command": "bazel build //src/libs/core:core --config=windows"
 			},
 			"label": "Bazel Build libcore Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/core:core -c dbg",
+			"command": "bazel build //src/libs/core:core -c dbg",
 			"windows":{
-				"command": "bazel build //libs/core:core --config=windows -c dbg"
+				"command": "bazel build //src/libs/core:core --config=windows -c dbg"
 			},
 			"label": "Bazel Build libcore Debug"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/core:testCore",
+			"command": "bazel build //src/testing/libs/core:testCore",
 			"windows":{
-				"command": "bazel build //libs/core:testCore --config=windows"
+				"command": "bazel build //src/testing/libs/core:testCore --config=windows"
 			},
 			"label": "Bazel Build testCore Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/core:testCore -c dbg",
+			"command": "bazel build //src/testing/libs/core:testCore -c dbg",
 			"windows":{
-				"command": "bazel build //libs/core:testCore --config=windows -c dbg"
+				"command": "bazel build //src/testing/libs/core:testCore --config=windows -c dbg"
 			},
 			"label": "Bazel Build testCore Debug"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:jsRuntime",
+			"command": "bazel build //src/libs/jsRuntime:jsRuntime",
 			"windows":{
-				"command": "bazel build //libs/jsRuntime:jsRuntime --config=windows"
+				"command": "bazel build //src/libs/jsRuntime:jsRuntime --config=windows"
 			},
 			"label": "Bazel Build libjsRuntime Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:jsRuntime -c dbg",
+			"command": "bazel build //src/libs/jsRuntime:jsRuntime -c dbg",
 			"windows":{
-				"command": "bazel build //libs/jsRuntime:jsRuntime --config=windows -c dbg"
+				"command": "bazel build //src/libs/jsRuntime:jsRuntime --config=windows -c dbg"
 			},
 			"label": "Bazel Build libjsRuntime Debug"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:testJSRuntimeCore",
+			"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimePlatform",
 			"windows":{
-				"command": "bazel build //libs/jsRuntime:testJSRuntimeCore --config=windows"
+				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimePlatform --config=windows"
+			},
+			"label": "Bazel Build testJSRuntimePlatform Release"
+		},
+		{
+			"type": "shell",
+			"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimePlatform -c dbg",
+			"windows":{
+				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimePlatform --config=windows -c dbg"
+			},
+			"label": "Bazel Build testJSRuntimePlatform Debug"
+		},
+		{
+			"type": "shell",
+			"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimeCore",
+			"windows":{
+				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimeCore --config=windows"
 			},
 			"label": "Bazel Build testJSRuntimeCore Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:testJSRuntimeCore -c dbg",
+			"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimeCore -c dbg",
 			"windows":{
-				"command": "bazel build //libs/jsRuntime:testJSRuntimeCore --config=windows -c dbg"
+				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntimeCore --config=windows -c dbg"
 			},
 			"label": "Bazel Build testJSRuntimeCore Debug"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:testJSRuntime",
+			"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntime",
 			"windows":{
-				"command": "bazel build //libs/jsRuntime:testJSRuntime --config=windows"
+				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntime --config=windows"
 			},
 			"label": "Bazel Build testJSRuntime Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //libs/jsRuntime:testJSRuntime -c dbg",
+			"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntime -c dbg",
 			"windows":{
-				"command": "bazel build //libs/jsRuntime:testJSRuntime --config=windows -c dbg"
+				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntime --config=windows -c dbg"
 			},
 			"label": "Bazel Build testJSRuntime Debug"
 		},
