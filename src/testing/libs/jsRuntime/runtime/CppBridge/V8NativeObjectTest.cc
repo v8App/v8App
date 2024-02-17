@@ -5,10 +5,12 @@
 #include <iostream>
 #include <string>
 
-#include "../V8TestFixture.h"
-#include "CppBridge/V8NativeObject.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
+#include "V8Fixture.h"
+
+#include "CppBridge/V8NativeObject.h"
 
 namespace v8App
 {
@@ -16,7 +18,7 @@ namespace v8App
     {
         namespace CppBridge
         {
-            using V8NativeObjectTest = V8TestFixture;
+            using V8NativeObjectTest = V8Fixture;
 
             class V8NativeObjectNoOverrides : public V8NativeObjectBase
             {

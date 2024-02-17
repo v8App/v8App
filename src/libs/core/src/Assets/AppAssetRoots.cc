@@ -47,7 +47,7 @@ namespace v8App
             return it.second;
         }
 
-        std::filesystem::path AppAssetRoots::FindModuleRootPath(std::string inModule)
+        std::filesystem::path AppAssetRoots::FindModuleVersionRootPath(std::string inModule)
         {
             auto it = m_ModuleRoots.find(inModule);
             if (it != m_ModuleRoots.end())
@@ -56,6 +56,18 @@ namespace v8App
             }
 
             return std::filesystem::path();
+        }
+
+        std::filesystem::path AppAssetRoots::FindModuleLatestVersionRootPath(std::string inModule)
+        {
+            Utils::VersionString version = GetModulesLatestVersion(inModule);
+            if(version.IsVersionString() == false)
+            {
+                return std::filesystem::path();
+            }
+            inModule += "/" + version.GetVersionString();
+
+            return FindModuleVersionRootPath(inModule);
         }
 
         void AppAssetRoots::RemoveModuleRootPath(std::string inModuleName)
@@ -164,7 +176,7 @@ namespace v8App
                     continue;
                 }
                 std::filesystem::path moduleName = dirEntry.path().filename();
-                // modules cannot be names js or resources
+                // modules cannot be named js or resources
                 if (moduleName == c_RootJS || moduleName == c_RootResource)
                 {
                     continue;

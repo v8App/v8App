@@ -3,14 +3,14 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#include "V8TestFixture.h"
+#include "V8Fixture.h"
 #include "ScriptStartupDataManager.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        using ScriptStartupDataManTest = V8TestFixture;
+        using ScriptStartupDataManTest = V8Fixture;
 
         TEST(V8TestStartupICUData, TestV8StartupInitlaization)
         {

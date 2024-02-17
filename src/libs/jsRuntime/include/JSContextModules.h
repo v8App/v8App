@@ -60,7 +60,7 @@ namespace v8App
             /**
              * LoadEntryPoint takes a path that should be rooted under the app root and can be absolute or relative.
              */
-            V8MaybeLocalModule LoadModule(std::filesystem::path inModulePath);
+            JSModuleInfoSharedPtr LoadModule(std::filesystem::path inModulePath);
             bool InstantiateModule(JSModuleInfoSharedPtr inModule);
             bool RunModule(JSModuleInfoSharedPtr inModule);
 
@@ -87,9 +87,6 @@ namespace v8App
             static void SetupModulesCallbacks(V8Isolate *inIsolate);
 
         protected:
-            // Generate the code cache for the module and sets the CodeCache with it.
-            bool GenerateCodeCache(std::filesystem::path inImportPath, V8ScriptSource *inSource, V8Isolate *inIsolate, V8LocalContext inContext);
-
             /**
              * Adds a module to the map tracking that it's been loaded
              */
@@ -145,7 +142,7 @@ namespace v8App
             /**
              * Handles loading additional imports from the imported module
              */
-            static V8MaybeLocalModule LoadModuleTree(JSContextSharedPtr inContext, std::filesystem::path inModuleRoot, const JSModuleInfoSharedPtr inModuleInfo);
+            static JSModuleInfoSharedPtr LoadModuleTree(JSContextSharedPtr inContext, const JSModuleInfoSharedPtr inModuleInfo);
 
         protected:
             JSContextSharedPtr m_Context;

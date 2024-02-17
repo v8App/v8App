@@ -47,6 +47,7 @@ namespace v8App
         using V8ScriptSourceUniquePtr = std::unique_ptr<v8::ScriptCompiler::Source>;
         
         using V8LocalUnboundModuleScript = v8::Local<v8::UnboundModuleScript>;
+        using V8GlobalUnboundModuleScript = v8::Global<v8::UnboundModuleScript>;
 
         using V8LocalModuleRequst = v8::Local<v8::ModuleRequest>;
         

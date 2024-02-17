@@ -9,11 +9,11 @@
 #include "Utils/Environment.h"
 #include "JSContext.h"
 
-namespace v8App
+namespace v8App 
 {
     namespace JSRuntime
     {
-        void V8TestFixture::SetUp()
+        void V8Fixture::SetUp()
         {
             // setup the global test log
             TestUtils::TestLogSink *testSink = TestUtils::TestLogSink::GetGlobalSink();
@@ -31,7 +31,7 @@ namespace v8App
             m_App->GetAppRoots()->SetAppRootPath(s_TestDir);
         }
 
-        void V8TestFixture::TearDown()
+        void V8Fixture::TearDown()
         {
             if (m_Isolate == nullptr)
             {

@@ -103,12 +103,16 @@ namespace v8App
             /**
              * Adds a modules root path making it faster to build the path to the modules file
              */
-            bool AddModuleRootPath(std::string inModuleNmae, std::string inPath);
-            bool AddModuleRootPath(std::string inModuleNmae, std::filesystem::path inPath);
+            bool AddModuleRootPath(std::string inModuleName, std::string inPath);
+            bool AddModuleRootPath(std::string inModuleName, std::filesystem::path inPath);
             /**
-             * Finds the modules root path
+             * Finds the modules root path by module name/version
              */
-            std::filesystem::path FindModuleRootPath(std::string inModule);
+            std::filesystem::path FindModuleVersionRootPath(std::string inModule);
+            /**
+             * Finds the modules root path for latest version by module name
+            */
+            std::filesystem::path FindModuleLatestVersionRootPath(std::string inModule);
             /**
              * Remove the modules root path
              */

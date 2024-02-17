@@ -266,6 +266,10 @@
                     "name": "TEST_SRCDIR",
                     "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe.runfiles"
                 },
+                {
+                    "anme":"TestFiles",
+                    "value":"v8App/src/testing/libs/jsRuntime/runtime/test-files"
+                },
             ],
             "envFile": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/test.env",
             "console": "externalTerminal",
@@ -276,6 +280,7 @@
                 "env": {
                     "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles/MANIFEST",
                     "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles",
+                    "TestFiles":"v8App/src/testing/libs/jsRuntime/runtime/test-files",
                 },
            }
         },
@@ -296,6 +301,10 @@
                     "name": "TEST_SRCDIR",
                     "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe.runfiles"
                 },
+                {
+                    "anme":"TestFiles",
+                    "value":"v8App/src/testing/libs/jsRuntime/runtime/test-files"
+                },
             ],
             "envFile": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/test.env",
             "console": "externalTerminal",
@@ -306,6 +315,7 @@
                 "env": {
                     "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles/MANIFEST",
                     "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles",
+                    "TestFiles":"v8App/src/testing/libs/jsRuntime/runtime/test-files",
                 },
            }
         },

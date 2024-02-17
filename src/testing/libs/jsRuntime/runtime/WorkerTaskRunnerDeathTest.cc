@@ -29,7 +29,7 @@ namespace v8App
                 V8IdleTaskUniquePtr task = std::make_unique<TestIdleDeathTask>();
                 runner.PostIdleTask(std::move(task));
             },
-                         "v8App Log \\{");
+                         "");
 #endif
         }
 

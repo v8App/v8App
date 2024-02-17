@@ -10,6 +10,7 @@
 #include "Assets/BinaryAsset.h"
 #include "Assets/TextAsset.h"
 #include "Utils/Format.h"
+#include "Utils/Paths.h"
 
 #include "CodeCache.h"
 #include "JSContext.h"
@@ -44,6 +45,16 @@ namespace v8App
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("Unsupported file extension passed, only .mjs, .js allowed. File: {}", inFilePath));
+                LOG_ERROR(msg);
+                return nullptr;
+            }
+
+            std::filesystem::path fileRoot = Utils::MakeRelativePathToRoot(inFilePath, m_App->GetAppRoots()->GetAppRoot());
+            auto it = fileRoot.begin();
+            if (it->string() != Assets::c_RootJS && it->string() != Assets::c_RootModules)
+            {
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, Utils::format("Script file is not in the js or modules directories. File: {}", inFilePath));
                 LOG_ERROR(msg);
                 return nullptr;
             }
@@ -107,6 +118,16 @@ namespace v8App
             }
             v8::ScriptOrigin origin(inIsolate, fileStr, 0, 0, false, -1, V8LocalValue(), false, false, true);
             return std::make_unique<V8ScriptSource>(sourceStr, origin, cache);
+        }
+
+        bool CodeCache::HasCodeCache(std::filesystem::path inFilePath)
+        {
+            ScriptCacheInfo* info = GetCachedScript(inFilePath);
+            if(info == nullptr)
+            {
+                return false;
+            }
+            return info->m_Compiled != nullptr;
         }
 
         bool CodeCache::SetCodeCache(std::filesystem::path inFilePath, V8ScriptCachedData *inCachedData)
@@ -212,14 +233,14 @@ namespace v8App
             }
             Assets::TextAsset file(inFilePath);
 
-            if(file.Exists() == false)
+            if (file.Exists() == false)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("File doesn't exist: {}", inFilePath));
                 LOG_ERROR(msg);
                 return false;
             }
-            
+
             if (file.ReadAsset() == false)
             {
                 return false;
@@ -255,8 +276,8 @@ namespace v8App
             }
 
             Assets::BinaryAsset file(inCachePath);
-            std::vector<uint8_t> vecData(inData, inData+inDataLength);
-            if(file.SetContent(vecData) == false)
+            std::vector<uint8_t> vecData(inData, inData + inDataLength);
+            if (file.SetContent(vecData) == false)
             {
                 return false;
             }
@@ -273,7 +294,7 @@ namespace v8App
                 return false;
             }
             Assets::BinaryAsset file(inCachePath);
-            if(file.Exists() == false)
+            if (file.Exists() == false)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("Cached data file doesn't exist: {}", inCachePath));
@@ -285,8 +306,8 @@ namespace v8App
             {
                 return false;
             }
-            const std::vector<uint8_t>& buffer = file.GetContent();
-            if(buffer.size() == 0)
+            const std::vector<uint8_t> &buffer = file.GetContent();
+            if (buffer.size() == 0)
             {
                 return true;
             }

@@ -52,6 +52,7 @@ namespace v8App
             // loads rhe file either from a cache or if not in cache reads it from the file.
             // the cache could be preseeded by embedding it in the binary
             V8ScriptSourceUniquePtr LoadScriptFile(std::filesystem::path inFilePath, V8Isolate *inIsolate);
+            bool HasCodeCache(std::filesystem::path inFilePath);
             bool SetCodeCache(std::filesystem::path inFilePath, V8ScriptCachedData *inCachedData);
 
         protected:

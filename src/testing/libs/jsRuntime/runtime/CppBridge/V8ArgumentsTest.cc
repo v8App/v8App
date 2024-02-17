@@ -4,11 +4,13 @@
 
 #include <iostream>
 
-#include "../V8TestFixture.h"
-#include "CppBridge/V8Arguments.h"
-#include "JSUtilities.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
+#include "V8Fixture.h"
+
+#include "CppBridge/V8Arguments.h"
+#include "JSUtilities.h"
 
 namespace v8App
 {
@@ -16,7 +18,7 @@ namespace v8App
     {
         namespace CppBridge
         {
-            using V8ArgumentsTest = V8TestFixture;
+            using V8ArgumentsTest = V8Fixture;
 
             v8::Isolate *testIsolate = nullptr;
             struct testData
@@ -100,7 +102,10 @@ namespace v8App
             TEST_F(V8ArgumentsTest, TestFunction)
             {
                 //TODO: add test for an class instance and property callbacks
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
+
                 testIsolate = m_Isolate;
 
                 std::unique_ptr<testData> testUnique = std::make_unique<testData>();

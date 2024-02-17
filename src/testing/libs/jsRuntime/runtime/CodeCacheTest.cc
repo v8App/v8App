@@ -6,6 +6,8 @@
 #include <ostream>
 #include <fstream>
 
+#include "V8Fixture.h"
+
 #include "Assets/TextAsset.h"
 #include "Assets/BinaryAsset.h"
 #include "Logging/Log.h"
@@ -17,13 +19,11 @@
 #include "CodeCache.h"
 #include "JSUtilities.h"
 
-#include "V8TestFixture.h"
-
 namespace v8App
 {
     namespace JSRuntime
     {
-        using CodeCacheTest = V8TestFixture;
+        using CodeCacheTest = V8Fixture;
 
         namespace CodeCacheTestInternal
         {
@@ -132,9 +132,9 @@ namespace v8App
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
-            EXPECT_EQ(nullptr, codeCache.LoadScriptFile(std::filesystem::path("test.js"), m_Isolate));
+            EXPECT_EQ(nullptr, codeCache.LoadScriptFile(std::filesystem::path("js/test.js"), m_Isolate));
             expected = {
-                {Log::MsgKey::Msg, Utils::format("File does not exists. File: \"test.js\"")},
+                {Log::MsgKey::Msg, Utils::format("File does not exists. File: \"js/test.js\"")},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
@@ -147,6 +147,7 @@ namespace v8App
                 {Log::MsgKey::Msg, Utils::format("Script file is not in the js or modules directories. File: {}", testPath)},
                 {Log::MsgKey::LogLevel, "Error"},
             };
+
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
             testPath = appRoot / std::filesystem::path("js/cacheTest.js");
@@ -162,7 +163,7 @@ namespace v8App
             V8ScriptSourceUniquePtr source = codeCache.LoadScriptFile(testPath, m_Isolate);
             ASSERT_NE(nullptr, source);
             EXPECT_EQ(nullptr, source->GetCachedData());
-
+            EXPECT_FALSE(codeCache.HasCodeCache(testPath));
             EXPECT_EQ(2, CodeCacheTestInternal::ExecuteScript(m_Isolate, source.get(), false));
 
             source = codeCache.LoadScriptFile(testPath, m_Isolate);
@@ -185,6 +186,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
             ASSERT_TRUE(codeCache.SetCodeCache(testPath, cache));
+            EXPECT_TRUE(codeCache.HasCodeCache(testPath));
 
             source = codeCache.LoadScriptFile(testPath, m_Isolate);
             ASSERT_NE(nullptr, source);
@@ -361,7 +363,7 @@ namespace v8App
 
             EXPECT_FALSE(codeCache.TestReadCachedDataFile(std::filesystem::path("test.js"), &info));
             expected = {
-                {Log::MsgKey::Msg, Utils::format("Cached file doesn't exist: \"test.js\"")},
+                {Log::MsgKey::Msg, Utils::format("Cached data file doesn't exist: \"test.js\"")},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));

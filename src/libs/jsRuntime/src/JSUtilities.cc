@@ -22,9 +22,9 @@ namespace v8App
                 return maybe.ToLocal(&line) ? line : v8::String::Empty(inIsolate);
             }
 
-            std::string GetStackTrace(V8LocalContext inContext, v8::TryCatch &inTryCatch)
+            std::string GetStackTrace(V8LocalContext inContext, v8::TryCatch &inTryCatch, std::string inResourceName)
             {
-                V8Isolate* isolate  = inContext->GetIsolate();
+                V8Isolate *isolate = inContext->GetIsolate();
                 if (inTryCatch.HasCaught() == false)
                 {
                     return "";
@@ -42,9 +42,14 @@ namespace v8App
                 }
                 else
                 {
+                    std::string resourceName = V8ToString(isolate, message->GetScriptOrigin().ResourceName());
+                    if (resourceName == "")
+                    {
+                        resourceName = inResourceName;
+                    }
                     messageBuilder << V8ToString(isolate, message->Get()) << std::endl
-                                   << V8ToString(isolate, message->GetScriptOrigin().ResourceName()) << ":" 
-                                   << message->GetLineNumber(inContext).FromMaybe(-1) << ":" << cStr
+                                   << resourceName << ":" << message->GetLineNumber(inContext).FromMaybe(-1)
+                                   << ":" << cStr
                                    << std::endl;
 
                     v8::Local<v8::StackTrace> trace = message->GetStackTrace();

@@ -12,26 +12,38 @@ namespace v8App
 {
     namespace Utils
     {
-        //Because Apple's clang doesn't support std::format
-        template<typename T>
-        inline void format_helper(std::ostringstream& oss, std::string_view& str, const T& value)
+        // Because Apple's clang doesn't support std::format
+        template <typename T>
+        inline void format_helper(std::ostringstream &oss, std::string_view &str, const T &value)
         {
-            std::size_t leftBracket = str.find('{');
-            if(leftBracket == str.npos)
+            bool found = false;
+            std::size_t leftBracket = 0;
+            std::size_t rigthBracket = std::string::npos;
+            do
             {
-                return;
-            }
-            std::size_t rigthBracket = str.find('}', leftBracket+1);
-            if(rigthBracket == str.npos)
-            {
-                return;
-            }
-            oss << str.substr(0, leftBracket) << value;
-            str = str.substr(rigthBracket+1);
+                leftBracket = str.find('{', leftBracket);
+                if (leftBracket == str.npos)
+                {
+                    return;
+                }
+                rigthBracket = str.find('}', leftBracket + 1);
+                if (rigthBracket == str.npos)
+                {
+                    return;
+                }
+                //for a replace it has to be {} no spaces or anything else in between
+                if (leftBracket + 1 == rigthBracket)
+                {
+                    found = true;
+                    oss << str.substr(0, leftBracket) << value;
+                    str = str.substr(rigthBracket + 1);
+                }
+                leftBracket++;
+            } while (found == false);
         }
 
-        template<typename... TArgs>
-        inline std::string format(std::string_view str, TArgs...args)
+        template <typename... TArgs>
+        inline std::string format(std::string_view str, TArgs... args)
         {
             std::ostringstream oss;
             (format_helper(oss, str, args), ...);

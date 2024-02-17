@@ -1,0 +1,1 @@
+import testStr from "./importFile.js" assert { type: "unknown" };

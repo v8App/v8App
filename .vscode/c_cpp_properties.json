@@ -13,6 +13,7 @@
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/bazel-v8App/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App/",
             ],
             "defines": [
                 "UNICODE",
@@ -37,6 +38,7 @@
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/bazel-v8App/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App/",
             ],
             "defines": [
                 "V8APP_DEBUG",
@@ -62,12 +64,14 @@
                 "${workspaceFolder}/src/testing/libs/testUtils",
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
-                "${workspaceFolder}/bazel-v8App/external/bazel_tools"
+                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App/",
             ],
             "defines": [
                 "UNICODE",
                 "_UNICODE",
-                "UNIT_TESTING"
+                "UNIT_TESTING",
+                "USE_JSRUNTIME",
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "compilerPath": "cl.exe",
@@ -88,13 +92,15 @@
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
                 "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/bazel-v8App/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App/",
             ],
             "defines": [
                 "V8APP_DEBUG",
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
-                "UNIT_TESTING"
+                "UNIT_TESTING",
+                "USE_JSRUNTIME",
             ],
             "windowsSdkVersion": "10.0.22621.0",
             "compilerPath": "cl.exe",

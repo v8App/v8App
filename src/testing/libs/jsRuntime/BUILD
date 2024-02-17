@@ -78,21 +78,21 @@ v8App_test(
     name = "testJSRuntime",
     size = "small",
     srcs = [
-        #        "runtime/CppBridge/V8ArgumentsTest.cc",
-        #        "runtime/CppBridge/V8FunctionTemplateTest.cc",
-        #        "runtime/CppBridge/V8NativeObjecttest.cc",
-        #        "runtime/CppBridge/V8ObjectTemplateTest.cc",
-        #        "runtime/CppBridge/V8TypeConverterTest.cc",
+        "runtime/CppBridge/V8ArgumentsTest.cc",
+        "runtime/CppBridge/V8FunctionTemplateTest.cc",
+        "runtime/CppBridge/V8NativeObjecttest.cc",
+        "runtime/CppBridge/V8ObjectTemplateTest.cc",
+        "runtime/CppBridge/V8TypeConverterTest.cc",
+        "runtime/BridgeTest.cc",
         "runtime/CodeCacheTest.cc",
         "runtime/ForegroundTaskRunnerDeathTest.cc",
         "runtime/ForegroundTaskRunnerTest.cc",
+        "runtime/JSContextModulesDeathTest.cc",
         "runtime/JSContextModulesTest.cc",
         "runtime/JSModuleInfotest.cc",
         "runtime/JSUtilitiesTest.cc",
         "runtime/NestableQueueTest.cc",
         #        "runtime/V8StartupICUDataTest.cc",
-        "runtime/V8TestFixture.cc",
-        "runtime/V8TestFixture.h",
         "runtime/WorkerTaskRunnerDeathTest.cc",
         "runtime/WorkerTaskRunnerTest.cc",
         "//src/testing:testMain",
@@ -101,9 +101,11 @@ v8App_test(
         "-Isrc/libs/core/include",
         "-Isrc/libs/jsRuntime/include",
         "-Isrc/testing/libs/testUtils",
+        "-Isrc/testing",
         "-Ithird_party/v8/include",
     ],
     data = [
+        "runtime/test-files",
         ":build-test-env-file",
         "//third_party/v8:icu_dat",
         "//third_party/v8:snapshot_blob",
@@ -112,6 +114,7 @@ v8App_test(
         "USE_JSRUNTIME=1",
     ],
     env = {
+        "TestFiles":"v8App/src/testing/libs/jsRuntime/runtime/test-files",
         "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
         "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
     },
@@ -128,6 +131,8 @@ v8App_test(
     ],
 )
 
+#Used with VSCode to export the locations to an env file that we
+#can then import with launch config
 genrule(
     name = "build-test-env-file",
     srcs = [

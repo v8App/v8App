@@ -28,7 +28,7 @@ namespace v8App
         class TestJSRuntime : public JSRuntime
         {
         public:
-            explicit TestJSRuntime(JSAppSharedPtr inApp,  IdleTasksSupport inEnableIdle) : JSRuntime(inApp, inEnableIdle) {}
+            explicit TestJSRuntime(JSAppSharedPtr inApp,  IdleTasksSupport inEnableIdle, std::string inName) : JSRuntime(inApp, inEnableIdle, inName) {}
             void ClearIsolate() { m_Isolate.reset(); }
         };
 
@@ -39,7 +39,7 @@ namespace v8App
             ASSERT_DEATH({
                 //V8PlatformInitFixture::SetUpTestSuite();
                 JSAppSharedPtr app = std::make_shared<JSApp>("test");
-                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled);
+                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "SetObjectTemplate");
                 v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
                 v8::HandleScope scope(runtimePtr->GetIsolate().get());
 
@@ -60,7 +60,7 @@ namespace v8App
             ASSERT_DEATH({
                 //V8PlatformInitFixture::SetUpTestSuite();
                 JSAppSharedPtr app = std::make_shared<JSApp>("test");
-                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled);
+                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "GetObjectTemplate");
                 v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
                 v8::HandleScope scope(runtimePtr->GetIsolate().get());
                 v8::Local<v8::ObjectTemplate> objTemplate;
@@ -81,7 +81,7 @@ namespace v8App
             ASSERT_DEATH({
                 //V8PlatformInitFixture::SetUpTestSuite();
                 JSAppSharedPtr app = std::make_shared<JSApp>("test");
-                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled);
+                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "SetFunctionTemplate");
                 v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
                 v8::HandleScope scope(runtimePtr->GetIsolate().get());
                 v8::Local<v8::FunctionTemplate> funcTemplate;
@@ -100,9 +100,8 @@ namespace v8App
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                //V8PlatformInitFixture::SetUpTestSuite();
                 JSAppSharedPtr app = std::make_shared<JSApp>("test");
-                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled);
+                std::shared_ptr<TestJSRuntime> runtimePtr = std::make_shared<TestJSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "GetFunctionTemplate");
                 v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
                 v8::HandleScope scope(runtimePtr->GetIsolate().get());
                 v8::Local<v8::FunctionTemplate> funcTemplate;
@@ -111,7 +110,6 @@ namespace v8App
 
                 struct TemplateInfo info;
                 runtimePtr->GetFunctionTemplate(&info);
-                //V8PlatformInitFixture::TearDownTestSuite();
                 std::exit(0);
             },
                          "");
@@ -121,13 +119,11 @@ namespace v8App
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                //V8PlatformInitFixture::SetUpTestSuite();
                 JSAppSharedPtr app = std::make_shared<JSApp>("test");
-                JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled);
+                JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, "CreateContext");
                 v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate().get());
                 v8::Local<v8::ObjectTemplate> objTemplate;
                 runtimePtr->CreateContext("test");
-                //V8PlatformInitFixture::TearDownTestSuite();
                 std::exit(0);
             },
                          "");

@@ -118,8 +118,8 @@ namespace v8App
             // app root was set already
             EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot));
 
-            EXPECT_FALSE(appAssetRoot->FindModuleRootPath(c_RootJS).empty());
-            EXPECT_FALSE(appAssetRoot->FindModuleRootPath(c_RootResource).empty());
+            EXPECT_FALSE(appAssetRoot->FindModuleVersionRootPath(c_RootJS).empty());
+            EXPECT_FALSE(appAssetRoot->FindModuleVersionRootPath(c_RootResource).empty());
 
             // some modules found
             std::filesystem::path module1 = moduleRoot / std::filesystem::path("test/1.2.3");
@@ -131,16 +131,32 @@ namespace v8App
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_TRUE(appAssetRoot->SetAppRootPath(appRoot));
 
-            EXPECT_EQ(appAssetRoot->FindModuleRootPath("test/1.2.3"), module1);
-            EXPECT_EQ(appAssetRoot->FindModuleRootPath("test/2.0.0"), module2);
+            EXPECT_EQ(appAssetRoot->FindModuleVersionRootPath("test/1.2.3"), module1);
+            EXPECT_EQ(appAssetRoot->FindModuleVersionRootPath("test/2.0.0"), module2);
             EXPECT_EQ(appAssetRoot->GetModulesLatestVersion("test"), Utils::VersionString("2.0.0"));
-            EXPECT_TRUE(appAssetRoot->FindModuleRootPath("test/NotAVersion").empty());
+            EXPECT_TRUE(appAssetRoot->FindModuleVersionRootPath("test/NotAVersion").empty());
 
             // set via a string
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_TRUE(appAssetRoot->SetAppRootPath(appRoot.string()));
             EXPECT_EQ(appAssetRoot->GetAppRoot(), appRoot);
             Log::Log::RemoveLogSink(logSink->GetName());
+        }
+
+        TEST(AppAssetRootsTest, FindModuleLatestVersionRootPath)
+        {
+            std::filesystem::path tmp = s_TestDir;
+            std::filesystem::path appRoot = tmp / std::filesystem::path("testApp");
+            std::unique_ptr<AppAssetRoots> appAssetRoot = std::make_unique<AppAssetRoots>();
+
+            EXPECT_EQ("", appAssetRoot->FindModuleLatestVersionRootPath("test").string());
+
+            Utils::VersionString version("1.0.0");
+            appAssetRoot->SetModulesLatestVersion("test", version);
+            std::filesystem::path modRoot = appRoot / std::filesystem::path("test/1.0.0");
+            appAssetRoot->AddModuleRootPath("test/1.0.0", modRoot);
+
+            EXPECT_EQ(modRoot.string(), appAssetRoot->FindModuleLatestVersionRootPath("test").string());
         }
 
         TEST(AppAssetRootsTest, AddFindRemoveModuleRootPath)
@@ -151,10 +167,10 @@ namespace v8App
 
             std::filesystem::path moduleRoot = appRoot / std::filesystem::path("testModule");
             EXPECT_TRUE(appAssetRoot->AddModuleRootPath("test", moduleRoot));
-            EXPECT_EQ(appAssetRoot->FindModuleRootPath("test"), moduleRoot);
-            EXPECT_TRUE(appAssetRoot->FindModuleRootPath("NonExistant").empty());
+            EXPECT_EQ(appAssetRoot->FindModuleVersionRootPath("test"), moduleRoot);
+            EXPECT_TRUE(appAssetRoot->FindModuleVersionRootPath("NonExistant").empty());
             appAssetRoot->RemoveModuleRootPath("test");
-            EXPECT_TRUE(appAssetRoot->FindModuleRootPath("test").empty());
+            EXPECT_TRUE(appAssetRoot->FindModuleVersionRootPath("test").empty());
         }
 
         TEST(AppAssetRootsTest, SetGetRemoveModulesLatestVersion)
@@ -182,9 +198,9 @@ namespace v8App
             std::filesystem::path path3 = std::filesystem::path("test/../test2");
             std::filesystem::path path4 = std::filesystem::path("../../../test/test2");
             std::filesystem::path win = root / std::filesystem::path("test\\test2");
-            std::filesystem::path win2 =  std::filesystem::path("C:\\test\\test2");
+            std::filesystem::path win2 = std::filesystem::path("C:\\test\\test2");
 
-            //string version
+            // string version
             EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path1).string(), "test/test2");
 
             EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path1).string(), "test/test2");
@@ -206,9 +222,9 @@ namespace v8App
             std::filesystem::path path3 = std::filesystem::path("test/../test2");
             std::filesystem::path path4 = std::filesystem::path("../../../test/test2");
             std::filesystem::path win = root / std::filesystem::path("test\\test2");
-            std::filesystem::path win2 =  std::filesystem::path("C:\\test\\test2");
+            std::filesystem::path win2 = std::filesystem::path("C:\\test\\test2");
 
-            //string version
+            // string version
             EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path1).string(), (root / std::filesystem::path("test/test2")).string());
 
             EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path1).string(), (root / std::filesystem::path("test/test2")).string());
@@ -239,12 +255,12 @@ namespace v8App
             EXPECT_EQ(appAssetRoot->TestReplaceTokens(jsToken).string(), (root / expectedJsToken).string());
             EXPECT_EQ(appAssetRoot->TestReplaceTokens(modulesToken).string(), (root / expectedModulesToken).string());
             EXPECT_EQ(appAssetRoot->TestReplaceTokens(resourcesToken).string(), (root / expexctedResourcesToken).string());
-            
+
             // check that the Make versions replace the token as well
             EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(jsToken).string(), expectedJsToken.string());
             EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(jsToken).string(), (root / expectedJsToken).string());
 
-            //that the tokenis only replace when it's at the beginning
+            // that the tokenis only replace when it's at the beginning
             std::filesystem::path path = std::filesystem::path("js/%RESOURCES%/test.js");
             EXPECT_EQ(appAssetRoot->TestReplaceTokens(path).string(), path.string());
         }

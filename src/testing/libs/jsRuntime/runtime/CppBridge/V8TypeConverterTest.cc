@@ -2,10 +2,12 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#include "../V8TestFixture.h"
-#include "CppBridge/V8TypeConverter.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
+#include "V8Fixture.h"
+
+#include "CppBridge/V8TypeConverter.h"
 
 namespace v8App
 {
@@ -13,11 +15,13 @@ namespace v8App
     {
         namespace CppBridge
         {
-            using ConverterTests = V8TestFixture;
+            using ConverterTests = V8Fixture;
 
             TEST_F(ConverterTests, Bool)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<bool>::To(m_Isolate, true)->StrictEquals(v8::Boolean::New(m_Isolate, true)));
                 EXPECT_TRUE(V8TypeConverter<bool>::To(m_Isolate, false)->StrictEquals(v8::Boolean::New(m_Isolate, false)));
@@ -60,7 +64,9 @@ namespace v8App
 
             TEST_F(ConverterTests, Int32)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<int32_t>::To(m_Isolate, -5)->StrictEquals(v8::Integer::New(m_Isolate, -5)));
                 EXPECT_TRUE(V8TypeConverter<int32_t>::To(m_Isolate, 0)->StrictEquals(v8::Integer::New(m_Isolate, 0)));
@@ -119,7 +125,9 @@ namespace v8App
 
             TEST_F(ConverterTests, UInt32)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<uint32_t>::To(m_Isolate, 0)->StrictEquals(v8::Integer::New(m_Isolate, 0)));
                 EXPECT_TRUE(V8TypeConverter<uint32_t>::To(m_Isolate, 5)->StrictEquals(v8::Integer::New(m_Isolate, 5)));
@@ -180,7 +188,9 @@ namespace v8App
 
             TEST_F(ConverterTests, Int64)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<int64_t>::To(m_Isolate, -5)->StrictEquals(v8::Integer::New(m_Isolate, -5)));
                 EXPECT_TRUE(V8TypeConverter<int64_t>::To(m_Isolate, 0)->StrictEquals(v8::Integer::New(m_Isolate, 0)));
@@ -235,7 +245,9 @@ namespace v8App
 
             TEST_F(ConverterTests, UInt64)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<uint64_t>::To(m_Isolate, 0)->StrictEquals(v8::Integer::New(m_Isolate, 0)));
                 EXPECT_TRUE(V8TypeConverter<uint64_t>::To(m_Isolate, 5)->StrictEquals(v8::Integer::New(m_Isolate, 5)));
@@ -291,7 +303,9 @@ namespace v8App
 
             TEST_F(ConverterTests, Float)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<float>::To(m_Isolate, -5.0f)->StrictEquals(v8::Number::New(m_Isolate, -5.0f)));
                 EXPECT_TRUE(V8TypeConverter<float>::To(m_Isolate, 0.0f)->StrictEquals(v8::Number::New(m_Isolate, 0.0f)));
@@ -346,7 +360,9 @@ namespace v8App
 
             TEST_F(ConverterTests, Double)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 EXPECT_TRUE(V8TypeConverter<double>::To(m_Isolate, -5.0)->StrictEquals(v8::Number::New(m_Isolate, -5.0)));
                 EXPECT_TRUE(V8TypeConverter<double>::To(m_Isolate, 0.0)->StrictEquals(v8::Number::New(m_Isolate, 0.0)));
@@ -401,7 +417,9 @@ namespace v8App
 
             TEST_F(ConverterTests, StdString)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 std::string str = "";
                 EXPECT_TRUE(V8TypeConverter<std::string>::To(m_Isolate, str)->StrictEquals(v8::String::NewFromUtf8(m_Isolate, "").ToLocalChecked()));
@@ -456,7 +474,9 @@ namespace v8App
 
             TEST_F(ConverterTests, StdU16String)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 std::u16string str = u"";
                 EXPECT_TRUE(V8TypeConverter<std::u16string>::To(m_Isolate, str)->StrictEquals(v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"")).ToLocalChecked()));
@@ -517,7 +537,9 @@ namespace v8App
 
             TEST_F(ConverterTests, V8Function)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 v8::Local<v8::Function> func = v8::Function::New(m_Isolate->GetCurrentContext(), testFunc).ToLocalChecked();
                 EXPECT_TRUE(V8TypeConverter<v8::Local<v8::Function>>::To(m_Isolate, func)->StrictEquals(func));
@@ -574,7 +596,9 @@ namespace v8App
 
             TEST_F(ConverterTests, V8Object)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 v8::Local<v8::Object> obj = v8::Object::New(m_Isolate);
                 EXPECT_TRUE(V8TypeConverter<v8::Local<v8::Object>>::To(m_Isolate, obj)->StrictEquals(obj));
@@ -627,7 +651,9 @@ namespace v8App
 
             TEST_F(ConverterTests, V8Promise)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 auto resolver = v8::Promise::Resolver::New(m_Isolate->GetCurrentContext());
                 ASSERT_FALSE(resolver.IsEmpty());
@@ -687,7 +713,9 @@ namespace v8App
 
             TEST_F(ConverterTests, V8ArrayBuffer)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(m_Isolate, 1);
                 EXPECT_TRUE(V8TypeConverter<v8::Local<v8::ArrayBuffer>>::To(m_Isolate, buffer)->StrictEquals(buffer));
@@ -744,7 +772,9 @@ namespace v8App
 
             TEST_F(ConverterTests, V8External)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 v8::Local<v8::External> external = v8::Local<v8::External>::New(m_Isolate, v8::External::New(m_Isolate, (void *)testFunc));
                 EXPECT_TRUE(V8TypeConverter<v8::Local<v8::External>>::To(m_Isolate, external)->StrictEquals(external));
@@ -801,7 +831,9 @@ namespace v8App
 
             TEST_F(ConverterTests, V8Value)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 v8::Local<v8::Value> value = v8::Object::New(m_Isolate).As<v8::Value>();
                 EXPECT_TRUE(V8TypeConverter<v8::Local<v8::Value>>::To(m_Isolate, value)->StrictEquals(value));
@@ -855,7 +887,9 @@ namespace v8App
 
             TEST_F(ConverterTests, StdVector)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 std::vector<int> expected = {-1, 0, 1};
 
@@ -920,7 +954,10 @@ namespace v8App
 
             TEST_F(ConverterTests, StdVectorOfVectors)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
+                
                 using vvInt = std::vector<std::vector<int>>;
                 vvInt expected = {{-1, 0, 1}, {3, 4, 5}};
 
@@ -935,7 +972,9 @@ namespace v8App
 
             TEST_F(ConverterTests, ConvertToFromV8)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 std::string strVal("Test");
                 v8::Local<v8::External> external = v8::Local<v8::External>::New(m_Isolate, v8::External::New(m_Isolate, (void *)testFunc));
@@ -985,7 +1024,9 @@ namespace v8App
 
             TEST_F(ConverterTests, TryConvertToV8)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 v8::Local<v8::Value> value;
                 std::string str = "Test";

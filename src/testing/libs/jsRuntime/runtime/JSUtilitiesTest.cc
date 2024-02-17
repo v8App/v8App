@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#include "V8TestFixture.h"
+#include "V8Fixture.h"
 #include "JSUtilities.h"
 
 namespace v8App
@@ -11,7 +11,7 @@ namespace v8App
     {
         namespace JSUtilities
         {
-            using V8UtilitiesTest = V8TestFixture;
+            using V8UtilitiesTest = V8Fixture;
 
             TEST_F(V8UtilitiesTest, TestGetStackTrace)
             {

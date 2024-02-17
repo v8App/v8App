@@ -5,11 +5,13 @@
 #include <iostream>
 #include <string>
 
-#include "../V8TestFixture.h"
-#include "JSUtilities.h"
-#include "CppBridge/V8FunctionTemplate.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
+#include "V8Fixture.h"
+
+#include "JSUtilities.h"
+#include "CppBridge/V8FunctionTemplate.h"
 
 namespace v8App
 {
@@ -17,7 +19,7 @@ namespace v8App
     {
         namespace CppBridge
         {
-            using V8FunctionTemplateTest = V8TestFixture;
+            using V8FunctionTemplateTest = V8Fixture;
 
             void testCppCallback(std::string test, int test1, float test2)
             {
@@ -39,7 +41,9 @@ namespace v8App
 
             TEST_F(V8FunctionTemplateTest, testFunction)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 //test creating a free function
                 v8::Local<v8::FunctionTemplate> func_template = CreateFunctionTemplate(
@@ -86,7 +90,9 @@ namespace v8App
 
             TEST_F(V8FunctionTemplateTest, testFunctionInfoCallback)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 //test creating a free function
                 v8::Local<v8::FunctionTemplate> func_template = CreateFunctionTemplate(
@@ -119,7 +125,9 @@ namespace v8App
 
             TEST_F(V8FunctionTemplateTest, testFunctionInfoCallbackAsConstructor)
             {
+                v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 //test creating a free function
 

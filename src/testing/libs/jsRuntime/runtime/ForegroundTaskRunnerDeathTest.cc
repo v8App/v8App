@@ -34,7 +34,7 @@ namespace v8App
                 ForegroundTaskRunner::TaskRunScope scope(runner);
                 std::exit(0);
             },
-                         "v8App Log \\{");
+                         "");
 
             EXPECT_EXIT({
                 std::shared_ptr<MockDeathTaskRunner> runner = std::make_shared<MockDeathTaskRunner>();

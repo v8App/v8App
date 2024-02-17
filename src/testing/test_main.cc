@@ -8,10 +8,10 @@
 
 #include "gtest/gtest.h"
 
-#include "Utils/Environment.h"
-#include "Utils/Format.h"
-
 #ifdef USE_JSRUNTIME
+#include "Utils/Environment.h"
+#include "Logging/LogJSONFile.h"
+
 #include "V8Types.h"
 #include "V8Platform.h"
 #include "JSRuntime.h"
@@ -24,6 +24,38 @@ std::filesystem::path s_TestDir;
 
 int main(int argc, char **argv)
 {
+    std::vector<char *> new_argv(argv, argv + argc);
+    // needs to be available at the main scpe level
+    std::string testDirArg("--test-dir=");
+    bool setupDone = false;
+    bool listTest = false;
+
+    // gtest when running a death test passes an argument about death tests
+    // so if the flag is passd skip setup
+    for (int x = 0; x < argc; x++)
+    {
+        std::string arg(argv[x]);
+
+        if (arg.starts_with("--test-dir="))
+        {
+            setupDone = true;
+            size_t arg_sepe = arg.find("=");
+
+            arg = arg.replace(0, 11, "");
+            s_TestDir = std::filesystem::path(arg);
+        }
+        if (arg.starts_with("--gtest_list_tests"))
+        {
+            listTest = true;
+        }
+    }
+    // if just listing tests then skip all the setup
+    if (listTest)
+    {
+        testing::InitGoogleTest(&argc, new_argv.data());
+        return RUN_ALL_TESTS();
+    }
+
     std::string error;
     if (s_Runfiles == nullptr)
     {
@@ -34,19 +66,32 @@ int main(int argc, char **argv)
             std::exit(1);
         }
     }
-    s_TestDir = v8App::Utils::GetEnvironmentVar("TEST_TMPDIR");
     if (s_TestDir.empty())
     {
-        s_TestDir = std::filesystem::temp_directory_path();
+        const char *testDirEnv = std::getenv("TEST_TMPDIR");
+
+        if (testDirEnv == nullptr)
+        {
+            s_TestDir = std::filesystem::temp_directory_path();
+        }
+        else
+        {
+            s_TestDir = std::filesystem::path(testDirEnv);
+        }
+
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::string time_str(19, '\0');
+        std::strftime(&time_str[0], time_str.size(), "%Y_%m_%d-%H_%M_%S", std::localtime(&now));
+
+        // create temp directory for test
+        s_TestDir /= std::filesystem::path(time_str);
+
+        // add it to the arguments so it gets passed to any future invocation of the app
+        testDirArg += s_TestDir.string();
+        new_argv.push_back(const_cast<char *>(testDirArg.c_str()));
+        new_argv.push_back(nullptr);
+        argc++;
     }
-
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::string time_str(19, '\0');
-    std::strftime(&time_str[0], time_str.size(), "%Y_%m_%d-%H_%M_%S", std::localtime(&now));
-
-    // create temp directory for test
-    s_TestDir /= std::filesystem::path(time_str);
-
     if (std::filesystem::exists(s_TestDir) == false)
     {
         std::cout << "Creating testDir: " << s_TestDir << std::endl;
@@ -57,8 +102,9 @@ int main(int argc, char **argv)
         }
 
         // Get The runfiles name for the path to the test files if empty then no test files needed
-        std::string testFilesRunLoc = v8App::Utils::GetEnvironmentVar("TestFiles");
-        if (testFilesRunLoc.empty() == false)
+        const char *testFilesRunLoc = std::getenv("TestFiles");
+
+        if (testFilesRunLoc != nullptr)
         {
             std::filesystem::path testFileDir = s_Runfiles->Rlocation(testFilesRunLoc);
             if (testFileDir.empty())
@@ -70,9 +116,9 @@ int main(int argc, char **argv)
             // copy over test files into it
             std::cout << "Copying test files from: " << testFileDir << std::endl;
 
-            std::string cmd = v8App::Utils::format("cp -r {}/* {}", testFileDir, s_TestDir);
+            std::string cmd = "cp -r " + testFileDir.string() + "/* " + s_TestDir.string();
 #if defined(V8_APP_WIN)
-            cmd = v8App::Utils::format("xcopy {}\\* {} /E /R /K /O /Y ", testFileDir, s_TestDir);
+            cmd = "xcopy "+testFileDir.string()+"\\* "+s_TestDir.string)+" /E /R /K /O /Y ";
 #endif
             if (std::system(cmd.c_str()) != 0)
             {
@@ -83,6 +129,17 @@ int main(int argc, char **argv)
     }
 
 #ifdef USE_JSRUNTIME
+    std::filesystem::path logPath = s_TestDir / std::filesystem::path("log");
+    std::filesystem::create_directories(logPath);
+    logPath /= std::filesystem::path("UnitTestLog.json");
+    //only omit it if we detected we are a child run from like  death test
+    if (setupDone == false)
+    {
+        std::cout << "Log File: " << logPath << std::endl;
+    }
+    std::unique_ptr<v8App::Log::ILogSink> jsonLog = std::make_unique<v8App::Log::LogJSONFile>("UnitTestLog", logPath);
+
+    v8App::Log::Log::AddLogSink(jsonLog);
     std::string icu_name = v8App::Utils::GetEnvironmentVar("V8_ICU_DATA");
     std::string snapshot_name = v8App::Utils::GetEnvironmentVar("V8_SNAPSHOT_BIN");
 
@@ -103,8 +160,9 @@ int main(int argc, char **argv)
     v8App::JSRuntime::PlatformIsolateHelperUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
     v8App::JSRuntime::V8Platform::InitializeV8(std::move(helper));
 #endif
-
-    testing::InitGoogleTest(&argc, argv);
+    std::cout << std::endl
+              << std::endl;
+    testing::InitGoogleTest(&argc, new_argv.data());
     int exitCode = RUN_ALL_TESTS();
 
 #ifdef USE_JSRUNTIME

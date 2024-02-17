@@ -16,11 +16,11 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        class V8TestFixture : public testing::Test
+        class V8Fixture : public testing::Test
         {
         public:
-            V8TestFixture() = default;
-            ~V8TestFixture() = default;
+            V8Fixture() = default;
+            ~V8Fixture() = default;
 
             void SetUp() override;
             void TearDown() override;
@@ -40,8 +40,8 @@ namespace v8App
                 Log::MsgKey::Line};
 
         private:
-            V8TestFixture(const V8TestFixture &) = delete;
-            V8TestFixture &operator=(const V8TestFixture &) = delete;
+            V8Fixture(const V8Fixture &) = delete;
+            V8Fixture &operator=(const V8Fixture &) = delete;
         };
     } // namespace JSRuntime
 }

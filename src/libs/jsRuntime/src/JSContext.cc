@@ -32,7 +32,7 @@ namespace v8App
 
         JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName) : m_Runtime(inRuntime), m_Name(inName)
         {
-            DCHECK_NE(m_Runtime.get(), nullptr);
+            CHECK_NE(m_Runtime.get(), nullptr);
             // We use the : a seperator for shadow names
             m_Name.erase(std::remove(m_Name.begin(), m_Name.end(), ':'), m_Name.end());
         }

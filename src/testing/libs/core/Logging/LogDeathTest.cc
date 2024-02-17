@@ -4,6 +4,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
 #include "Logging/Log.h"
 #include "Logging/ILogSink.h"
 #include "Logging/LogMacros.h"

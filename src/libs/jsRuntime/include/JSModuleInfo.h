@@ -34,7 +34,7 @@ namespace v8App
 #define STRINGIFY(inType) (#inType)
 #define MI_MATCHER(inType, moduleType) \
     if (inType == moduleType)       \
-    return STRINGIFY(moduleType)
+    return std::string(STRINGIFY(moduleType)).replace(0, 13, "")
                 MI_MATCHER(inType, ModuleType::kInvalid);
                 MI_MATCHER(inType, ModuleType::kJavascript);
                 MI_MATCHER(inType, ModuleType::kJSON);
@@ -52,11 +52,11 @@ namespace v8App
 
                 bool DoesExtensionMatchType(std::string inExt) const
                 {
-                    if(inExt == "json" && m_Type == ModuleType::kJSON)
+                    if(inExt == ".json" && m_Type == ModuleType::kJSON)
                     {
                         return true;
                     }
-                    if((inExt == "js" || inExt == "mjs") && m_Type == ModuleType::kJavascript)
+                    if((inExt == ".js" || inExt == ".mjs") && m_Type == ModuleType::kJavascript)
                     {
                         return true;
                     }
@@ -71,14 +71,22 @@ namespace v8App
 
             void SetPath(std::filesystem::path inPath);
             std::filesystem::path GetModulePath() const;
+
             void SetName(std::string inName);
             std::string GetName() const;
+            
             void SetVersion(std::string inVersion);
             Utils::VersionString GetVersion() const;
+            
             void SetV8Module(V8LocalModule &inModule);
             V8LocalModule GetLocalModule();
+            
             void SetV8JSON(V8LocalValue &inValue);
             V8LocalValue GetLocalJSON();
+
+            void SetUnboundScript(V8LocalUnboundModuleScript &inScript);
+            V8LocalUnboundModuleScript GetUnboundScript();
+            void ClearUnboundScript();
 
             void SetAssertionInfo(AssertionInfo &inInfo);
             const AssertionInfo &GetAssertionInfo() const;
@@ -96,14 +104,14 @@ namespace v8App
             V8GlobalValue m_JSON;
             // Assertion info the module was loaded with
             AssertionInfo m_AssertionInfo;
-
+            //holds the unbound module script to generate code cache
+            V8GlobalUnboundModuleScript m_UnboundScript;
+            
             JSContextSharedPtr m_Context;
 
         private:
             JSModuleInfo(const JSModuleInfo &) = delete;
             JSModuleInfo &operator=(JSModuleInfo &) = delete;
-
-            friend class JSContextModules;
         };
 
         using JSModuleInfoSharedPtr = std::shared_ptr<JSModuleInfo>;

@@ -141,7 +141,7 @@ namespace v8App
         }
         JSContextWeakPtr JSRuntime::CreateContext(std::string inName)
         {
-            DCHECK_NOT_NULL(m_ContextCreation);
+            CHECK_NOT_NULL(m_ContextCreation);
             JSContextSharedPtr context = m_ContextCreation->CreateContext(shared_from_this(), inName);
             if (context == nullptr)
             {

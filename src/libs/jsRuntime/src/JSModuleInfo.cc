@@ -67,6 +67,20 @@ namespace v8App
             return m_JSON.Get(m_Context->GetIsolate());
         }
 
+        void JSModuleInfo::SetUnboundScript(V8LocalUnboundModuleScript &inScript)
+        {
+            m_UnboundScript.Reset(m_Context->GetIsolate(), inScript);
+        }
+
+        V8LocalUnboundModuleScript JSModuleInfo::GetUnboundScript()
+        {
+            return m_UnboundScript.Get(m_Context->GetIsolate());
+        }
+        void JSModuleInfo::ClearUnboundScript()
+        {
+            m_UnboundScript.Reset();
+        }
+
         void JSModuleInfo::SetAssertionInfo(AssertionInfo &inInfo)
         {
             m_AssertionInfo = inInfo;
