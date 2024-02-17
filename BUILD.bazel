@@ -1,4 +1,4 @@
-# Copyright 2020 the v8App authors. All right reserved.
+# Copyright 2020 - 2024 the v8App authors. All right reserved.
 # Use of this source code is governed by the MIT license
 # that can be found in the LICENSE file.
 load("@v8App//:bazel/platform_configs.bzl", "define_platform_config_settings")
