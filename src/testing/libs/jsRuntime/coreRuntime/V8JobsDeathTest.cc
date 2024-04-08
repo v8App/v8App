@@ -47,7 +47,7 @@ namespace v8App
                 delegate->ShouldYield();
                 std::exit(0);
             },
-                         "v8App Log \\{");
+                         "");
 #endif
         }
     }

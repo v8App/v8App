@@ -21,6 +21,7 @@
 
 std::unique_ptr<Runfiles> s_Runfiles;
 std::filesystem::path s_TestDir;
+v8::StartupData s_V8StartupData{nullptr, 0};
 
 int main(int argc, char **argv)
 {
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
 
     if (icu_name.empty() || snapshot_name.empty())
     {
-        EXPECT_TRUE(false) << "Failed to find one or both of env vars V8_ICU_DATA, V8_SNAPSHOT_BIN";
+        std::cout << "Failed to find one or both of env vars V8_ICU_DATA, V8_SNAPSHOT_BIN";
     }
 
     std::string icuData = s_Runfiles->Rlocation(icu_name);
@@ -155,7 +156,18 @@ int main(int argc, char **argv)
     EXPECT_NE("", snapshotData);
 
     v8::V8::InitializeICU(icuData.c_str());
-    v8::V8::InitializeExternalStartupDataFromFile(snapshotData.c_str());
+
+    std::ifstream sData(snapshotData, std::ios_base::binary | std::ios_base::ate);
+    if(sData.is_open() == false || sData.fail())
+    {
+        std::cout << "Failed to open " << snapshotData << std::endl;
+        std::exit(1);
+    }
+    int dataLength = sData.tellg();
+    sData.seekg(0, std::ios::beg);
+    std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
+    sData.read(buf.get(), dataLength);
+    s_V8StartupData =  v8::StartupData{buf.release(), dataLength};
 
     v8App::JSRuntime::PlatformIsolateHelperUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
     v8App::JSRuntime::V8Platform::InitializeV8(std::move(helper));

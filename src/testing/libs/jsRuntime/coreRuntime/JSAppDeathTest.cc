@@ -8,21 +8,28 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "JSContext.h"
+#include "TestLogSink.h"
+#include "Utils/Environment.h"
+
+#include "JSRuntime.h"
+#include "V8Platform.h"
+
+#include "test_main.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        TEST(JSContextDeathTest, Constructor)
+#ifdef V8APP_DEBUG
+        TEST(JSAppDeathTest, SetObjectTemplate)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                JSRuntimeSharedPtr runtime = nullptr;
-                JSContext context(runtime, "test");
+                JSAppSharedPtr app = std::make_shared<JSApp>("test", nullptr);
                 std::exit(0);
             },
                          "");
         }
+#endif
     }
 }

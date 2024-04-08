@@ -5,12 +5,15 @@
 #ifndef __BINARY_FILE_H__
 #define __BINARY_FILE_H__
 
-#include "BaseAsset.h"
+#include <vector>
 
+#include "BaseAsset.h"
 namespace v8App
 {
     namespace Assets
     {
+        using BinaryByteVector = std::vector<uint8_t>;
+
         class BinaryAsset : public BaseAsset
         {
         public:
@@ -20,11 +23,11 @@ namespace v8App
             virtual bool ReadAsset() override;
             virtual bool WriteAsset() override;
 
-            const std::vector<uint8_t> GetContent() { return m_Content; };
-            bool SetContent(const std::vector<uint8_t>& inContents);
+            const BinaryByteVector GetContent() { return m_Content; };
+            bool SetContent(const BinaryByteVector& inContents);
 
         protected:
-            std::vector<uint8_t> m_Content;
+            BinaryByteVector m_Content;
         };
     }
 }

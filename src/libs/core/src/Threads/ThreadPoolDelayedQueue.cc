@@ -107,6 +107,10 @@ namespace v8App
                 {
                     return;
                 }
+                if(m_Paused) 
+                {
+                    continue;
+                }
                 if (m_Queue.MayHaveItems())
                 {
                     std::optional<ThreadPoolTaskUniquePtr> task = m_Queue.GetNextItem();
@@ -130,6 +134,10 @@ namespace v8App
                     return;
                 }
 
+                if(m_Paused)
+                {
+                    continue;
+                }
                 std::optional<ThreadPoolTaskUniquePtr> task = m_Queue.GetNextItem();
                 if (task)
                 {

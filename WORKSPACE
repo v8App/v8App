@@ -13,6 +13,12 @@ new_local_repository(
 )
 
 http_archive(
+  name = "bazel_skylib",
+  urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz"],
+  sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
+)
+
+http_archive(
     name = "build_bazel_rules_apple",
     sha256 = "34c41bfb59cdaea29ac2df5a2fa79e5add609c71bb303b2ebb10985f93fa20e7",
     url = "https://github.com/bazelbuild/rules_apple/releases/download/3.1.1/rules_apple.3.1.1.tar.gz",

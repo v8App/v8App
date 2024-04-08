@@ -46,8 +46,10 @@ namespace v8App
 
             void Terminate();
 
+            bool SetPaused(bool inPause) { return m_Tasks.SetPaused(inPause); }
+
         protected:
-             bool m_Terminated = false;
+            bool m_Terminated = false;
             Threads::ThreadPoolDelayedQueue m_Tasks;
         };
     } // namespace JSRuntime

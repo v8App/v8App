@@ -218,6 +218,14 @@ namespace v8App
             return s_Platform;
         }
 
+        bool V8Platform::SetWorkersPaused(bool inPaused)
+        {
+            for(int idx = 0; idx < static_cast<int>(Threads::ThreadPriority::kMaxPriority) + 1; idx++)
+            {
+                m_WorkerRunners[idx]->SetPaused(inPaused);
+            }
+        }
+
         std::unique_ptr<v8::JobHandle> V8Platform::CreateJobImpl(
             v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
             const v8::SourceLocation &location)

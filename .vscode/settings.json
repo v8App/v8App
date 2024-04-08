@@ -127,7 +127,7 @@
         ]
     },
     "gtest-adapter.debugConfig": [
-        "test libJSRuntime Debug"
+        "test libJSRuntimeCore Debug"
     ],
     "gtest-adapter.supportLocation": true
 }

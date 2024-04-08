@@ -68,6 +68,8 @@ namespace v8App
 
             static std::shared_ptr<V8Platform> Get();
 
+            bool SetWorkersPaused(bool inPaused);
+
         protected:
             V8Platform(const V8Platform &) = delete;
             V8Platform &operator=(const V8Platform &) = delete;

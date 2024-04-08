@@ -86,6 +86,13 @@ namespace v8App
              */
             static void SetupModulesCallbacks(V8Isolate *inIsolate);
 
+            /**
+             * Genrates the code cache for the modules that have been instantiated
+             * and do not already have code cache data. NOTE: If modules are in a state 
+             * of Evaluating, Evaluated or Errored then their code cache won't be generated.
+            */
+            void GenerateCodeCache();
+
         protected:
             /**
              * Adds a module to the map tracking that it's been loaded
@@ -144,7 +151,6 @@ namespace v8App
              */
             static JSModuleInfoSharedPtr LoadModuleTree(JSContextSharedPtr inContext, const JSModuleInfoSharedPtr inModuleInfo);
 
-        protected:
             JSContextSharedPtr m_Context;
 
             std::map<std::pair<std::string, JSModuleInfo::ModuleType>, JSModuleInfoSharedPtr> m_ModuleMap;

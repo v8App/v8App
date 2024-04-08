@@ -11,17 +11,22 @@ namespace v8App
 {
     namespace JSRuntime
     {
+        using AllowedFunctionCallbackOneByteString = 
         class V8ExternalRegistry
         {
         public:
             V8ExternalRegistry() = default;
             ~V8ExternalRegistry() = default;
 
-            void Register(void *inAdress);
 
             const std::vector<intptr_t> &GetReferences();
 
-        private:
+        protected:
+            template<typename T>
+            void Register(T* inAdress)
+            {
+                m_Registry.push_back(reinterpret_cast<intptr_t>(inAddress));
+            }
             std::vector<intptr_t> m_Registry;
         };
     }

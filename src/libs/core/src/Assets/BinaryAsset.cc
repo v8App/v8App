@@ -58,7 +58,7 @@ namespace v8App
             return file.tellp() == m_Content.size();
         }
 
-        bool BinaryAsset::SetContent(const std::vector<uint8_t> &inContents)
+        bool BinaryAsset::SetContent(const BinaryByteVector &inContents)
         {
             m_Content = inContents;
             return true;

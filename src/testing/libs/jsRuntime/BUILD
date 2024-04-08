@@ -36,10 +36,12 @@ v8App_test(
         "coreRuntime/JSAppTest.cc",
         "coreRuntime/JSContextDeathTest.cc",
         "coreRuntime/JSContextTest.cc",
+        "coreRuntime/JSRuntimeDeathTest.cc",
         "coreRuntime/JSRuntimeTest.cc",
         "coreRuntime/V8InitApp.h",
         "coreRuntime/V8JobsDeathTest.cc",
         "coreRuntime/V8JobsTest.cc",
+        "coreRuntime/PlaygroundTest.cc",
         "//src/testing:testMain",
     ],
     copts = [
@@ -48,9 +50,10 @@ v8App_test(
         "-Isrc/testing/libs/testUtils",
         "-Ithird_party/v8/include",
         "-Ithird_party/bazel-runfiles/include",
+        "-Isrc/testing",
     ],
     data = [
-        ":build-test-env-file",
+        "//src/testing:build-test-env-file",
         "//third_party/v8:icu_dat",
         "//third_party/v8:snapshot_blob",
     ],
@@ -67,9 +70,9 @@ v8App_test(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/libs/core:core",
-        "//src/libs/jsRuntime:jsRuntime",
-        "//src/testing/libs/testUtils:testUtils",
+        "//src/libs/core",
+        "//src/libs/jsRuntime",
+        "//src/testing/libs/testUtils",
         "//third_party/v8",
     ],
 )
@@ -80,7 +83,7 @@ v8App_test(
     srcs = [
         "runtime/CppBridge/V8ArgumentsTest.cc",
         "runtime/CppBridge/V8FunctionTemplateTest.cc",
-        "runtime/CppBridge/V8NativeObjecttest.cc",
+        "runtime/CppBridge/V8NativeObjectTest.cc",
         "runtime/CppBridge/V8ObjectTemplateTest.cc",
         "runtime/CppBridge/V8TypeConverterTest.cc",
         "runtime/BridgeTest.cc",
@@ -90,9 +93,9 @@ v8App_test(
         "runtime/JSContextModulesDeathTest.cc",
         "runtime/JSContextModulesTest.cc",
         "runtime/JSModuleInfotest.cc",
+        "runtime/JSSnapshotCreatorTest.cc",
         "runtime/JSUtilitiesTest.cc",
         "runtime/NestableQueueTest.cc",
-        #        "runtime/V8StartupICUDataTest.cc",
         "runtime/WorkerTaskRunnerDeathTest.cc",
         "runtime/WorkerTaskRunnerTest.cc",
         "//src/testing:testMain",
@@ -106,7 +109,7 @@ v8App_test(
     ],
     data = [
         "runtime/test-files",
-        ":build-test-env-file",
+        "//src/testing:build-test-env-file",
         "//third_party/v8:icu_dat",
         "//third_party/v8:snapshot_blob",
     ],
@@ -114,7 +117,7 @@ v8App_test(
         "USE_JSRUNTIME=1",
     ],
     env = {
-        "TestFiles":"v8App/src/testing/libs/jsRuntime/runtime/test-files",
+        "TestFiles": "v8App/src/testing/libs/jsRuntime/runtime/test-files",
         "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
         "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
     },
@@ -124,22 +127,9 @@ v8App_test(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/libs/core:core",
-        "//src/libs/jsRuntime:jsRuntime",
-        "//src/testing/libs/testUtils:testUtils",
+        "//src/libs/core",
+        "//src/libs/jsRuntime",
+        "//src/testing/libs/testUtils",
         "//third_party/v8",
     ],
-)
-
-#Used with VSCode to export the locations to an env file that we
-#can then import with launch config
-genrule(
-    name = "build-test-env-file",
-    srcs = [
-        "@//third_party/v8:icu_dat",
-        "@//third_party/v8:snapshot_blob",
-    ],
-    outs = ["test.env"],
-    cmd = 'echo "V8_ICU_DATA=$(rlocationpath //third_party/v8:icu_dat)" >> $@;' +
-          'echo "V8_SNAPSHOT_BIN=$(rlocationpath //third_party/v8:snapshot_blob)" >> $@;',
 )

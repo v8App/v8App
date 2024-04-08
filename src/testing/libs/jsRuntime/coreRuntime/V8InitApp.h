@@ -7,7 +7,10 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
+#include "test_main.h"
 #include "tools/cpp/runfiles/runfiles.h"
+#include "TestSnapshotProvider.h"
 
 #include "Utils/Environment.h"
 
@@ -26,8 +29,9 @@ namespace v8App
         public:
             V8InitApp()
             {
-                m_App = std::make_shared<JSApp>("testCore");
-                m_App->Initialize();
+                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
+                m_App = std::make_shared<JSApp>("testCore", snapProvider);
+                m_App->InitializeRuntime(s_TestDir, "");
             }
             ~V8InitApp()
             {

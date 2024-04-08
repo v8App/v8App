@@ -110,7 +110,7 @@ namespace v8App
                 return V8MaybeLocalContext();
             }
             std::string shadowName = jsContext->GenerateShadowName();
-            JSContextSharedPtr shadow = jsContext->m_Runtime->CreateContext(shadowName).lock();
+            JSContextSharedPtr shadow = jsContext->m_Runtime->CreateContext(shadowName);
             V8LocalContext shadow_local = shadow->GetLocalContext();
             shadow_local->SetSecurityToken(inInitiator->GetSecurityToken());
 
@@ -137,7 +137,7 @@ namespace v8App
 
         void JSContext::CreateContext()
         {
-            v8::Isolate *isolate = m_Runtime->GetIsolate().get();
+            v8::Isolate *isolate = m_Runtime->GetIsolate();
             if (isolate == nullptr)
             {
                 return;

@@ -16,7 +16,7 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        JSRuntime::JSRuntime(JSAppWeakPtr inApp, IdleTasksSupport inEnableIdle, std::string inName)
+        JSRuntime::JSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName)
             : m_IdleEnabled(inEnableIdle), m_App(inApp), m_Name(inName)
         {
             m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
@@ -27,22 +27,45 @@ namespace v8App
             DisposeRuntime();
         }
 
+        JSRuntimeSharedPtr JSRuntime::CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
+                                                      const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences)
+        {
+            JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
+            temp->CreateIsolate();
+
+            v8::Isolate::CreateParams params;
+            params.snapshot_blob = inSnapshot;
+            params.external_references = inExternalReferences;
+            // TODO: replace with custom allocator
+            params.array_buffer_allocator =
+                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+            v8::Isolate::Initialize(temp->m_Isolate.get(), params);
+
+            return temp;
+        }
+
+        JSRuntimeSharedPtr JSRuntime::CreateJSRuntimeForSnapshot(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName)
+        {
+            JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
+            temp->CreateIsolate();
+
+            return temp;
+        }
+
         void JSRuntime::CreateIsolate()
         {
             // custom deleter since we have to call dispose
             v8::Isolate *temp = v8::Isolate::Allocate();
             m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
-                                                     { isolate->Dispose(); });
+                                                     {/*isolate->Dispose();*/ });
             m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+
             JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
             m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), weakPtr);
+        }
 
-            v8::Isolate::CreateParams params;
-            // TODO: replace with custom allocator
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(m_Isolate.get(), params);
-
+        void JSRuntime::Initialize()
+        {
             JSContextModules::SetupModulesCallbacks(m_Isolate.get());
         }
 
@@ -58,6 +81,10 @@ namespace v8App
 
         JSRuntimeSharedPtr JSRuntime::GetJSRuntimeFromV8Isolate(v8::Isolate *inIsloate)
         {
+            if (inIsloate == nullptr)
+            {
+                return nullptr;
+            }
             JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(inIsloate->GetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr)));
             if (weakPtr == nullptr || weakPtr->expired())
             {
@@ -139,7 +166,7 @@ namespace v8App
         {
             m_ContextCreation = std::move(inCreator);
         }
-        JSContextWeakPtr JSRuntime::CreateContext(std::string inName)
+        JSContextSharedPtr JSRuntime::CreateContext(std::string inName)
         {
             CHECK_NOT_NULL(m_ContextCreation);
             JSContextSharedPtr context = m_ContextCreation->CreateContext(shared_from_this(), inName);
@@ -156,7 +183,7 @@ namespace v8App
             return context;
         }
 
-        JSContextWeakPtr JSRuntime::GetContextByName(std::string inName)
+        JSContextSharedPtr JSRuntime::GetContextByName(std::string inName)
         {
             auto it = m_Contextes.find(inName);
             if (it == m_Contextes.end())
@@ -165,29 +192,28 @@ namespace v8App
                 message.emplace(Log::MsgKey::Msg, Utils::format("Failed to find JSContext with name {}", inName));
                 Log::Log::Warn(message);
 
-                return JSContextWeakPtr();
+                return JSContextSharedPtr();
             }
-            return JSContextWeakPtr(it->second);
+            return it->second;
         }
 
         void JSRuntime::DisposeContext(std::string inName)
         {
-            JSContextWeakPtr context = GetContextByName(inName);
+            JSContextSharedPtr context = GetContextByName(inName);
             DisposeContext(context);
         }
 
-        void JSRuntime::DisposeContext(JSContextWeakPtr inContext)
+        void JSRuntime::DisposeContext(JSContextSharedPtr inContext)
         {
             DCHECK_NOT_NULL(m_ContextCreation);
-            if (inContext.expired())
+            if (inContext == nullptr)
             {
                 return;
             }
-            JSContextSharedPtr sharedContext = inContext.lock();
-            m_ContextCreation->DisposeContext(sharedContext);
+            m_ContextCreation->DisposeContext(inContext);
             for (auto it = m_Contextes.begin(); it != m_Contextes.end(); it++)
             {
-                if (it->second == sharedContext)
+                if (it->second == inContext)
                 {
                     m_Contextes.erase(it);
                     return;
@@ -197,22 +223,21 @@ namespace v8App
 
         void JSRuntime::DisposeRuntime()
         {
-            if(m_Isolate == nullptr)
-            {
-                return;
-            }
-            // clear the contetes before we dispose of the isolate
+            if (m_Isolate != nullptr)
             {
                 v8::Isolate::Scope isolateScope(m_Isolate.get());
                 v8::Locker locker(m_Isolate.get());
                 v8::HandleScope handleScope(m_Isolate.get());
                 m_Contextes.clear();
+                JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr)));
+                delete weakPtr;
+                m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), nullptr);
             }
-            JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr)));
-            delete weakPtr;
-            m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), nullptr);
             m_Isolate.reset();
             m_App.reset();
+            m_TaskRunner.reset();
+
+            // TODO: Adds something to delete the object.function templates
         }
 
     } // namespace JSRuntime

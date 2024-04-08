@@ -5,6 +5,8 @@
 #ifdef USE_JSRUNTIME
 
 #include "V8Fixture.h"
+#include "test_main.h"
+#include "TestSnapshotProvider.h"
 
 #include "Utils/Environment.h"
 #include "JSContext.h"
@@ -19,27 +21,28 @@ namespace v8App
             TestUtils::TestLogSink *testSink = TestUtils::TestLogSink::GetGlobalSink();
             testSink->FlushMessages();
 
-            m_App = std::make_shared<JSApp>("test");
-            m_App->Initialize();
             const char* suiteName = ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
-            m_Runtime = m_App->CreateJSRuntime(suiteName);
+            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
+            m_App = std::make_shared<JSApp>(suiteName, snapProvider);
+            //no need for a parth the test prover doesn't do the loading the main function does
+            m_App->InitializeRuntime(s_TestDir, "");
+            
+            m_Runtime = m_App->GetJSRuntime();
+            ASSERT_NE(nullptr, m_Runtime);
+
             m_Runtime->SetContextCreationHelper(std::make_unique<JSContextCreator>());
 
-            m_Isolate = m_Runtime->GetIsolate().get();
+            m_Isolate = m_Runtime->GetIsolate();
             ASSERT_NE(m_Isolate, nullptr);
-            m_Context = m_Runtime->CreateContext(suiteName).lock();
-            m_App->GetAppRoots()->SetAppRootPath(s_TestDir);
+            m_Context = m_Runtime->CreateContext(suiteName);
         }
 
         void V8Fixture::TearDown()
         {
-            if (m_Isolate == nullptr)
+            if (m_Runtime != nullptr)
             {
-                return;
-            }
-            {
-                v8::Isolate::Scope isolateScope(m_Isolate);
-                v8::HandleScope scope(m_Isolate);
+                v8::Isolate::Scope isolateScope(m_Runtime->GetIsolate());
+                v8::HandleScope scope(m_Runtime->GetIsolate());
                 m_Runtime->DisposeContext(m_Context);
             }
             m_Isolate = nullptr;

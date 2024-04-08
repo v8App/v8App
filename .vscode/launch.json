@@ -319,5 +319,47 @@
                 },
            }
         },
+        {
+            "name": "Helllow World Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.exe.runfiles"
+                },
+                {
+                    "anme":"TestFiles",
+                    "value":"v8App/src/testing//runtime/test-files"
+                },
+                {
+                    "anme":"V8_ICU_DATA",
+                    "value":"/Users/dormlock/github/v8App/third_party/v8/icudtl.dat"
+                },
+                {
+                    "anme":"V8_SNAPSHOT_BIN",
+                    "value":"/Users/dormlock/github/v8App/third_party/v8/snapshot_blob.bin"
+                },
+            ],
+            "console": "externalTerminal",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/helloWorld",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.runfiles",
+                        "V8_ICU_DATA":"/Users/dormlock/github/v8App/third_party/v8/macos-arm64-debug/icudtl.dat",
+                        "V8_SNAPSHOT_BIN":"/Users/dormlock/github/v8App/third_party/v8/macos-arm64-debug/snapshot_blob.bin",
+                    },
+           }
+        },
     ]
 }

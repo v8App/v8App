@@ -40,8 +40,7 @@ def _default_args():
                 "winmm.lib",
                 "advapi32.lib",
             ],
-            "//:macos":{
-                
+            "//:macos": {
             },
             "//conditions:default": [
                 "-pthread",
@@ -71,7 +70,7 @@ def v8App_library(
         **kwargs
     )
 
-def v8App_binray(
+def v8App_binary(
         name,
         srcs,
         deps = [],

@@ -322,7 +322,7 @@ namespace v8App
             // failed to load the json
             info->SetPath(appRoot / std::filesystem::path("js/NotExists.json"));
 
-            JSModuleInfoSharedPtr moduleInfo =  jsModules.TestLoadModuleTree(m_Context, info);
+            JSModuleInfoSharedPtr moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             EXPECT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
@@ -542,7 +542,7 @@ namespace v8App
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
 
-            JSModuleInfoSharedPtr moduleInfo =  jsModules->LoadModule(srcPath);
+            JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
             ASSERT_NE(moduleInfo, nullptr);
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath);
             V8LocalModule module = moduleInfo->GetLocalModule();
@@ -583,7 +583,7 @@ namespace v8App
             logSink->ValidateMessage(expected, m_IgnoreKeys);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/loadModuleImport.mjs");
-            info =  jsModules->LoadModule(srcPath);
+            info = jsModules->LoadModule(srcPath);
             ASSERT_NE(nullptr, info);
 
             EXPECT_TRUE(jsModules->InstantiateModule(info));
@@ -696,6 +696,29 @@ namespace v8App
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
             EXPECT_TRUE(jsModules->RunModule(info));
+        }
+
+        TEST_F(JSContextModulesTest, GenerateCodeCache)
+        {
+            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
+
+            V8Isolate::Scope iScope(m_Isolate);
+            v8::HandleScope hScope(m_Isolate);
+            v8::TryCatch tryCatch(m_Isolate);
+            V8LocalContext context = m_Context->GetLocalContext();
+            v8::Context::Scope cScope(context);
+
+            std::filesystem::path srcPath = root / std::filesystem::path("js/loadModuleImport.mjs");
+            CodeCacheSharedPtr codeCache = m_App->GetCodeCache();
+            JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
+            V8LocalModule module = moduleInfo->GetLocalModule();
+            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath);
+            ASSERT_NE(nullptr, info);
+            ASSERT_TRUE(jsModules->InstantiateModule(info));
+            jsModules->GenerateCodeCache();
+            EXPECT_TRUE(codeCache->HasCodeCache(srcPath));
+            EXPECT_TRUE(codeCache->HasCodeCache(root /std::filesystem::path("js/loadModuleImported.js")));
         }
     }
 }

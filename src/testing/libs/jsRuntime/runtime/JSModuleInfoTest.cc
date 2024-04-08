@@ -4,9 +4,11 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
+#include "V8Fixture.h"
+
 #include "JSModuleInfo.h"
 #include "JSUtilities.h"
-#include "V8Fixture.h"
 
 namespace v8App
 {

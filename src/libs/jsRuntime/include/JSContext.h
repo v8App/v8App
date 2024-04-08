@@ -38,7 +38,7 @@ namespace v8App
             JSContext(JSContext &&inContext);
             JSContext &operator=(JSContext &&inContext);
 
-            v8::Isolate *GetIsolate() { return m_Runtime == nullptr ? nullptr : m_Runtime->GetIsolate().get(); }
+            v8::Isolate *GetIsolate() { return m_Runtime == nullptr ? nullptr : m_Runtime->GetIsolate(); }
             JSRuntimeSharedPtr GetJSRuntime() { return m_Runtime; }
             JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
             std::string GetName() { return m_Name; }

@@ -144,17 +144,8 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
+
             return true;
-            // TODO: finish code cache code after understading lifecycle
-            /** CodeCacheSharedPtr cache = m_Context->GetJSRuntime()->GetApp()->GetCodeCache();
-            if (cache->HasCodeCache(inModule->GetModulePath()))
-            {
-                return true;
-            }
-            V8LocalUnboundModuleScript unbound = inModule->GetLocalModule()->GetUnboundModuleScript();
-            inModule->SetUnboundScript(unbound);
-            return true;
-            **/
         }
 
         bool JSContextModules::RunModule(JSModuleInfoSharedPtr inModule)
@@ -189,6 +180,7 @@ namespace v8App
                 LOG_ERROR(message);
                 return false;
             }
+
             return true;
         }
 
@@ -238,6 +230,40 @@ namespace v8App
         {
             inIsolate->SetHostImportModuleDynamicallyCallback(JSContextModules::HostImportModuleDynamically);
             inIsolate->SetHostInitializeImportMetaObjectCallback(JSContextModules::InitializeImportMetaObject);
+        }
+
+        void JSContextModules::GenerateCodeCache()
+        {
+            CodeCacheSharedPtr codeCache = m_Context->GetJSRuntime()->GetApp()->GetCodeCache();
+
+            for (auto it : m_ModuleMap)
+            {
+
+                if (it.first.second == JSModuleInfo::ModuleType::kJSON)
+                {
+                    continue;
+                }
+                if(codeCache->HasCodeCache(it.second->GetModulePath()))
+                {
+                    continue;
+                }
+                V8LocalModule module = it.second->GetLocalModule();
+                if (module.IsEmpty())
+                {
+                    continue;
+                }
+                if (module->GetStatus() != v8::Module::Status::kInstantiated)
+                {
+                   continue;;
+                }
+                V8LocalUnboundModuleScript unbound = module->GetUnboundModuleScript();
+                V8ScriptCachedData *data = v8::ScriptCompiler::CreateCodeCache(unbound);
+                if(data->rejected || data->length == 0)
+                {
+                    continue;
+                }
+                codeCache->SetCodeCache(it.second->GetModulePath(), data);
+            }
         }
 
         bool JSContextModules::AddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType)

@@ -8,6 +8,8 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
+#include "test_main.h"
+
 #include "JSContext.h"
 
 #include "V8InitApp.h"
@@ -42,29 +44,32 @@ namespace v8App
 
         TEST_F(JSContextTest, Constructor)
         {
-            JSRuntimeSharedPtr runtime = m_App->CreateJSRuntime("ContextConstructor");
+            JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate().get();
+            v8::Isolate *isolate = runtime->GetIsolate();
             v8::Isolate::Scope isolateScope(isolate);
-            v8::HandleScope handleScopr(isolate);
+            v8::HandleScope handleScope(isolate);
 
             TestJSContext context(runtime, "test:test");
 
             EXPECT_EQ(runtime, context.GetJSRuntime());
-            EXPECT_EQ(runtime->GetIsolate().get(), context.GetIsolate());
+            EXPECT_EQ(runtime->GetSharedIsolate().get(), context.GetIsolate());
+            EXPECT_EQ(runtime->GetIsolate(), context.GetIsolate());
             EXPECT_FALSE(context.Initialized());
             EXPECT_TRUE(context.ContextEmpty());
             EXPECT_EQ("testtest", context.GetName());
 
             context.ClearIsolate();
             EXPECT_EQ(nullptr, context.GetIsolate());
+            
+
         }
 
         TEST_F(JSContextTest, CreateDisposeContext)
         {
-            JSRuntimeSharedPtr runtime = m_App->CreateJSRuntime("CreateDisposeContext");
+            JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate().get();
+            v8::Isolate *isolate = runtime->GetIsolate();
             v8::Isolate::Scope isolateScope(isolate);
             v8::HandleScope handleScopr(isolate);
 
@@ -95,18 +100,15 @@ namespace v8App
 
         TEST_F(JSContextTest, MoveContext)
         {
-            JSRuntimeSharedPtr runtime = m_App->CreateJSRuntime("MoveContext");
+            JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate().get();
+            v8::Isolate *isolate = runtime->GetIsolate();
             v8::Isolate::Scope isolateScope(isolate);
             v8::HandleScope handleScope(isolate);
 
             std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test");
             context->TestCreateContext();
-            // need a second runtime or the null check will aboirt the tests.
-            JSRuntimeSharedPtr runtime2 = m_App->CreateJSRuntime("MoveContext2");
-            ASSERT_NE(nullptr, runtime2);
-            std::shared_ptr<TestJSContext> context2 = std::make_shared<TestJSContext>(runtime2, "");
+            std::shared_ptr<TestJSContext> context2 = std::make_shared<TestJSContext>(runtime, "");
 
             context2->TestMoveContext(std::move(*context.get()));
 
@@ -120,7 +122,7 @@ namespace v8App
             EXPECT_TRUE(context2->Initialized());
             EXPECT_EQ(context2.get(), context2->TestGetContextWeakRef()->lock().get());
 
-            std::shared_ptr<TestJSContext> context3 = std::make_shared<TestJSContext>(runtime2, "");
+            std::shared_ptr<TestJSContext> context3 = std::make_shared<TestJSContext>(runtime, "");
 
             context3 = std::move(context2);
             EXPECT_EQ(context2, nullptr);
@@ -134,24 +136,24 @@ namespace v8App
 
         TEST_F(JSContextTest, GetLocalContext)
         {
-            JSRuntimeSharedPtr runtime = m_App->CreateJSRuntime("GetLocalContext");
+            JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate().get();
+            v8::Isolate *isolate = runtime->GetIsolate();
             v8::Isolate::Scope isolateScope(isolate);
             v8::HandleScope handleScopr(isolate);
 
-            JSContextWeakPtr context = runtime->CreateContext("test");
-            EXPECT_FALSE(context.expired());
+            JSContextSharedPtr context = runtime->CreateContext("test");
+            EXPECT_NE(context, nullptr);
 
-            V8LocalContext local = context.lock()->GetLocalContext();
+            V8LocalContext local = context->GetLocalContext();
             EXPECT_FALSE(local.IsEmpty());
         }
 
         TEST_F(JSContextTest, GenerateShadowName)
         {
-            JSRuntimeSharedPtr runtime = m_App->CreateJSRuntime("GenerateShadowName");
+            JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate().get();
+            v8::Isolate *isolate = runtime->GetIsolate();
             v8::Isolate::Scope isolateScope(isolate);
             v8::HandleScope handleScope(isolate);
 

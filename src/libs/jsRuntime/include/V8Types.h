@@ -58,8 +58,9 @@ namespace v8App
         using V8IsolateWeakPtr = std::weak_ptr<v8::Isolate>;
         using V8TaskRunnerSharedPtr = std::shared_ptr<v8::TaskRunner>;
 
+        using V8SnapshotCreatorUniquePtr = std::unique_ptr<v8::SnapshotCreator>;
+
         using JSAppSharedPtr = std::shared_ptr<class JSApp>;
-        using JSAppWeakPtr = std::weak_ptr<class JSApp>;
 
         using CodeCacheSharedPtr = std::shared_ptr<class CodeCache>;
 
@@ -71,6 +72,8 @@ namespace v8App
 
         using JSContextModulesWeakPtr = std::weak_ptr<class JSContextModules>;
         using JSContextModulesSharedPtr = std::shared_ptr<JSContextModules>;
+
+        using JSSnapshotCreatorUniquePtr = std::unique_ptr<class JSSnapshotCreator>;
     }
 }
 #endif

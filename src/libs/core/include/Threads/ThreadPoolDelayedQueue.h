@@ -41,6 +41,7 @@ namespace v8App
             ThreadPriority GetPriority() const { return m_Priority; }
 
             void Terminate();
+            bool SetPaused(bool inPaused) { return m_Paused.exchange(inPaused); }
 
         protected:
             class ThreadPoolThread : public Thread
@@ -76,6 +77,7 @@ namespace v8App
             int m_NumWorkers = 0;
             std::mutex m_QueueLock;
             std::atomic_bool m_Exiting{false};
+            std::atomic_bool m_Paused{false};
             std::condition_variable m_QueueWaiter;
             Queues::TThreadSafeDelayedQueue<ThreadPoolTaskUniquePtr> m_Queue;
             std::vector<std::unique_ptr<Thread>> m_Workers;
