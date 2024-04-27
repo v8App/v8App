@@ -3,12 +3,12 @@ load("@v8App//:bazel/v8_app_rules.bzl", "v8App_library")
 v8App_library(
     name = "jsRuntime",
     srcs = [
+        "src/CodeCache.cc",
         "src/CppBridge/V8Arguments.cc",
         "src/CppBridge/V8FunctionTemplate.cc",
         "src/CppBridge/V8NativeObject.cc",
         "src/CppBridge/V8ObjectTemplateBuilder.cc",
         "src/CppBridge/V8TypeConverter.cc",
-        "src/CodeCache.cc",
         "src/ForegroundTaskRunner.cc",
         "src/JSApp.cc",
         "src/JSContext.cc",
@@ -23,13 +23,13 @@ v8App_library(
         "src/WorkerTaskRunner.cc",
     ],
     hdrs = [
+        "include/CodeCache.h",
         "include/CppBridge/V8Arguments.h",
         "include/CppBridge/V8FunctionTemplate.h",
         "include/CppBridge/V8NativeObject.h",
         "include/CppBridge/V8NativeObjectHandle.h",
         "include/CppBridge/V8ObjectTemplateBuilder.h",
         "include/CppBridge/V8TypeConverter.h",
-        "include/CodeCache.h",
         "include/ForegroundTaskRunner.h",
         "include/JSApp.h",
         "include/JSContext.h",
@@ -43,18 +43,18 @@ v8App_library(
         "include/V8Platform.h",
         "include/V8Types.h",
         "include/WorkerTaskRunner.h",
-        "@std_uuid//file",
     ],
     copts = [
         "-Isrc/libs/core/include",
         "-Isrc/libs/jsRuntime/include",
-        "-Ithird_party/v8/include",
+       # "-Ithird_party/v8/include",
     ],
     defines = [
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//src/libs/core:core",
+        "//src/libs/core",
         "//third_party/v8",
+        "@com_mariusbancila_stduuid//:uuid"
     ],
 )

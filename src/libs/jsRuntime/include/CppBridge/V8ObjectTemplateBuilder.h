@@ -7,7 +7,8 @@
 
 #include <functional>
 
-#include "v8.h"
+#include "v8/v8.h"
+
 #include "Logging/LogMacros.h"
 #include "Utils/CallbackWrapper.h"
 #include "JSRuntime.h"

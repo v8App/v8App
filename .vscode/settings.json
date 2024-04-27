@@ -102,7 +102,9 @@
         "variant": "cpp",
         "any": "cpp",
         "codecvt": "cpp",
-        "strstream": "cpp"
+        "strstream": "cpp",
+        "numeric": "cpp",
+        "random": "cpp"
     },
     "editor.tokenColorCustomizations": {
         "textMateRules": [
@@ -127,7 +129,7 @@
         ]
     },
     "gtest-adapter.debugConfig": [
-        "test libJSRuntimeCore Debug"
+        "test libJSRuntime Debug"
     ],
     "gtest-adapter.supportLocation": true
 }

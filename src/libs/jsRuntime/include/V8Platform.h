@@ -6,7 +6,9 @@
 #define _V8_PLATFORM_H_
 
 #include <map>
-#include "v8-platform.h"
+
+#include "v8/v8-platform.h"
+
 #include "ForegroundTaskRunner.h"
 #include "WorkerTaskRunner.h"
 

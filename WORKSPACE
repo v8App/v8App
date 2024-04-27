@@ -13,9 +13,9 @@ new_local_repository(
 )
 
 http_archive(
-  name = "bazel_skylib",
-  urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz"],
-  sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
+    name = "bazel_skylib",
+    sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz"],
 )
 
 http_archive(
@@ -65,11 +65,27 @@ http_archive(
     name = "com_google_googletest",
     strip_prefix = "googletest-f8d7d77c06936315286eb55f8de22cd23c188571",
     urls = ["https://github.com/google/googletest/archive/f8d7d77c06936315286eb55f8de22cd23c188571.zip"],
+    sha256 = "b976cf4fd57b318afdb1bdb27fc708904b3e4bed482859eb94ba2b4bdd077fe2",
+    patch_args = ["-p1"],
+    patches = ["//:third_party/gtest/windows-death-args.patch"],
 )
 
-http_file(
-    name = "std_uuid",
-    downloaded_file_path = "uuid.h",
-    url = "https://github.com/mariusbancila/stduuid/releases/download/v1.2.3/uuid.h",
-    sha256="8b329afa7e099e632c2e992e02ddb9fc4627c772dfd5fd42b069752ea0f8ec7f",
+http_archive(
+    name = "com_mariusbancila_stduuid",
+    strip_prefix = "stduuid-1.2.3",
+    build_file_content = """
+cc_library(
+    name = "uuid",
+    hdrs = glob(["include/*.h"]),
+    strip_include_prefix ="include",
+    visibility = ["//visibility:public"],
+    defines = [
+        "UUID_SYSTEM_GENERATOR"
+    ],
+    include_prefix = "uuid",
+    linkstatic = 1
+)
+""",
+    sha256="0f867768ce55f2d8fa361be82f87f0ea5e51438bc47ca30cd92c9fd8b014e84e",
+    urls = ["https://github.com/mariusbancila/stduuid/archive/v1.2.3.zip"],
 )

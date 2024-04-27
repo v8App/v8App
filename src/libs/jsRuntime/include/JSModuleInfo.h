@@ -44,7 +44,7 @@ namespace v8App
                 return Utils::format("Unknown ModuleType enum {}, perhaps need to delcare it's macro in ModuleTypeToString", (int)inType);
             }
 
-            struct AssertionInfo
+            struct AttributesInfo
             {
                 ModuleType m_Type = ModuleType::kInvalid;
                 std::string m_TypeString;
@@ -88,8 +88,8 @@ namespace v8App
             V8LocalUnboundModuleScript GetUnboundScript();
             void ClearUnboundScript();
 
-            void SetAssertionInfo(AssertionInfo &inInfo);
-            const AssertionInfo &GetAssertionInfo() const;
+            void SetAttributesInfo(AttributesInfo &inInfo);
+            const AttributesInfo &GetAttributesInfo() const;
 
         protected:
             // the actual path to the module file
@@ -102,8 +102,8 @@ namespace v8App
             V8GlobalModule m_Module;
             // the parsed json if it's a json module
             V8GlobalValue m_JSON;
-            // Assertion info the module was loaded with
-            AssertionInfo m_AssertionInfo;
+            // attributes info the module was loaded with
+            AttributesInfo m_AttributesInfo;
             //holds the unbound module script to generate code cache
             V8GlobalUnboundModuleScript m_UnboundScript;
             

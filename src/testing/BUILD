@@ -3,20 +3,29 @@ load("@v8App//:bazel/v8_app_rules.bzl", "v8App_binary")
 filegroup(
     name = "testMain",
     srcs = [
-        "V8Fixture.cc",
-        "V8Fixture.h",
-        "TestSnapshotProvider.cc",
-        "TestSnapshotProvider.h",
         "test_main.cc",
         "test_main.h",
     ],
     visibility = ["//visibility:public"],
 )
 
-v8App_binary (
+filegroup(
+    name = "testMainV8",
+    srcs = [
+        "TestSnapshotProvider.cc",
+        "TestSnapshotProvider.h",
+        "V8Fixture.cc",
+        "V8Fixture.h",
+        "test_main.cc",
+        "test_main.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+v8App_binary(
     name = "helloWorld",
     srcs = [
-        "hello_world.cc"
+        "hello_world.cc",
     ],
     copts = [
         "-Ithird_party/v8/include",
@@ -26,6 +35,10 @@ v8App_binary (
         "//third_party/v8:icu_dat",
         "//third_party/v8:snapshot_blob",
     ],
+    env = {
+        "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
+        "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
+    },
     linkopts = [
         "-lz",
         "-lstdc++",
@@ -34,10 +47,6 @@ v8App_binary (
     deps = [
         "//third_party/v8",
     ],
-    env = {
-        "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
-        "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
-    },
 )
 
 #Used with VSCode to export the locations to an env file that we
@@ -51,4 +60,5 @@ genrule(
     outs = ["test.env"],
     cmd = 'echo "V8_ICU_DATA=$(rlocationpath //third_party/v8:icu_dat)" >> $@;' +
           'echo "V8_SNAPSHOT_BIN=$(rlocationpath //third_party/v8:snapshot_blob)" >> $@;',
+    visibility = ["//visibility:public"],
 )

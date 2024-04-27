@@ -9,6 +9,7 @@
 #include "test_main.h"
 
 #include "Assets/BaseAsset.h"
+#include "Utils/Paths.h"
 
 namespace v8App
 {
@@ -25,8 +26,7 @@ namespace v8App
 
         TEST(BaseAssetTest, Constrcutor)
         {
-            std::filesystem::path tmp = s_TestDir;
-            tmp /= std::filesystem::path("baseAsset.txt");
+            std::filesystem::path tmp = s_TestDir /"baseAsset.txt";
 
             TestBaseAsset asset(tmp);
 
@@ -35,8 +35,7 @@ namespace v8App
         
         TEST(BaseAssetTest, Exists)
         {
-            std::filesystem::path tmp = s_TestDir;
-            tmp /= std::filesystem::path("baseAsset.txt");
+            std::filesystem::path tmp = s_TestDir /"baseAsset.txt";
             //make sure it's removed
             std::filesystem::remove(tmp);
 

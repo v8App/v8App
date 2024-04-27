@@ -7,7 +7,8 @@
 
 #include <unordered_map>
 
-#include "v8.h"
+#include "v8/v8.h"
+
 #include "JSRuntime.h"
 #include "JSContextModules.h"
 

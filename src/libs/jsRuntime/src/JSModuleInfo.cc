@@ -81,14 +81,14 @@ namespace v8App
             m_UnboundScript.Reset();
         }
 
-        void JSModuleInfo::SetAssertionInfo(AssertionInfo &inInfo)
+        void JSModuleInfo::SetAttributesInfo(AttributesInfo &inInfo)
         {
-            m_AssertionInfo = inInfo;
+            m_AttributesInfo = inInfo;
         }
 
-        const JSModuleInfo::AssertionInfo &JSModuleInfo::GetAssertionInfo() const
+        const JSModuleInfo::AttributesInfo &JSModuleInfo::GetAttributesInfo() const
         {
-            return m_AssertionInfo;
+            return m_AttributesInfo;
         }
     }
 }

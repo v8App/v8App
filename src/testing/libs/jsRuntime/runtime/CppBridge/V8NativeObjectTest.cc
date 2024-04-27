@@ -41,7 +41,7 @@ namespace v8App
 
                 EXPECT_EQ(nullptr, test1->GetTypeName());
 
-                EXPECT_EQ("TestOverride", test2->GetTypeName());
+                EXPECT_EQ(std::string("TestOverride"), test2->GetTypeName());
 
                 delete test1;
                 delete test2;

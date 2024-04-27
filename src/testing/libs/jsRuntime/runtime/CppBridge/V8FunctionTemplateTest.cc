@@ -43,19 +43,17 @@ namespace v8App
             {
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
-                v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 //test creating a free function
                 v8::Local<v8::FunctionTemplate> func_template = CreateFunctionTemplate(
                     m_Isolate, Utils::MakeCallback(testCppCallback));
-
-                //we test all the member callbacks in the ObjectTemplateBuilderNow
 
                 //Test the diapching code for a free function
                 v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
                 global->Set(JSUtilities::StringToV8(m_Isolate, "test"), func_template);
 
                 v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
+                v8::Context::Scope cScope(context);
 
                 const char csource1[] = R"(
                     test('test', 1, 2.4);
@@ -70,8 +68,7 @@ namespace v8App
                 v8::Local<v8::Value> result;
                 if (script1->Run(m_Isolate->GetCurrentContext()).ToLocal(&result) == false)
                 {
-                    v8::String::Utf8Value error(m_Isolate, try_catch.Exception());
-                    std::cout << "Script Error: " << *error << std::endl;
+                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
                      EXPECT_TRUE(false);
                }
 

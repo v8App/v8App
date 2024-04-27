@@ -13,7 +13,7 @@
 			"type": "shell",
 			"command": "bazel build //src/libs/application:application -c dbg",
 			"windows":{
-				"command": "bazel build //src/libs/application:application --config=windows-debug"
+				"command": "bazel build //src/libs/application:application --config=windows -c dbg"
 			},
 			"label": "Bazel Build libapplication Debug"
 		},
@@ -45,7 +45,7 @@
 			"type": "shell",
 			"command": "bazel build //src/libs/core:core -c dbg",
 			"windows":{
-				"command": "bazel build //src/libs/core:core --config=windows -c dbg"
+				"command": "bazel build //src/libs/core:core --config=config -c dbg"
 			},
 			"label": "Bazel Build libcore Debug"
 		},
@@ -53,7 +53,7 @@
 			"type": "shell",
 			"command": "bazel build //src/testing/libs/core:testCore",
 			"windows":{
-				"command": "bazel build //src/testing/libs/core:testCore --config=windows"
+				"command": "bazel build //src/testing/libs/core:testCore -c dbg"
 			},
 			"label": "Bazel Build testCore Release"
 		},
@@ -61,7 +61,7 @@
 			"type": "shell",
 			"command": "bazel build //src/testing/libs/core:testCore -c dbg",
 			"windows":{
-				"command": "bazel build //src/testing/libs/core:testCore --config=windows -c dbg"
+				"command": "bazel build //src/testing/libs/core:testCore --config=config -c dbg"
 			},
 			"label": "Bazel Build testCore Debug"
 		},

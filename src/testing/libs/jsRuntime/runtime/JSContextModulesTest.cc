@@ -30,9 +30,9 @@ namespace v8App
             JSContextSharedPtr GetJSContext() { return m_Context; }
             void SetJSContext(JSContextSharedPtr inContext) { m_Context = inContext; }
 
-            JSModuleInfoSharedPtr TestBuildModuleInfo(JSModuleInfo::AssertionInfo &inAssertionInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
+            JSModuleInfoSharedPtr TestBuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
             {
-                return BuildModuleInfo(inAssertionInfo, inImportPath, inCurrentModPath);
+                return BuildModuleInfo(inAttributesInfo, inImportPath, inCurrentModPath);
             }
 
             JSModuleInfoSharedPtr TestLoadModuleTree(JSContextSharedPtr inContext, JSModuleInfoSharedPtr inModInfo) { return LoadModuleTree(inContext, inModInfo); }
@@ -53,7 +53,7 @@ namespace v8App
         {
             TestJSContextModules jsModules(m_Context);
             JSModuleInfoSharedPtr info;
-            JSModuleInfo::AssertionInfo assertInfo;
+            JSModuleInfo::AttributesInfo attributesInfo;
             std::filesystem::path rootPath = m_App->GetAppRoots()->GetAppRoot();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -62,19 +62,19 @@ namespace v8App
             v8::Context::Scope cScope(m_Context->GetLocalContext());
 
             std::filesystem::path testPath("testModule.js");
-            // test no module for assert
-            assertInfo.m_Module = "NoModuleTest";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            // test no module for attribute
+            attributesInfo.m_Module = "NoModuleTest";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught SyntaxError: Failed to find asserted module: {}, ImportPath: {}", assertInfo.m_Module, testPath));
+                      Utils::format("Uncaught SyntaxError: Failed to find attributed module: {}, ImportPath: {}", attributesInfo.m_Module, testPath));
 
             // JS Folder
             tryCatch.Reset();
-            // module assertion in js path
+            // module attributes in js path
             testPath = std::filesystem::path("%JS%/testModule.js");
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
@@ -83,39 +83,39 @@ namespace v8App
             tryCatch.Reset();
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%JS%/testModule.txt");
-            assertInfo.m_Module = "";
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "js";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "";
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "js";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", assertInfo.m_TypeString, testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", attributesInfo.m_TypeString, testPath));
 
             tryCatch.Reset();
             // non module info returned
             testPath = std::filesystem::path("%JS%/testModule.js");
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             ASSERT_NE(info, nullptr);
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_EQ(info->GetName(), "testModule");
-            EXPECT_EQ(info->GetModulePath().string(), (rootPath / std::filesystem::path("js/testModule.js")).string());
+            EXPECT_EQ(info->GetModulePath().generic_string(), (rootPath / std::filesystem::path("js/testModule.js")).generic_string());
 
             tryCatch.Reset();
             // non module info returned with abs path
             testPath = std::filesystem::path("/js/testModule.js");
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             ASSERT_NE(info, nullptr);
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_EQ(info->GetName(), "testModule");
-            EXPECT_EQ(info->GetModulePath().string(), (rootPath / std::filesystem::path("js/testModule.js")).string());
+            EXPECT_EQ(info->GetModulePath().generic_string(), (rootPath / std::filesystem::path("js/testModule.js")).generic_string());
 
             // Resources Folder
             tryCatch.Reset();
-            // module assertion in resources path
+            // module attribute in resources path
             testPath = std::filesystem::path("%RESOURCES%/testModule.txt");
-            assertInfo.m_Module = "tetsMofule";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "tetsMofule";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
@@ -123,15 +123,15 @@ namespace v8App
 
             // js or mjs in resources
             testPath = std::filesystem::path("%RESOURCES%/testModule.js");
-            assertInfo.m_Module = "";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
                       Utils::format("Uncaught SyntaxError: Files ending in .js or .mjs can not be in resources, ImportPath: {}", testPath));
 
             testPath = std::filesystem::path("%RESOURCES%/testModule.mjs");
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
@@ -140,10 +140,10 @@ namespace v8App
             tryCatch.Reset();
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%RESOURCES%/testModule.txt");
-            assertInfo.m_Module = "";
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-            assertInfo.m_TypeString = "json";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "";
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
+            attributesInfo.m_TypeString = "json";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
@@ -152,40 +152,40 @@ namespace v8App
             tryCatch.Reset();
             // non module info returned
             testPath = std::filesystem::path("%RESOURCES%/testModule.json");
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             ASSERT_NE(info, nullptr);
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_EQ(info->GetName(), "testModule");
-            EXPECT_EQ(info->GetModulePath().string(), (rootPath / std::filesystem::path("resources/testModule.json")).string());
+            EXPECT_EQ(info->GetModulePath().generic_string(), (rootPath / std::filesystem::path("resources/testModule.json")).generic_string());
 
             // Modules Folder
             tryCatch.Reset();
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%MODULES%/builModInfo/test.json");
-            assertInfo.m_Module = "";
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "js";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "";
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "js";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", assertInfo.m_TypeString, testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", attributesInfo.m_TypeString, testPath));
 
-            // module asserted but module not the module
+            // module attributed but module not the module
             tryCatch.Reset();
             testPath = std::filesystem::path("%MODULES%/NotBuilModInfo/test.js");
-            assertInfo.m_Module = "buildModInfo";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "buildModInfo";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught SyntaxError: Import path was not in asserted module's path. Module:{}, ImportPath: {}", assertInfo.m_Module, testPath));
+                      Utils::format("Uncaught SyntaxError: Import path was not in attributed module's path. Module:{}, ImportPath: {}", attributesInfo.m_Module, testPath));
 
             // No module version
             tryCatch.Reset();
             testPath = std::filesystem::path("%MODULES%/NoModVersion/test.js");
-            assertInfo.m_Module = "";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            attributesInfo.m_Module = "";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
@@ -197,34 +197,34 @@ namespace v8App
 
             tryCatch.Reset();
             testPath = std::filesystem::path("test.js");
-            assertInfo.m_Module = "";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, modPath);
+            attributesInfo.m_Module = "";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, modPath);
             ASSERT_NE(info, nullptr);
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_EQ(info->GetName(), "buildModInfo");
             EXPECT_EQ(info->GetVersion(), "1.0.0");
-            EXPECT_EQ(info->GetModulePath().string(), (rootPath / std::filesystem::path("modules/buildModInfo/1.0.0/test.js")).string());
+            EXPECT_EQ(info->GetModulePath().generic_string(), (rootPath / std::filesystem::path("modules/buildModInfo/1.0.0/test.js")).generic_string());
 
-            // test relative module to asserted module
+            // test relative module to attributed module
             tryCatch.Reset();
             testPath = std::filesystem::path("test.js");
-            assertInfo.m_Module = "buildModInfo";
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, modPath);
+            attributesInfo.m_Module = "buildModInfo";
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, modPath);
             ASSERT_NE(info, nullptr);
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_EQ(info->GetName(), "buildModInfo");
             EXPECT_EQ(info->GetVersion(), "1.0.0");
-            EXPECT_EQ(info->GetModulePath().string(), (rootPath / std::filesystem::path("modules/buildModInfo/1.0.0/test.js")).string());
+            EXPECT_EQ(info->GetModulePath().generic_string(), (rootPath / std::filesystem::path("modules/buildModInfo/1.0.0/test.js")).generic_string());
 
             // test absolute path to module
             tryCatch.Reset();
             testPath = std::filesystem::path("/modules/buildModInfo/test.js");
-            info = jsModules.TestBuildModuleInfo(assertInfo, testPath, rootPath);
+            info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             ASSERT_NE(info, nullptr);
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_EQ(info->GetName(), "buildModInfo");
             EXPECT_EQ(info->GetVersion(), "1.0.0");
-            EXPECT_EQ(info->GetModulePath().string(), (rootPath / std::filesystem::path("modules/buildModInfo/1.0.0/test.js")).string());
+            EXPECT_EQ(info->GetModulePath().generic_string(), (rootPath / std::filesystem::path("modules/buildModInfo/1.0.0/test.js")).generic_string());
         }
 
         TEST_F(JSContextModulesTest, LoadModuleTreeJSNoImports)
@@ -242,10 +242,10 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AssertionInfo assertInfo;
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "js";
-            info->SetAssertionInfo(assertInfo);
+            JSModuleInfo::AttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "js";
+            info->SetAttributesInfo(attributesInfo);
 
             // failed to load script
             info->SetPath(appRoot / std::filesystem::path("js/NotExists.js"));
@@ -269,7 +269,7 @@ namespace v8App
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
                       "Uncaught SyntaxError: Unexpected token '-'");
             expected = {
-                {Log::MsgKey::Msg, Utils::format("Uncaught SyntaxError: Unexpected token '-'\n{}:1:SyntaxError: Unexpected token '-'\n", info->GetModulePath().string())},
+                {Log::MsgKey::Msg, Utils::format("Uncaught SyntaxError: Unexpected token '-'\n{}:1:SyntaxError: Unexpected token '-'\n", info->GetModulePath().generic_string())},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
@@ -282,7 +282,7 @@ namespace v8App
             EXPECT_FALSE(moduleInfo->GetLocalModule().IsEmpty());
 
             // the module is added to the jsModules attached to the context and not our test one
-            JSModuleInfoSharedPtr addInfo = m_Context->GetJSModules()->GetModuleBySpecifier(info->GetModulePath());
+            JSModuleInfoSharedPtr addInfo = m_Context->GetJSModules()->GetModuleBySpecifier(info->GetModulePath().generic_string());
             ASSERT_NE(nullptr, addInfo);
             ASSERT_EQ(addInfo.get(), info.get());
 
@@ -314,10 +314,10 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AssertionInfo assertInfo;
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-            assertInfo.m_TypeString = "json";
-            info->SetAssertionInfo(assertInfo);
+            JSModuleInfo::AttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
+            attributesInfo.m_TypeString = "json";
+            info->SetAttributesInfo(attributesInfo);
 
             // failed to load the json
             info->SetPath(appRoot / std::filesystem::path("js/NotExists.json"));
@@ -356,7 +356,7 @@ namespace v8App
             EXPECT_FALSE(tryCatch.HasCaught());
             EXPECT_FALSE(moduleInfo->GetLocalModule().IsEmpty());
 
-            JSModuleInfoSharedPtr addInfo = m_Context->GetJSModules()->GetModuleBySpecifier(info->GetModulePath());
+            JSModuleInfoSharedPtr addInfo = m_Context->GetJSModules()->GetModuleBySpecifier(info->GetModulePath().generic_string());
             ASSERT_NE(nullptr, addInfo);
             ASSERT_EQ(addInfo.get(), info.get());
 
@@ -388,10 +388,10 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AssertionInfo assertInfo;
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "js";
-            info->SetAssertionInfo(assertInfo);
+            JSModuleInfo::AttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "js";
+            info->SetAttributesInfo(attributesInfo);
 
             info->SetPath(appRoot / std::filesystem::path("js/loadModuleImport.mjs"));
             info->SetName("loadModuleImport");
@@ -415,10 +415,10 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AssertionInfo assertInfo;
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "js";
-            info->SetAssertionInfo(assertInfo);
+            JSModuleInfo::AttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "js";
+            info->SetAttributesInfo(attributesInfo);
 
             info->SetPath(appRoot / std::filesystem::path("js/importModuleDynamic.js"));
 
@@ -426,7 +426,7 @@ namespace v8App
             ASSERT_NE(nullptr, info);
         }
 
-        TEST_F(JSContextModulesTest, ImportAssertions)
+        TEST_F(JSContextModulesTest, ImportAttributes)
         {
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Warn);
@@ -441,65 +441,65 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AssertionInfo assertInfo;
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "js";
-            info->SetAssertionInfo(assertInfo);
+            JSModuleInfo::AttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "js";
+            info->SetAttributesInfo(attributesInfo);
 
             // unknown asssertion
-            info->SetPath(appRoot / std::filesystem::path("js/importAssertions/assertUnknown.js"));
+            info->SetPath(appRoot / std::filesystem::path("js/importAttributes/attributeUnknown.js"));
             JSModuleInfoSharedPtr moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             ASSERT_NE(nullptr, moduleInfo);
             EXPECT_FALSE(moduleInfo->GetLocalModule().IsEmpty());
 
             Log::LogMessage expected = {
-                {Log::MsgKey::Msg, "Unknown assertion: unknown"},
+                {Log::MsgKey::Msg, "Unknown attribute: unknown"},
                 {Log::MsgKey::LogLevel, "Warn"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
-            // modules assertions
-            info->SetPath(appRoot / std::filesystem::path("js/importAssertions/assertModule.js"));
+            // modules attributes
+            info->SetPath(appRoot / std::filesystem::path("js/importAttributes/attributeModule.js"));
             moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      "Uncaught SyntaxError: Failed to find asserted module: test, ImportPath: \"./importFile.js\"");
+                      "Uncaught SyntaxError: Failed to find attributed module: test, ImportPath: \"./importFile.js\"");
 
-            // type json assertion
+            // type json attributes
             tryCatch.Reset();
-            info->SetPath(appRoot / std::filesystem::path("js/importAssertions/assertJSONType.js"));
+            info->SetPath(appRoot / std::filesystem::path("js/importAttributes/attributeJSONType.js"));
             moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
                       "Uncaught TypeError: File type doesn't match specified type json. Importpath: \"./importFile.js\"");
 
-            // type js assertion
+            // type js attributes
             tryCatch.Reset();
-            info->SetPath(appRoot / std::filesystem::path("js/importAssertions/assertTypeJS.js"));
+            info->SetPath(appRoot / std::filesystem::path("js/importAttributes/attributeTypeJS.js"));
             moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             ASSERT_NE(nullptr, moduleInfo);
             EXPECT_FALSE(moduleInfo->GetLocalModule().IsEmpty());
             EXPECT_FALSE(tryCatch.HasCaught());
 
-            // type native assertion
+            // type native attributes
             tryCatch.Reset();
-            info->SetPath(appRoot / std::filesystem::path("js/importAssertions/assertTypeNative.js"));
+            info->SetPath(appRoot / std::filesystem::path("js/importAttributes/attributeTypeNative.js"));
             moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
                       "Uncaught TypeError: File type doesn't match specified type native. Importpath: \"./importFile.js\"");
 
-            // type unknown assertion
+            // type unknown attributes
             tryCatch.Reset();
-            info->SetPath(appRoot / std::filesystem::path("js/importAssertions/assertTypeInvalid.js"));
+            info->SetPath(appRoot / std::filesystem::path("js/importAttributes/attributeTypeInvalid.js"));
             moduleInfo = jsModules.TestLoadModuleTree(m_Context, info);
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_FALSE(tryCatch.HasCaught());
             expected = {
-                {Log::MsgKey::Msg, "Unknown type assertion: unknown"},
+                {Log::MsgKey::Msg, "Unknown type attribute: unknown"},
                 {Log::MsgKey::LogLevel, "Warn"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
@@ -526,7 +526,7 @@ namespace v8App
             moduleInfo = jsModules->LoadModule(srcPath);
             V8LocalModule module = moduleInfo->GetLocalModule();
             ASSERT_FALSE(module.IsEmpty());
-            EXPECT_NE(nullptr, jsModules->GetModuleBySpecifier(srcPath));
+            EXPECT_NE(nullptr, jsModules->GetModuleBySpecifier(srcPath.generic_string()));
         }
 
         TEST_F(JSContextModulesTest, LoadJSON)
@@ -544,7 +544,7 @@ namespace v8App
 
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
             ASSERT_NE(moduleInfo, nullptr);
-            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath);
+            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             V8LocalModule module = moduleInfo->GetLocalModule();
             ASSERT_NE(nullptr, info);
             V8LocalValue jsonValue = info->GetLocalJSON();
@@ -674,7 +674,7 @@ namespace v8App
             std::filesystem::path srcPath = root / std::filesystem::path("js/importModuleDynamic.js");
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
             V8LocalModule module = moduleInfo->GetLocalModule();
-            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath);
+            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
             EXPECT_TRUE(jsModules->RunModule(info));
@@ -713,7 +713,7 @@ namespace v8App
             CodeCacheSharedPtr codeCache = m_App->GetCodeCache();
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
             V8LocalModule module = moduleInfo->GetLocalModule();
-            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath);
+            JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
             jsModules->GenerateCodeCache();

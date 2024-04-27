@@ -1,1 +1,0 @@
-import testStr from "./importFile.js" assert { type: "js" };

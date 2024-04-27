@@ -20,7 +20,7 @@ namespace v8App
         {
             V8MaybeLocalModule UnresovledCallback(
                 V8LocalContext inContet, V8LocalString inSpecifier,
-                V8LocalFixedArray inImportAssertions, V8LocalModule inReferrer)
+                V8LocalFixedArray inImportAttributes, V8LocalModule inReferrer)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("Unresloved callback called"));
@@ -40,10 +40,10 @@ namespace v8App
             EXPECT_EQ("", info.GetVersion().GetVersionString());
             EXPECT_TRUE(info.GetLocalModule().IsEmpty());
 
-            JSModuleInfo::AssertionInfo assertInfo = info.GetAssertionInfo();
-            EXPECT_EQ(JSModuleInfo::ModuleType::kInvalid, assertInfo.m_Type);
-            EXPECT_EQ("", assertInfo.m_TypeString);
-            EXPECT_EQ("", assertInfo.m_Module);
+            JSModuleInfo::AttributesInfo attributesInfo = info.GetAttributesInfo();
+            EXPECT_EQ(JSModuleInfo::ModuleType::kInvalid, attributesInfo.m_Type);
+            EXPECT_EQ("", attributesInfo.m_TypeString);
+            EXPECT_EQ("", attributesInfo.m_Module);
         }
 
         TEST_F(JSModuleInfoTest, GetSetPath)
@@ -86,7 +86,9 @@ namespace v8App
             JSModuleInfo info(m_Context);
 
             V8LocalString moduleName = JSUtilities::StringToV8(m_Isolate, "test");
-            V8LocalModule module = v8::Module::CreateSyntheticModule(m_Isolate, moduleName, std::vector<V8LocalString>(), v8::Module::SyntheticModuleEvaluationSteps());
+            auto exportNames = v8::to_array<V8LocalString>(
+                {v8::String::NewFromUtf8(m_Isolate, "default").ToLocalChecked()});
+            V8LocalModule module = v8::Module::CreateSyntheticModule(m_Isolate, moduleName, exportNames, v8::Module::SyntheticModuleEvaluationSteps());
             EXPECT_FALSE(module.IsEmpty());
             EXPECT_TRUE(info.GetLocalModule().IsEmpty());
             info.SetV8Module(module);
@@ -127,24 +129,24 @@ namespace v8App
             EXPECT_TRUE(info.GetUnboundScript().IsEmpty());
         }
 
-        TEST_F(JSModuleInfoTest, GetSetAssertionInfo)
+        TEST_F(JSModuleInfoTest, GetSetAttributesInfo)
         {
             v8::Isolate::Scope isolateScope(m_Isolate);
             v8::HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
-            JSModuleInfo::AssertionInfo assertInfo;
+            JSModuleInfo::AttributesInfo attributesInfo;
             std::string moduleName = "test";
-            assertInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            assertInfo.m_TypeString = "Javascript";
-            assertInfo.m_Module = moduleName;
+            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+            attributesInfo.m_TypeString = "Javascript";
+            attributesInfo.m_Module = moduleName;
 
-            info.SetAssertionInfo(assertInfo);
-            JSModuleInfo::AssertionInfo assertInfo2 = info.GetAssertionInfo();
+            info.SetAttributesInfo(attributesInfo);
+            JSModuleInfo::AttributesInfo attributesInfo2 = info.GetAttributesInfo();
 
-            EXPECT_EQ(JSModuleInfo::ModuleType::kJavascript, assertInfo.m_Type);
-            EXPECT_EQ("Javascript", assertInfo2.m_TypeString);
-            EXPECT_EQ(moduleName, assertInfo2.m_Module);
+            EXPECT_EQ(JSModuleInfo::ModuleType::kJavascript, attributesInfo.m_Type);
+            EXPECT_EQ("Javascript", attributesInfo2.m_TypeString);
+            EXPECT_EQ(moduleName, attributesInfo2.m_Module);
         }
 
         TEST_F(JSModuleInfoTest, ModuleTypeToString)
@@ -156,9 +158,9 @@ namespace v8App
             EXPECT_EQ("Unknown ModuleType enum 10, perhaps need to delcare it's macro in ModuleTypeToString", JSModuleInfo::ModuleTypeToString(static_cast<JSModuleInfo::ModuleType>(10)));
         }
 
-        TEST_F(JSModuleInfoTest, AssertInfoDoesExtensionMatchType)
+        TEST_F(JSModuleInfoTest, AttributeInfoDoesExtensionMatchType)
         {
-            JSModuleInfo::AssertionInfo info;
+            JSModuleInfo::AttributesInfo info;
 
             info.m_Type = JSModuleInfo::ModuleType::kJavascript;
             EXPECT_TRUE(info.DoesExtensionMatchType(".js"));

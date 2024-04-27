@@ -29,7 +29,7 @@ namespace v8App
         {
             V8MaybeLocalModule UnresovledCallback(
                 V8LocalContext inContet, V8LocalString inSpecifier,
-                V8LocalFixedArray inImportAssertions, V8LocalModule inReferrer)
+                V8LocalFixedArray inImportAttributes, V8LocalModule inReferrer)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("Unresloved callback called"));
@@ -238,18 +238,18 @@ namespace v8App
             // file doesn't exist
             std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoots()->GetAppRoot();
             std::filesystem::path testPath = appRoot / std::filesystem::path("js/cacheTests.js");
-            EXPECT_EQ(nullptr, codeCache.TestCreateCacheInfo(testPath));
+            EXPECT_EQ(nullptr, codeCache.TestCreateCacheInfo(testPath.generic_string()));
             expected = {
-                {Log::MsgKey::Msg, Utils::format("File doesn't exist: {}", testPath)},
+                {Log::MsgKey::Msg, Utils::format("File doesn't exist: \"{}\"", testPath.generic_string())},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
             // file exists info created
             testPath = appRoot / std::filesystem::path("js/cacheTest.js");
-            CodeCache::ScriptCacheInfo *info = codeCache.TestCreateCacheInfo(testPath);
+            CodeCache::ScriptCacheInfo *info = codeCache.TestCreateCacheInfo(testPath.generic_string());
             ASSERT_NE(nullptr, info);
-            EXPECT_NE(nullptr, codeCache.TestGetCachedScript(testPath));
+            EXPECT_NE(nullptr, codeCache.TestGetCachedScript(testPath.generic_string()));
 
             std::string sourceStr = "function f(){return 4;}(function() { globalThis.Result=f(); })()";
             Assets::TextAsset srcFile(testPath);
@@ -263,7 +263,7 @@ namespace v8App
             EXPECT_EQ(sourceStr, info->m_SourceStr);
 
             // fail to insert
-            EXPECT_EQ(nullptr, codeCache.TestCreateCacheInfo(testPath));
+            EXPECT_EQ(nullptr, codeCache.TestCreateCacheInfo(testPath.generic_string()));
             expected = {
                 {Log::MsgKey::Msg, Utils::format("Failed to insert the cache info")},
                 {Log::MsgKey::LogLevel, "Error"},
@@ -288,10 +288,10 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
             testPath = appRoot / std::filesystem::path("js/test.js");
-            EXPECT_EQ(appRoot / std::filesystem::path(".code_cache/js/test.jscc"), codeCache.TestGenerateCachePath(testPath));
+            EXPECT_EQ((appRoot / std::filesystem::path(".code_cache/js/test.jscc")).generic_string(), codeCache.TestGenerateCachePath(testPath).generic_string());
 
             testPath = appRoot / std::filesystem::path("modules/test.js");
-            EXPECT_EQ(appRoot / std::filesystem::path(".code_cache/modules/test.jscc"), codeCache.TestGenerateCachePath(testPath));
+            EXPECT_EQ((appRoot / std::filesystem::path(".code_cache/modules/test.jscc")).generic_string(), codeCache.TestGenerateCachePath(testPath).generic_string());
         }
 
         TEST_F(CodeCacheTest, ReadScriptFile)
@@ -325,7 +325,7 @@ namespace v8App
             srcFile.SetContent(sourceStr);
             ASSERT_TRUE(srcFile.WriteAsset());
 
-            EXPECT_TRUE(codeCache.TestReadScriptFile(testPath, &info));
+            EXPECT_TRUE(codeCache.TestReadScriptFile(testPath.generic_string(), &info));
             EXPECT_EQ(sourceStr, info.m_SourceStr);
         }
 

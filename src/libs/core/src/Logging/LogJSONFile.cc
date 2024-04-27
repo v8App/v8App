@@ -40,7 +40,7 @@ namespace v8App
             std::string outMessage = strMessage.str().substr(0, strMessage.str().length() - 1) + "}\n";
             if(OpenFile() == false)
             {
-                std::cerr << "Failed to open JSON log file: " << m_LogFile <<std::endl
+                std::cerr << "Failed to open JSON log file: \"" << m_LogFile.string() << "\"" <<std::endl
                 << "Log: " << outMessage;
                 return;
             }

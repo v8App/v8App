@@ -13,7 +13,7 @@
 #include "V8Types.h"
 #include "Utils/VersionString.h"
 
-#include "v8.h"
+#include "v8/v8.h"
 
 /**
  * module paths
@@ -101,11 +101,11 @@ namespace v8App
             JSModuleInfoSharedPtr GetModuleInfoByModule(V8LocalModule inModule, JSModuleInfo::ModuleType inType = JSModuleInfo::ModuleType::kInvalid);
 
             /**
-             * Parses the import assertion and returns the info asserted
+             * Parses the import Attributes and returns the info attributed
              */
-            JSModuleInfo::AssertionInfo GetModuleAssertionInfo(JSContextSharedPtr inContext, V8LocalFixedArray inAssertions, bool inHasPostions);
+            JSModuleInfo::AttributesInfo GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LocalFixedArray inAttributes);
 
-            JSModuleInfoSharedPtr BuildModuleInfo(JSModuleInfo::AssertionInfo &inAssertionInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath);
+            JSModuleInfoSharedPtr BuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath);
 
             /**
              * Callback for V8 to dynamically load imports
@@ -114,7 +114,7 @@ namespace v8App
                                                                    V8LocalData inDefinedOptions,
                                                                    V8LocalValue inResourceName,
                                                                    V8LocalString inSpecifier,
-                                                                   V8LocalFixedArray import_assertions);
+                                                                   V8LocalFixedArray import_attributes);
 
             /**
              * A Microtask run by V8 that handles the actual importing
@@ -144,7 +144,7 @@ namespace v8App
             /**
              *
              */
-            static V8MaybeLocalModule ResolveModuleCallback(V8LocalContext inContext, V8LocalString inSpecifier, V8LocalFixedArray inAssertions, V8LocalModule inReferrer);
+            static V8MaybeLocalModule ResolveModuleCallback(V8LocalContext inContext, V8LocalString inSpecifier, V8LocalFixedArray inAttributes, V8LocalModule inReferrer);
 
             /**
              * Handles loading additional imports from the imported module

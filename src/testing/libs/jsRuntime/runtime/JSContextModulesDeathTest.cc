@@ -43,10 +43,10 @@ namespace v8App
             ASSERT_DEATH({
                 std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
                 JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-                JSModuleInfo::AssertionInfo assertInfo;
-                assertInfo.m_Type = JSModuleInfo::ModuleType::kInvalid;
-                assertInfo.m_TypeString = "invalid";
-                info->SetAssertionInfo(assertInfo);
+                JSModuleInfo::AttributesInfo attributesInfo;
+                attributesInfo.m_Type = JSModuleInfo::ModuleType::kInvalid;
+                attributesInfo.m_TypeString = "invalid";
+                info->SetAttributesInfo(attributesInfo);
                 TestJSContextDeathModules jsModules(m_Context);
 
                 info->SetPath(appRoot / std::filesystem::path("js/NotExists.js"));

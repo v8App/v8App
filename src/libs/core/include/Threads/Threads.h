@@ -7,6 +7,7 @@
 
 #include <thread>
 #include <string>
+#include <mutex>
 
 namespace v8App
 {

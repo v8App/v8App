@@ -9,10 +9,12 @@
 
 #include "test_main.h"
 #include "TestLogSink.h"
+#include "TestFiles.h"
 #include "TestSnapshotProvider.h"
 
 #include "Assets/BinaryAsset.h"
 #include "Assets/TextAsset.h"
+#include "Utils/Paths.h"
 
 #include "JSApp.h"
 
@@ -95,14 +97,14 @@ namespace v8App
 
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppEntryPointScript";
+            std::filesystem::path testRoot = s_TestDir /"EntryPointScript";
 
-            std::filesystem::create_directories(s_TestDir / std::filesystem::path(Assets::c_RootJS));
-            std::filesystem::create_directories(s_TestDir / std::filesystem::path(Assets::c_RootModules));
-            std::filesystem::create_directories(s_TestDir / std::filesystem::path(Assets::c_RootResource));
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeRuntime(s_TestDir, "");
+            app->InitializeRuntime(testRoot, "");
 
-            EXPECT_EQ("", app->GetEntryPointScript().string());
+            EXPECT_EQ("", app->GetEntryPointScript().generic_string());
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
@@ -122,7 +124,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             // path doesn't exist
-            testFile = s_TestDir / std::filesystem::path("js/test.js");
+            testFile = testRoot / "js/test.js";
             EXPECT_FALSE(app->SetEntryPointScript(testFile));
             expected = {
                 {Log::MsgKey::Msg, Utils::format("Passed entry point script doesn't exist {}", testFile)},
@@ -148,14 +150,14 @@ namespace v8App
 
             std::shared_ptr<V8BaseSnapshotProvider> testingSnapProvider = std::make_shared<V8BaseSnapshotProvider>();
             std::string appName = "testJSAppV8BaseSnapshotProviderLoadSnapshotData";
+            
+            std::filesystem::path testRoot = s_TestDir /"SnapshotProviderTest";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
-            std::filesystem::create_directories(s_TestDir / std::filesystem::path(Assets::c_RootJS));
-            std::filesystem::create_directories(s_TestDir / std::filesystem::path(Assets::c_RootModules));
-            std::filesystem::create_directories(s_TestDir / std::filesystem::path(Assets::c_RootResource));
             //need the test snapshot provider so we can init the app
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeRuntime(s_TestDir, "");
+            app->InitializeRuntime(testRoot, "");
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
@@ -177,7 +179,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             // path doesn't exist
-            testFile = s_TestDir / std::filesystem::path("resources/test.js");
+            testFile = testRoot / "resources/test.js";
             EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(testFile, app));
             expected = {
                 {Log::MsgKey::Msg, Utils::format("Passed snapshot data doesn't exist {}", testFile)},

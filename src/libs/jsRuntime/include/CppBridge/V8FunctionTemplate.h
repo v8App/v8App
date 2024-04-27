@@ -7,7 +7,8 @@
 
 #include <functional>
 
-#include "v8.h"
+#include "v8/v8.h"
+
 #include "Logging/LogMacros.h"
 #include "Utils/CallbackWrapper.h"
 #include "JSRuntime.h"
@@ -111,6 +112,7 @@ namespace v8App
                 }
             }
 
+
             template <typename Signature>
             struct CallbackDispatcher;
 
@@ -128,6 +130,8 @@ namespace v8App
 
                     using HolderInstType = CallbackHolder<Functor>;
                     HolderInstType *holder = static_cast<HolderInstType *>(holderBase);
+
+                    int numArgs = inArgs->Length();
 
                     InvokeCallback(inArgs, holder->m_Callback,
                                    std::move(ConvertArgument<Args>(inArgs, false))...);

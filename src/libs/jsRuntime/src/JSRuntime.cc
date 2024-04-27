@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT license
 // that can be found in the LICENSE file.
 
-#include "v8.h"
+#include "v8/v8.h"
 
 #include "Logging/LogMacros.h"
 #include "Time/Time.h"
@@ -57,7 +57,7 @@ namespace v8App
             // custom deleter since we have to call dispose
             v8::Isolate *temp = v8::Isolate::Allocate();
             m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
-                                                     {/*isolate->Dispose();*/ });
+                                                     {isolate->Dispose(); });
             m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
 
             JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());

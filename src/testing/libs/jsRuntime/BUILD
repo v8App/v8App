@@ -42,7 +42,7 @@ v8App_test(
         "coreRuntime/V8JobsDeathTest.cc",
         "coreRuntime/V8JobsTest.cc",
         "coreRuntime/PlaygroundTest.cc",
-        "//src/testing:testMain",
+        "//src/testing:testMainV8",
     ],
     copts = [
         "-Isrc/libs/core/include",
@@ -64,10 +64,6 @@ v8App_test(
         "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
         "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
     },
-    linkopts = [
-        "-lz",
-        "-lstdc++",
-    ],
     visibility = ["//visibility:public"],
     deps = [
         "//src/libs/core",
@@ -98,7 +94,7 @@ v8App_test(
         "runtime/NestableQueueTest.cc",
         "runtime/WorkerTaskRunnerDeathTest.cc",
         "runtime/WorkerTaskRunnerTest.cc",
-        "//src/testing:testMain",
+        "//src/testing:testMainV8",
     ],
     copts = [
         "-Isrc/libs/core/include",
@@ -121,10 +117,7 @@ v8App_test(
         "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
         "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
     },
-    linkopts = [
-        "-lz",
-        "-lstdc++",
-    ],
+
     visibility = ["//visibility:public"],
     deps = [
         "//src/libs/core",

@@ -10,6 +10,7 @@
 #include "gmock/gmock.h"
 
 #include "test_main.h"
+#include "TestFiles.h"
 
 #include "Utils/VersionString.h"
 #include "Utils/Format.h"
@@ -17,25 +18,12 @@
 #include "Logging/ILogSink.h"
 #include "TestLogSink.h"
 #include "Assets/AppAssetRoots.h"
+#include "Utils/Paths.h"
 
 namespace v8App
 {
     namespace Assets
     {
-        namespace Testing
-        {
-            std::filesystem::path CreateValidAppRoot()
-            {
-                std::filesystem::path appRoot = s_TestDir / std::filesystem::path("testApp");
-                // make sure the test directory is deleted or the creation fails
-                std::filesystem::remove_all(appRoot);
-                EXPECT_TRUE(std::filesystem::create_directories(appRoot / c_RootJS));
-                EXPECT_TRUE(std::filesystem::create_directories(appRoot / c_RootModules));
-                EXPECT_TRUE(std::filesystem::create_directories(appRoot / c_RootResource));
-                return appRoot;
-            }
-        }
-
         class TestAppAssetRoots : public Assets::AppAssetRoots
         {
         public:
@@ -56,20 +44,21 @@ namespace v8App
                 Log::MsgKey::Line};
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::filesystem::path tmp = s_TestDir;
-            std::filesystem::path appRoot = tmp / std::filesystem::path("testApp");
+            std::filesystem::path appRoot = s_TestDir;
+            appRoot /= "testApp";
             std::error_code code;
             // make sure the test directory is deleted or the creation fails
             std::filesystem::remove_all(appRoot);
-            EXPECT_TRUE(std::filesystem::create_directories(appRoot, code));
+            std::filesystem::create_directories(appRoot, code);
+            ASSERT_EQ(code.value(), 0);
 
             // direcotry doesn't exist
             std::unique_ptr<AppAssetRoots> appAssetRoot = std::make_unique<AppAssetRoots>();
-            EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot / std::filesystem::path("nonExistant")));
+            EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot / "nonExistant"));
             EXPECT_EQ(appAssetRoot->GetAppRoot(), "");
 
             // root path is a file
-            std::filesystem::path filePath = appRoot / std::filesystem::path("testFile");
+            std::filesystem::path filePath = appRoot / "testFile";
             std::ofstream file(filePath);
             file.close();
             appAssetRoot = std::make_unique<AppAssetRoots>();
@@ -87,8 +76,8 @@ namespace v8App
             EXPECT_EQ(appAssetRoot->GetAppRoot(), "");
 
             // root valid modules directory not found
-            EXPECT_TRUE(std::filesystem::create_directories(appRoot / c_RootJS));
-            appAssetRoot = std::make_unique<AppAssetRoots>();
+            std::filesystem::create_directories(appRoot / std::filesystem::path(c_RootJS), code);
+            ASSERT_EQ(code.value(), 0);
             EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot));
             expected = {
                 {Log::MsgKey::Msg, Utils::format("Failed to find the {} directory in the app root", c_RootModules)},
@@ -98,8 +87,9 @@ namespace v8App
             EXPECT_EQ(appAssetRoot->GetAppRoot(), "");
 
             // root valid resources directory not found
-            std::filesystem::path moduleRoot = appRoot / c_RootModules;
-            EXPECT_TRUE(std::filesystem::create_directories(moduleRoot));
+            std::filesystem::path moduleRoot = appRoot / std::filesystem::path(c_RootModules);
+            std::filesystem::create_directories(moduleRoot, code);
+            ASSERT_EQ(code.value(), 0);
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_FALSE(appAssetRoot->SetAppRootPath(appRoot));
             expected = {
@@ -110,7 +100,8 @@ namespace v8App
             EXPECT_EQ(appAssetRoot->GetAppRoot(), "");
 
             // core root directories found
-            EXPECT_TRUE(std::filesystem::create_directories(appRoot / c_RootResource));
+            std::filesystem::create_directories(appRoot / std::filesystem::path(c_RootResource), code);
+            ASSERT_EQ(code.value(), 0);
             appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_TRUE(appAssetRoot->SetAppRootPath(appRoot));
             EXPECT_EQ(appAssetRoot->GetAppRoot(), appRoot);
@@ -189,7 +180,9 @@ namespace v8App
 
         TEST(AppAssetRootsTest, MakeRelativePathToAppRoot)
         {
-            std::filesystem::path root = Testing::CreateValidAppRoot();
+
+            std::filesystem::path root = s_TestDir / "RelativeToAppRoot";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(root));
             std::unique_ptr<AppAssetRoots> appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_TRUE(appAssetRoot->SetAppRootPath(root));
 
@@ -201,43 +194,45 @@ namespace v8App
             std::filesystem::path win2 = std::filesystem::path("C:\\test\\test2");
 
             // string version
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path1).string(), "test/test2");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path1).generic_string(), "test/test2");
 
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path1).string(), "test/test2");
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path2).string(), "test/test2");
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path3).string(), "test2");
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path4).string(), "");
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(win).string(), "test/test2");
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(win2).string(), "test/test2");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path1).generic_string(), "test/test2");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path2).generic_string(), "test/test2");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path3).generic_string(), "test2");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(path4).generic_string(), "");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(win).generic_string(), "test/test2");
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(win2).generic_string(), "test/test2");
         }
 
         TEST(AppAssetRootsTest, MakeAbsolutePathToAppRoot)
         {
-            std::filesystem::path root = Testing::CreateValidAppRoot();
+            std::filesystem::path root = s_TestDir / "AbsoluteToAppRoot";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(root));
             std::unique_ptr<AppAssetRoots> appAssetRoot = std::make_unique<AppAssetRoots>();
             EXPECT_TRUE(appAssetRoot->SetAppRootPath(root));
 
-            std::filesystem::path path1 = root / std::filesystem::path("/test/test2");
+            std::filesystem::path path1 = root / "/test/test2";
             std::filesystem::path path2 = std::filesystem::path("test/test2");
             std::filesystem::path path3 = std::filesystem::path("test/../test2");
             std::filesystem::path path4 = std::filesystem::path("../../../test/test2");
-            std::filesystem::path win = root / std::filesystem::path("test\\test2");
+            std::filesystem::path win = root /"test\\test2";
             std::filesystem::path win2 = std::filesystem::path("C:\\test\\test2");
 
             // string version
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path1).string(), (root / std::filesystem::path("test/test2")).string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path1).generic_string(), (root / "test/test2").generic_string());
 
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path1).string(), (root / std::filesystem::path("test/test2")).string());
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path2).string(), (root / std::filesystem::path("test/test2")).string());
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path3).string(), (root / std::filesystem::path("test2")).string());
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path4).string(), "");
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(win).string(), (root / std::filesystem::path("test/test2")).string());
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(win2).string(), (root / std::filesystem::path("test/test2")).string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path1).generic_string(), (root / std::filesystem::path("test/test2")).generic_string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path2).generic_string(), (root / std::filesystem::path("test/test2")).generic_string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path3).generic_string(), (root / std::filesystem::path("test2")).generic_string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(path4).generic_string(), "");
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(win).generic_string(), (root / std::filesystem::path("test/test2")).generic_string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(win2).generic_string(), (root / std::filesystem::path("test/test2")).generic_string());
         }
 
         TEST(AppAssetRootsTest, ReplaceTokens)
         {
-            std::filesystem::path root = Testing::CreateValidAppRoot();
+            std::filesystem::path root = s_TestDir / "ReplaceTokens";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(root));
             std::unique_ptr<TestAppAssetRoots> appAssetRoot = std::make_unique<TestAppAssetRoots>();
             EXPECT_TRUE(appAssetRoot->SetAppRootPath(root));
 
@@ -251,18 +246,18 @@ namespace v8App
             std::filesystem::path expectedModulesToken = std::filesystem::path("modules/js/test.js");
             std::filesystem::path expexctedResourcesToken = std::filesystem::path("resources/test.txt");
 
-            EXPECT_EQ(appAssetRoot->TestReplaceTokens(appToken).string(), (root / expectedAppToken).string());
-            EXPECT_EQ(appAssetRoot->TestReplaceTokens(jsToken).string(), (root / expectedJsToken).string());
-            EXPECT_EQ(appAssetRoot->TestReplaceTokens(modulesToken).string(), (root / expectedModulesToken).string());
-            EXPECT_EQ(appAssetRoot->TestReplaceTokens(resourcesToken).string(), (root / expexctedResourcesToken).string());
+            EXPECT_EQ(appAssetRoot->TestReplaceTokens(appToken).generic_string(), (root / expectedAppToken).generic_string());
+            EXPECT_EQ(appAssetRoot->TestReplaceTokens(jsToken).generic_string(), (root / expectedJsToken).generic_string());
+            EXPECT_EQ(appAssetRoot->TestReplaceTokens(modulesToken).generic_string(), (root / expectedModulesToken).generic_string());
+            EXPECT_EQ(appAssetRoot->TestReplaceTokens(resourcesToken).generic_string(), (root / expexctedResourcesToken).generic_string());
 
             // check that the Make versions replace the token as well
-            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(jsToken).string(), expectedJsToken.string());
-            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(jsToken).string(), (root / expectedJsToken).string());
+            EXPECT_EQ(appAssetRoot->MakeRelativePathToAppRoot(jsToken).generic_string(), expectedJsToken.generic_string());
+            EXPECT_EQ(appAssetRoot->MakeAbsolutePathToAppRoot(jsToken).generic_string(), (root / expectedJsToken).generic_string());
 
             // that the tokenis only replace when it's at the beginning
             std::filesystem::path path = std::filesystem::path("js/%RESOURCES%/test.js");
-            EXPECT_EQ(appAssetRoot->TestReplaceTokens(path).string(), path.string());
+            EXPECT_EQ(appAssetRoot->TestReplaceTokens(path).generic_string(), path.generic_string());
         }
 
     }

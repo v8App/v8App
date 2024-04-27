@@ -10,6 +10,7 @@
 #include "Logging/Log.h"
 #include "Logging/ILogSink.h"
 #include "Utils/Format.h"
+#include "Utils/Paths.h"
 
 #include "TestLogSink.h"
 
@@ -19,8 +20,7 @@ namespace v8App
     {
         TEST(TextAssetTest, GetSetContent)
         {
-            std::filesystem::path tmp = s_TestDir;
-            tmp /= std::filesystem::path("textAsset.txt");
+            std::filesystem::path tmp = s_TestDir /"textAsset.txt";
             TextAsset text(tmp);
 
             EXPECT_EQ("", text.GetContent());
@@ -31,8 +31,7 @@ namespace v8App
 
         TEST(TextAssetTest, ReadWriteAsset)
         {
-            std::filesystem::path tmp = s_TestDir;
-            tmp /= std::filesystem::path("textAsset.txt");
+            std::filesystem::path tmp = s_TestDir / "textAsset.txt";
             std::filesystem::remove(tmp);
             TextAsset text(tmp);
 
@@ -46,6 +45,9 @@ namespace v8App
 
             EXPECT_TRUE(text.ReadAsset());
             EXPECT_EQ(content, text.GetContent());
+
+#ifndef V8APP_WINDOWS
+            //Set file permissions doersn't seem to work on windows so skip this test on windows for now.
 
             TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Error};
             TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
@@ -73,9 +75,9 @@ namespace v8App
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
-
-            std::filesystem::remove(tmp);
             Log::Log::RemoveLogSink(logSink->GetName());
+#endif
+            std::filesystem::remove(tmp);
         }
 
     } // namespace Assets

@@ -10,6 +10,7 @@
 #include "Logging/Log.h"
 #include "Logging/ILogSink.h"
 #include "Utils/Format.h"
+#include "Utils/Paths.h"
 
 #include "TestLogSink.h"
 
@@ -19,8 +20,7 @@ namespace v8App
     {
         TEST(BinaryAssetTest, GetSetContent)
         {
-            std::filesystem::path tmp = s_TestDir;
-            tmp /= std::filesystem::path("binraryAsset.bin");
+            std::filesystem::path tmp = s_TestDir / "binraryAsset.bin";
             BinaryAsset binary(tmp);
 
             EXPECT_TRUE(binary.GetContent().empty());
@@ -31,8 +31,7 @@ namespace v8App
 
         TEST(BinaryAssetTest, ReadWriteAsset)
         {
-            std::filesystem::path tmp = s_TestDir;
-            tmp /= std::filesystem::path("binraryAsset.bin");
+            std::filesystem::path tmp = s_TestDir / "binraryAsset.bin";
             std::filesystem::remove(tmp);
             BinaryAsset binary(tmp);
 
@@ -47,6 +46,8 @@ namespace v8App
             EXPECT_TRUE(binary.ReadAsset());
             EXPECT_EQ(content, binary.GetContent());
 
+#ifndef V8APP_WINDOWS
+            //Set file permissions doersn't seem to work on windows so skip this test on windows for now.
             TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Error};
             TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
             std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
@@ -58,7 +59,8 @@ namespace v8App
                 Log::MsgKey::Function,
                 Log::MsgKey::Line};
 
-            std::filesystem::permissions(tmp, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write, std::filesystem::perm_options::remove);
+            std::error_code code;
+            std::filesystem::permissions(tmp, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write, std::filesystem::perm_options::remove, code);
 
             EXPECT_FALSE(binary.ReadAsset());
             Log::LogMessage expected = {
@@ -73,9 +75,10 @@ namespace v8App
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
-
-            std::filesystem::remove(tmp);
             Log::Log::RemoveLogSink(logSink->GetName());
+
+#endif
+            std::filesystem::remove(tmp);
         }
 
     } // namespace Assets

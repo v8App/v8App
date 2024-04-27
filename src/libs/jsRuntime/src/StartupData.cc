@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#include "v8.h"
+#include "v8/v8.h"
 #include "ScriptStartupDataManager.h"
 
 namespace v8App

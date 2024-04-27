@@ -8,7 +8,7 @@
 #include <string>
 #include <filesystem>
 
-#include "v8.h"
+#include "v8/v8.h"
 
 namespace v8App
 {

@@ -26,7 +26,7 @@ namespace v8App
                     v8::Local<v8::Object> holder = m_IsProperty ? m_PropertyInfo->Holder()
                                                                 : m_FunctionInfo->Holder();
 
-                    if(ConvertFromV8(m_Isolate, holder, outHolder))
+                    if (ConvertFromV8(m_Isolate, holder, outHolder))
                     {
                         return true;
                     }
@@ -40,7 +40,7 @@ namespace v8App
                     v8::Local<v8::Value> data = m_IsProperty ? m_PropertyInfo->Data()
                                                              : m_FunctionInfo->Data();
 
-                    if(ConvertFromV8(m_Isolate, data, outData))
+                    if (ConvertFromV8(m_Isolate, data, outData))
                     {
                         return true;
                     }
@@ -48,16 +48,38 @@ namespace v8App
                     return false;
                 }
 
-                template<typename T>
-                bool GetNextArg(T* outType)
+                template <typename T>
+                bool GetNextArg(T *outType)
                 {
-                    if(InsufficientArgs()) {
+                    if (InsufficientArgs())
+                    {
                         return false;
                     }
-                    v8::Local<v8::Value> v8Value = (*m_FunctionInfo)[m_NextArg++];
-                    if(ConvertFromV8(m_Isolate, v8Value, outType))
+                    v8::Local<v8::Value> v8Value;
+                    if (m_CppArgsReveresed)
+                    {
+                        v8Value = (*m_FunctionInfo)[m_NextArg--];
+                    }
+                    else
+                    {
+                        v8Value = (*m_FunctionInfo)[m_NextArg++];
+                    }
+                    if (ConvertFromV8(m_Isolate, v8Value, outType))
                     {
                         return true;
+                    }
+                    // cpp arguments may be in reverse order from the js arguments
+                    if (m_CppArgsReveresed == false)
+                    {
+                        size_t tempNext = Length() - 1;
+                        v8Value = (*m_FunctionInfo)[tempNext];
+
+                        if (ConvertFromV8(m_Isolate, v8Value, outType))
+                        {
+                            m_CppArgsReveresed = true;
+                            m_NextArg = tempNext-1;
+                            return true;
+                        }
                     }
                     m_AllConverted = false;
                     return false;
@@ -80,16 +102,25 @@ namespace v8App
                     return true;
                 }
 
-                v8::Isolate* GetIsolate()
+                v8::Isolate *GetIsolate()
                 {
                     return m_Isolate;
                 }
 
-                bool InsufficientArgs() const{
-                    return m_NextArg >= Length();
+                bool InsufficientArgs() const
+                {
+                    if (m_CppArgsReveresed)
+                    {
+                        return m_NextArg < 0;
+                    }
+                    else
+                    {
+                        return m_NextArg >= Length();
+                    }
                 }
 
-                bool NoConversionErrors() const{
+                bool NoConversionErrors() const
+                {
                     return m_AllConverted;
                 }
 
@@ -97,23 +128,24 @@ namespace v8App
                 {
                     return m_NextArg;
                 }
-                
+
                 void ThrowError() const;
                 void ThrowTypeError(const std::string inError) const;
 
-                //help determine if whic of the 2 below are safe to call.
+                // help determine if whic of the 2 below are safe to call.
                 bool IsPropertyCallback() const { return m_IsProperty; }
 
                 // When using these 2 make sure that the you use the right one as the types are
                 // are a union and you if you request the wrong type you'll end up with at least a crash
-                //or worse a hard to track down bug.
-                const v8::FunctionCallbackInfo<v8::Value>& GetFunctionInfo() { return *m_FunctionInfo; }
-                const v8::PropertyCallbackInfo<v8::Value>& GetPropertyInfo() { return *m_PropertyInfo; }
+                // or worse a hard to track down bug.
+                const v8::FunctionCallbackInfo<v8::Value> &GetFunctionInfo() { return *m_FunctionInfo; }
+                const v8::PropertyCallbackInfo<v8::Value> &GetPropertyInfo() { return *m_PropertyInfo; }
 
             private:
-                v8::Isolate* m_Isolate;
+                v8::Isolate *m_Isolate;
                 bool m_IsProperty = false;
                 bool m_AllConverted = true;
+                bool m_CppArgsReveresed = false;
 
                 union
                 {
@@ -123,9 +155,9 @@ namespace v8App
                 size_t m_NextArg = 0;
             };
 
-            std::string V8TypeAsString(v8::Isolate* inIsolate, v8::Local<v8::Value> inValue);
+            std::string V8TypeAsString(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue);
 
-            void ThrowConversionError(V8Arguments* inArgs, size_t inIndex, bool isMemberFunction, const char* inTypeNmae = nullptr);
+            void ThrowConversionError(V8Arguments *inArgs, size_t inIndex, bool isMemberFunction, const char *inTypeNmae = nullptr);
         } // namespace CppBridge
     }     // namespace JSRuntime
 } // namespace v8App

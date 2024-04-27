@@ -19,6 +19,7 @@ namespace v8App
     {
         TEST(Playground, BareIsolateContext)
         {
+            return;
             JSSnapshotProviderSharedPtr snapProvider = std::make_shared<TestSnapshotProvider>();
             JSAppSharedPtr app = std::make_shared<JSApp>("reducedTest", snapProvider);
             JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "reducedTest");

@@ -124,7 +124,8 @@ namespace v8App
             bool foundModules = false;
             bool foundResources = false;
 
-            for (auto const &dirEntry : std::filesystem::directory_iterator(inRootPath))
+            std::error_code err;
+            for (auto const &dirEntry : std::filesystem::directory_iterator(inRootPath, err))
             {
                 std::string filename = dirEntry.path().filename().string();
                 if (dirEntry.is_directory() && dirEntry.path().filename().string() == c_RootJS)
@@ -186,7 +187,7 @@ namespace v8App
                     Utils::VersionString moduleVersion(versionEntry.path().filename().string());
                     if (moduleVersion.IsVersionString())
                     {
-                        std::string moduleNameStr = Utils::NormalizePath((moduleName / versionEntry.path().filename()));
+                        std::string moduleNameStr = (moduleName / versionEntry.path().filename()).generic_string();
                         AddModuleRootPath(moduleNameStr, versionEntry.path());
                         Utils::VersionString latest = GetModulesLatestVersion(moduleName.string());
                         if (latest.IsVersionString())

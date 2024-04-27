@@ -77,11 +77,11 @@ namespace v8App
             std::filesystem::file_time_type jsModTime = std::filesystem::last_write_time(inFilePath);
             std::filesystem::file_time_type jsccModTime;
 
-            ScriptCacheInfo *cacheInfo = GetCachedScript(inFilePath);
+            ScriptCacheInfo *cacheInfo = GetCachedScript(inFilePath.generic_string());
             // no entry yet so build one
             if (cacheInfo == nullptr)
             {
-                cacheInfo = CreateCacheInfo(inFilePath);
+                cacheInfo = CreateCacheInfo(inFilePath.generic_string());
                 if (std::filesystem::exists(cachePath))
                 {
                     jsccModTime = std::filesystem::last_write_time(cachePath);
@@ -110,7 +110,7 @@ namespace v8App
             }
 
             V8LocalString sourceStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_SourceStr);
-            V8LocalString fileStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_FilePath);
+            V8LocalString fileStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_FilePath.generic_string());
             V8ScriptCachedData *cache = nullptr;
             if (cacheInfo->m_Compiled != nullptr)
             {
@@ -122,7 +122,7 @@ namespace v8App
 
         bool CodeCache::HasCodeCache(std::filesystem::path inFilePath)
         {
-            ScriptCacheInfo* info = GetCachedScript(inFilePath);
+            ScriptCacheInfo* info = GetCachedScript(inFilePath.generic_string());
             if(info == nullptr)
             {
                 return false;
@@ -139,11 +139,11 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            ScriptCacheInfo *info = GetCachedScript(inFilePath);
+            ScriptCacheInfo *info = GetCachedScript(inFilePath.generic_string());
             if (info == nullptr)
             {
                 // we don't have the cached script for some reason so construct one.
-                info = CreateCacheInfo(inFilePath);
+                info = CreateCacheInfo(inFilePath.generic_string());
                 if (info == nullptr)
                 {
                     // CreateCacheInfo emits a log

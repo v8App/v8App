@@ -11,7 +11,7 @@
 #include "Logging/Log.h"
 #include "V8Platform.h"
 #include "V8Jobs.h"
-#include "v8.h"
+#include "v8/v8.h"
 #include "JSRuntime.h"
 
 namespace v8App
@@ -224,6 +224,7 @@ namespace v8App
             {
                 m_WorkerRunners[idx]->SetPaused(inPaused);
             }
+            return true;
         }
 
         std::unique_ptr<v8::JobHandle> V8Platform::CreateJobImpl(

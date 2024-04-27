@@ -70,6 +70,7 @@ namespace v8App
             {
                 return false;
             }
+            return true;
         }
 
         void JSApp::DisposeApp()

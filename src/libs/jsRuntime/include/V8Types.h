@@ -1,8 +1,8 @@
 #ifndef __V8_TYPES_H__
 #define __V8_TYPES_H__
 
-#include "v8-platform.h"
-#include "v8.h"
+#include "v8/v8-platform.h"
+#include "v8/v8.h"
 
 namespace v8App
 {

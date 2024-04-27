@@ -21,7 +21,10 @@
 
 std::unique_ptr<Runfiles> s_Runfiles;
 std::filesystem::path s_TestDir;
+
+#ifdef USE_JSRUNTIME
 v8::StartupData s_V8StartupData{nullptr, 0};
+#endif
 
 int main(int argc, char **argv)
 {
@@ -36,6 +39,7 @@ int main(int argc, char **argv)
     for (int x = 0; x < argc; x++)
     {
         std::string arg(argv[x]);
+        //std::cout << arg << std::endl;
 
         if (arg.starts_with("--test-dir="))
         {
@@ -73,7 +77,7 @@ int main(int argc, char **argv)
 
         if (testDirEnv == nullptr)
         {
-            s_TestDir = std::filesystem::temp_directory_path();
+            s_TestDir = std::filesystem::canonical(std::filesystem::temp_directory_path());
         }
         else
         {
@@ -81,11 +85,16 @@ int main(int argc, char **argv)
         }
 
         auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::string time_str(19, '\0');
-        std::strftime(&time_str[0], time_str.size(), "%Y_%m_%d-%H_%M_%S", std::localtime(&now));
-
+        char time_chars[20];
+        std::string time_str;
+        std::strftime(&time_chars[0], 20, "%Y_%m_%d-%H_%M_%S", std::localtime(&now));
+        //cause windwos relstive paths are screwy
+        #ifdef V8APP_WINDOWS
+            //time_str = "C:";
+            time_str += time_chars;
+        #endif
         // create temp directory for test
-        s_TestDir /= std::filesystem::path(time_str);
+        s_TestDir /= time_str;
 
         // add it to the arguments so it gets passed to any future invocation of the app
         testDirArg += s_TestDir.string();
@@ -118,8 +127,8 @@ int main(int argc, char **argv)
             std::cout << "Copying test files from: " << testFileDir << std::endl;
 
             std::string cmd = "cp -r " + testFileDir.string() + "/* " + s_TestDir.string();
-#if defined(V8_APP_WIN)
-            cmd = "xcopy "+testFileDir.string()+"\\* "+s_TestDir.string)+" /E /R /K /O /Y ";
+#if defined(V8APP_WINDOWS)
+            cmd = "xcopy \""+testFileDir.string()+"\\\" \""+s_TestDir.string()+"\" /E /Q";
 #endif
             if (std::system(cmd.c_str()) != 0)
             {
@@ -130,7 +139,11 @@ int main(int argc, char **argv)
     }
 
 #ifdef USE_JSRUNTIME
+#if defined(V8_APP_WIN)
+    std::filesystem::path logPath = s_TestDir / std::filesystem::path("C:log");
+    #else
     std::filesystem::path logPath = s_TestDir / std::filesystem::path("log");
+    #endif
     std::filesystem::create_directories(logPath);
     logPath /= std::filesystem::path("UnitTestLog.json");
     //only omit it if we detected we are a child run from like  death test

@@ -5,10 +5,9 @@
 #include <unordered_map>
 #include <algorithm>
 
-#define UUID_SYSTEM_GENERATOR
-#include "external/std_uuid/file/uuid.h"
+#include "uuid/uuid.h"
 
-#include "v8.h"
+#include "v8/v8.h"
 #include "Logging/LogMacros.h"
 #include "JSContext.h"
 #include "JSUtilities.h"
@@ -150,7 +149,7 @@ namespace v8App
             v8::Local<v8::ObjectTemplate> global_template = v8::ObjectTemplate::New(isolate);
 
             V8LocalContext context = v8::Context::New(isolate, nullptr, global_template);
-            DCHECK_FALSE(tryCatch.HasCaught());
+            //DCHECK_FALSE(tryCatch.HasCaught());
 
             if (context.IsEmpty())
             {

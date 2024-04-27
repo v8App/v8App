@@ -9,6 +9,7 @@
 
 #include "Logging/LogJSONFile.h"
 #include "Assets/TextAsset.h"
+#include "Utils/Paths.h"
 
 namespace v8App
 {
@@ -37,8 +38,8 @@ namespace v8App
 
         TEST(LogJSONFileTest, SinkMessage)
         {
-            std::filesystem::path logFile = s_TestDir / std::filesystem::path("log/JSONTest.log");
-            std::filesystem::create_directory(s_TestDir / std::filesystem::path("log"));
+            std::filesystem::path logFile = s_TestDir / "log/JSONTest.log";
+            std::filesystem::create_directory(s_TestDir /"log");
 
             std::unique_ptr<ILogSink> log = std::make_unique<LogJSONFile>("Test", logFile);
 
@@ -64,7 +65,7 @@ namespace v8App
             EXPECT_EQ(logOutput.GetContent(), "{\"App\":\"Test\",\"Test\":\"Test\"}\n{\"App\":\"Test\",\"Test\":\"Test\"}\n");
 
             // fail to open file
-            logFile = s_TestDir / std::filesystem::path("log/JSONTestDir.log");
+            logFile = s_TestDir / "log/JSONTestDir.log";
             std::filesystem::create_directory(logFile);
             testing::internal::CaptureStderr();
             log = std::make_unique<LogJSONFile>("Test", logFile);

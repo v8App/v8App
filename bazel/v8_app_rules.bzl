@@ -3,18 +3,18 @@ load("@bazel_skylib//lib:selects.bzl", "selects")
 def _default_args():
     return struct(
         defines = select({
-                      "//:windows": [
+                      "@platforms//os:windows": [
                           "UNICODE",
                           "_UNICODE",
                           "V8APP_WINDOWS",
                       ],
-                      "//:macos": [
+                      "@platforms//os:macos": [
                           "V8APP_MACOS",
                       ],
-                      "//:ios": [
+                      "@platforms//os:ios": [
                           "V8APP_IOS",
                       ],
-                      "//:android": [
+                      "@platforms//os:android": [
                           "V8APP_ANDROID",
                       ],
                       "//conditions:default": [],
@@ -25,22 +25,33 @@ def _default_args():
                       "//conditions:default": [],
                   }) +
                   selects.with_or({
+                      ("//:windows-debug", "//:macos-debug", "//:ios-debug", "//:android-debug"): ["V8_ENABLE_CHECKS"],
+                  }) +
+                  selects.with_or({
                       ("@platforms//cpu:x86_64", "@platforms//cpu:arm64"): ["PLATFOEM_64"],
                       ("@platforms//cpu:x86_32", "@platforms//cpu:armv7"): ["PLATFORM_32"],
                   }) +
                   ["V8_COMPRESS_POINTERS"],
         copts = select({
-            "//:windows": [
-                "-std:c++20",
-            ],
+            "@platforms//os:windows": ["-std:c++20"],
             "//conditions:default": ["-std=c++20"],
+        }) + select({
+            "@platforms//os:windows": ["/MT"],
+            "//:windows-debug": ["/MTd"],
         }),
         linkopts = select({
-            "//:windows": [
+            "@platforms//os:windows": [
                 "winmm.lib",
-                "advapi32.lib",
+                "Advapi32.lib",
+                "Ole32.lib",
             ],
-            "//:macos": {
+            "//:windows-debug": [
+                "DbgHelp.lib",
+                "winmm.lib",
+                "Advapi32.lib",
+                "Ole32.lib",
+            ],
+            "@platforms//os:macos": {
             },
             "//conditions:default": [
                 "-pthread",
@@ -88,7 +99,6 @@ def v8App_binary(
         includes = includes,
         copts = copts + default.copts,
         linkopts = linkopts + default.linkopts,
-        linkstatic = 1,
         **kwargs
     )
 
@@ -115,6 +125,5 @@ def v8App_test(
         includes = includes,
         copts = copts + default.copts,
         linkopts = linkopts + default.linkopts,
-        linkstatic = 1,
         **kwargs
     )

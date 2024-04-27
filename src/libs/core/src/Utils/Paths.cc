@@ -8,137 +8,87 @@ namespace v8App
 {
     namespace Utils
     {
-        /**
-         * Extracts the Windows driver letter or UNC prefix from the path and returns it.
-         */
-        std::string ExtractWindowsUNC(std::string inPath)
-        {
-            size_t start = 0;
-            if (inPath.find_first_of('\\') != std::string::npos)
-            {
-                if (inPath[1] == ':')
-                {
-                    start = 2;
-                }
-                if (inPath.substr(0, 2) == "\\\\")
-                {
-                    size_t pos = inPath.find_first_of("\\", 3);
-                    if (pos != std::string::npos)
-                    {
-                        pos = inPath.find_first_of("\\", pos + 1);
-                        if (pos != std::string::npos)
-                        {
-                            start = pos;
-                        }
-                    }
-                }
-            }
-            return start == 0 ? "" : inPath.substr(0, start);
-        }
-
-        /**
-         * Converts \ to / exccpet where it escapes a space as in '\ '
-         * By default will remove the drive or UNC if it exists.
-         * If the drive is not removed it will preserve the \'s in it.
-         */
-        std::filesystem::path NormalizePath(std::filesystem::path inPath, bool removeDrive)
-        {
-            std::string path = inPath.string();
-            std::string windowsDrive = ExtractWindowsUNC(path);
-            if (windowsDrive.length())
-            {
-                path = path.substr(windowsDrive.length());
-            }
-            if (removeDrive)
-            {
-                windowsDrive = "";
-            }
-
-            // we need to walk the entire string cause we need to be careful of escaped spaces
-            std::string converted;
-            size_t pathLength = path.length();
-            for (size_t x = 0; x < pathLength; x++)
-            {
-                char strChar = path[x];
-                if (strChar == '\\')
-                {
-                    if (x + 1 < pathLength)
-                    {
-                        if (path[x + 1] != ' ')
-                        {
-                            strChar = '/';
-                        }
-                    }
-                    else
-                    {
-                        strChar = '/';
-                    }
-                }
-                converted += strChar;
-            }
-
-            return windowsDrive + converted;
-        }
-
-        /**
-         * Make a relative path from the specified root. If the relative path escapes the specified root then an empty path is returned.
-         * If an absolut path is passed in the it's consdered absolute to the passed in root path.
-         * Example abs /test/test.txt, root = /opt/JSApp then the reltive path becomes test/test.txt.
-         * NOTE For a windows path it will rmeove the drive or UNC from the path
-         */
         std::filesystem::path MakeRelativePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot)
         {
-            inPath = NormalizePath(inPath);
-            if (inPath.is_absolute())
+            std::string gen_path = inPath.generic_string();
+            std::string gen_root = inRoot.generic_string();
+            std::string root_root_name = inRoot.root_name().generic_string();
+            std::string path_root_name = inPath.root_name().generic_string();
+
+            //Extract windows root names ie drive letter so we can compare posix paths and windows paths better
+            //Windows root names have a size where as posix are empty
+            if(path_root_name.size() != 0)
             {
-                std::filesystem::path absRoot = inRoot;
-                if (inPath.string().starts_with(inRoot.string()) == false)
+                gen_path = gen_path.substr(path_root_name.size());
+            }
+            if(root_root_name.size() != 0)
+            {
+                gen_root = gen_root.substr(root_root_name.size());
+            }
+
+            if (inPath.is_absolute() || inPath.has_root_path())
+            {
+                if (gen_path.starts_with(gen_root))
                 {
-                    // we want to append the app root to the path but the / at the start will prevent it so
-                    // force it relative to / to remove it.
-                    absRoot = std::filesystem::path("/");
+                    inPath = std::filesystem::path(gen_path.substr(gen_root.size()));
+                    gen_path = inPath.generic_string();
                 }
-                inPath = inPath.lexically_relative(absRoot);
+                if(inPath.has_root_path())
+                {
+                    std::string root = inPath.root_path().generic_string();
+                    inPath = std::filesystem::path(inPath.generic_string().substr(root.size()));
+                }
             }
             inPath = inRoot / inPath;
+            // resolve any dots paths
+            inPath = std::filesystem::weakly_canonical(inPath);
+            gen_path = inPath.generic_string();
 
-            inPath = inPath.lexically_normal();
-            if (inPath.string().starts_with(inRoot.string()) == false)
+            if (gen_path.starts_with(inRoot.generic_string()) == false)
             {
                 return std::filesystem::path();
             }
             return inPath.lexically_relative(inRoot);
         }
 
-        /**
-         * Make an absolut path from the specified root. If the relative path escapes the specified root then an empty path is returned.
-         * If an absolut path is passed in the it's consdered absolute to the passed in root path.
-         * Example abs /test/test.txt, root = /opt/JSApp then the reltive path becomes test/test.txt.
-         * NOTE For a windows path it will rmeove the drive or UNC from the path
-         */
         std::filesystem::path MakeAbsolutePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot)
         {
-            inPath = NormalizePath(inPath);
-            if (inPath.is_absolute())
+            std::string gen_path = inPath.generic_string();
+            std::string gen_root = inRoot.generic_string();
+            std::string root_root_name = inRoot.root_name().generic_string();
+            std::string path_root_name = inPath.root_name().generic_string();
+
+            //Extract windows root names ie drive letter so we can compare posix paths and windows paths better
+            //Windows root names have a size where as posix are empty
+            if(path_root_name.size() != 0)
             {
-                std::filesystem::path absRoot = inRoot;
-                if (inPath.string().starts_with(inRoot.string()))
+                gen_path = gen_path.substr(path_root_name.size());
+            }
+            if(root_root_name.size() != 0)
+            {
+                gen_root = gen_root.substr(root_root_name.size());
+            }
+
+            if (inPath.is_absolute() || inPath.has_root_path())
+            {
+                if (gen_path.starts_with(gen_root) == false)
                 {
-                    return inPath;
+      
+                    std::string root = inPath.root_path().generic_string();
+                    inPath = std::filesystem::path(inPath.generic_string().substr(root.size()));
+                    gen_path = inPath.generic_string();
                 }
-                // we want to append the app root to the path but the / at the start will prevent it so
-                // force it relative to / to remove it.
-                inPath = inPath.lexically_relative(std::filesystem::path("/"));
             }
             inPath = inRoot / inPath;
-            inPath = inPath.lexically_normal();
-            if (inPath.string().starts_with(inRoot.string()) == false)
+            inPath = std::filesystem::weakly_canonical(inPath);
+            gen_path = inPath.generic_string();
+
+            if (gen_path.starts_with(inRoot.generic_string()) == false)
             {
                 return std::filesystem::path();
             }
 
             return inPath;
         }
-
     }
 }
