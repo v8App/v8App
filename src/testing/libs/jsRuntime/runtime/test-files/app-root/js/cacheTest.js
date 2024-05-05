@@ -1,0 +1,1 @@
+function f(){return 4;}(function() { globalThis.Result=f(); })()

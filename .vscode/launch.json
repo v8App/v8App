@@ -8,96 +8,358 @@
             "name": "test libApplication Debug",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/application/",
             "environment": [
-                {"name": "RUNFILES_MANIFEST_FILE", "value": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe.runfiles/MANIFEST"},
-                {"name": "TEST_SRCDIR", "value": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe.runfiles"},
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.exe.runfiles"
+                },
             ],
             "console": "externalTerminal",
-            "preLaunchTask": "Bazel Build testApplication Release"
+            "preLaunchTask": "Bazel Build testApplication Release",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplicatione.runfiles",
+                    "": "test",
+                },
+           }
         },
         {
             "name": "test libApplication Release",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/application/",
             "environment": [
-                {"name": "RUNFILES_MANIFEST_FILE", "value": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe.runfiles/MANIFEST"},
-                {"name": "TEST_SRCDIR", "value": "${workspaceFolder}/bazel-bin/libs/application/testApplication.exe.runfiles"},
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.exe.runfiles"
+                },
             ],
             "console": "externalTerminal",
-            "preLaunchTask": "Bazel Build testApplication Debug"
+            "preLaunchTask": "Bazel Build testApplication Debug",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/application/testApplication.runfiles",
+                },
+           }
         },
         {
             "name": "test libCore Release",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/core/",
             "environment": [
-                {"name": "RUNFILES_MANIFEST_FILE", "value": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe.runfiles/MANIFEST"},
-                {"name": "TEST_SRCDIR", "value": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe.runfiles"},
-                {"name": "VarExists", "value": "test"},
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.exe.runfiles"
+                },
+                {
+                    "name": "VarExists",
+                    "value": "test"
+                },
             ],
             "console": "externalTerminal",
-            "preLaunchTask": "Bazel Build testCore Release"
+            "preLaunchTask": "Bazel Build testCore Release",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.runfiles",
+                    "VarExists": "test",
+                },
+           },
         },
         {
             "name": "test libCore Debug",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/core/",
             "environment": [
-                {"name": "RUNFILES_MANIFEST_FILE", "value": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe.runfiles/MANIFEST"},
-                {"name": "TEST_SRCDIR", "value": "${workspaceFolder}/bazel-bin/libs/core/testCore.exe.runfiles"},
-                {"name": "VarExists", "value": "test"},
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.exe.runfiles"
+                },
+                {
+                    "name": "VarExists",
+                    "value": "test"
+                },
             ],
             "console": "externalTerminal",
-            "preLaunchTask": "Bazel Build testCore Debug"
+            "preLaunchTask": "Bazel Build testCore Debug",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/core/testCore.runfiles",
+                    "VarExists": "test",
+                },
+            }
+        },
+        {
+            "name": "test libJSRuntimePlatform Release",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.exe.runfiles"
+                },
+            ],
+            "console": "externalTerminal",
+            "preLaunchTask": "Bazel Build testJSRuntimePlatform Release",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.runfiles",
+                },
+           }
+        },
+        {
+            "name": "test libJSRuntimePlatform Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.exe.runfiles"
+                },
+            ],
+            "console": "externalTerminal",
+            "preLaunchTask": "Bazel Build testJSRuntimePlatform Debug",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimePlatform.runfiles",
+                },
+           }
+        },
+        {
+            "name": "test libJSRuntimeCore Release",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.exe.runfiles"
+                },
+            ],
+            "envFile": "${workspaceFolder}/bazel-bin/src/testing/test.env",
+            "console": "externalTerminal",
+            "preLaunchTask": "Bazel Build testJSRuntimeCore Release",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.runfiles",
+                },
+           }
+        },
+        {
+            "name": "test libJSRuntimeCore Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.exe.runfiles"
+                },
+            ],
+            "envFile": "${workspaceFolder}/bazel-bin/src/testing/test.env",
+            "console": "externalTerminal",
+            "preLaunchTask": "Bazel Build testJSRuntimeCore Debug",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntimeCore.runfiles",
+                },
+           }
         },
         {
             "name": "test libJSRuntime Release",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/",
             "environment": [
-                {"name": "RUNFILES_MANIFEST_FILE", "value": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe.runfiles/MANIFEST"},
-                {"name": "TEST_SRCDIR", "value": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe.runfiles"},
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe.runfiles"
+                },
+                {
+                    "name":"TestFiles",
+                    "value":"v8App/src/testing/libs/jsRuntime/runtime/test-files"
+                },
             ],
-            "envFile": "${workspaceFolder}/bazel-bin/libs/jsRuntime/test.env",
+            "envFile": "${workspaceFolder}/bazel-bin/src/testing/test.env",
             "console": "externalTerminal",
-            "preLaunchTask": "Bazel Build testJSRuntime Release"
+            "preLaunchTask": "Bazel Build testJSRuntime Release",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles",
+                    "TestFiles":"v8App/src/testing/libs/jsRuntime/runtime/test-files",
+                },
+           }
         },
         {
             "name": "test libJSRuntime Debug",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/",
             "environment": [
-                {"name": "RUNFILES_MANIFEST_FILE", "value": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe.runfiles/MANIFEST"},
-                {"name": "TEST_SRCDIR", "value": "${workspaceFolder}/bazel-bin/libs/jsRuntime/testJSRuntime.exe.runfiles"},
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.exe.runfiles"
+                },
+                {
+                    "name":"TestFiles",
+                    "value":"v8App/src/testing/libs/jsRuntime/runtime/test-files"
+                },
             ],
-            "envFile": "${workspaceFolder}/bazel-bin/libs/jsRuntime/test.env",
+            "envFile": "${workspaceFolder}/bazel-bin/src/testing/test.env",
             "console": "externalTerminal",
-            "preLaunchTask": "Bazel Build testJSRuntime Debug"
-        }
-        
+            "preLaunchTask": "Bazel Build testJSRuntime Debug",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/libs/jsRuntime/testJSRuntime.runfiles",
+                    "TestFiles":"v8App/src/testing/libs/jsRuntime/runtime/test-files",
+                },
+           }
+        },
+        {
+            "name": "Hello World Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.exe.runfiles"
+                },
+                {
+                    "name":"TestFiles",
+                    "value":"v8App/src/testing//runtime/test-files"
+                },
+                {
+                    "name":"V8_ICU_DATA",
+                    "value":"C:/Users/dorml/github/v8App/third_party/v8/win-x64-debug/icudtl.dat"
+                },
+                {
+                    "name":"V8_SNAPSHOT_BIN",
+                    "value":"C:/Users/dorml/github/v8App/third_party/v8/win-x64-debug/snapshot_blob.bin"
+                },
+            ],
+            "console": "externalTerminal",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/helloWorld",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/helloWorld.runfiles",
+                        "V8_ICU_DATA":"/Users/dormlock/github/v8App/third_party/v8/macos-arm64-debug/icudtl.dat",
+                        "V8_SNAPSHOT_BIN":"/Users/dormlock/github/v8App/third_party/v8/macos-arm64-debug/snapshot_blob.bin",
+                    },
+           }
+        },
     ]
 }

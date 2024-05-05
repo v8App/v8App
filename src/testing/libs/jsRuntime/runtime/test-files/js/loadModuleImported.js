@@ -1,0 +1,1 @@
+export const testInt = 5;

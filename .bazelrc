@@ -1,2 +1,4 @@
 startup --windows_enable_symlinks
+build:windows --features=fully_static_link
 build:windows --features=static_link_msvcrt
+#build:windows --dynamic_mode=off
