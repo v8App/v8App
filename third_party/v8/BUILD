@@ -39,6 +39,7 @@ cc_library(
         "//:macos-x86_64-debug":glob(['macos-x64-debug/*.a']),
         
     }),
+    includes = ["include"],
     include_prefix="v8",
     strip_include_prefix="include",
     visibility = ["//visibility:public"],

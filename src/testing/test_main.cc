@@ -88,11 +88,7 @@ int main(int argc, char **argv)
         char time_chars[20];
         std::string time_str;
         std::strftime(&time_chars[0], 20, "%Y_%m_%d-%H_%M_%S", std::localtime(&now));
-        //cause windwos relstive paths are screwy
-        #ifdef V8APP_WINDOWS
-            //time_str = "C:";
-            time_str += time_chars;
-        #endif
+        time_str += time_chars;
         // create temp directory for test
         s_TestDir /= time_str;
 

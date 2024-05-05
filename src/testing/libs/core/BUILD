@@ -6,7 +6,7 @@ v8App_test(
     srcs = [
         "Assets/AppAssetRootsTest.cc",
         "Assets/BaseAssettest.cc",
-        "Assets/BinaryAssettest.cc",
+        "Assets/BinaryAssetTest.cc",
         "Assets/TextAssetTest.cc",
         "Logging/LogDeathTest.cc",
         "Logging/LogJSONFileTest.cc",

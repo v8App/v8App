@@ -53,13 +53,13 @@
 			"type": "shell",
 			"command": "bazel build //src/testing/libs/core:testCore",
 			"windows":{
-				"command": "bazel build //src/testing/libs/core:testCore -c dbg"
+				"command": "bazel build //src/testing/libs/core:testCore"
 			},
 			"label": "Bazel Build testCore Release"
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //src/testing/libs/core:testCore -c dbg",
+			"command": "bazel build //src/testing/libs/core:testCore -c dbg --subcommands",
 			"windows":{
 				"command": "bazel build //src/testing/libs/core:testCore --config=config -c dbg"
 			},

@@ -6,6 +6,7 @@ v8App_library(
         "TestLogSink.cc",
     ],
     hdrs = [
+        "TestFiles.h",
         "TestLogSink.h",
         "TestTime.h",
         "TestTime.hpp",

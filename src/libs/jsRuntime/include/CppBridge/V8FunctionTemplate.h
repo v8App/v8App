@@ -131,8 +131,6 @@ namespace v8App
                     using HolderInstType = CallbackHolder<Functor>;
                     HolderInstType *holder = static_cast<HolderInstType *>(holderBase);
 
-                    int numArgs = inArgs->Length();
-
                     InvokeCallback(inArgs, holder->m_Callback,
                                    std::move(ConvertArgument<Args>(inArgs, false))...);
                 }

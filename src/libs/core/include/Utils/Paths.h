@@ -13,6 +13,17 @@ namespace v8App
     namespace Utils
     {
         /**
+         * Extracts the Windows driver letter or UNC prefix from the path and returns it.
+         */
+        std::string ExtractWindowsUNC(std::string inPath);
+
+        /**
+         * Converts \ to / exccpet where it escapes a space as in '\ '
+         * By default keeps the windows drive leter
+         */
+        std::filesystem::path NormalizePath(std::filesystem::path inPathe, bool inRemoveDrive = false);
+
+        /**
          * Make a relative path from the specified root. If the relative path escapes the specified root then an empty path is returned.
          * If an absolut path is passed in the it's consdered absolute to the passed in root path.
          * Example abs /test/test.txt, root = /opt/JSApp then the relative path becomes test/test.txt.

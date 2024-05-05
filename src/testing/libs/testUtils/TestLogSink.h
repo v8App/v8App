@@ -39,8 +39,6 @@ namespace v8App
 
             static const std::string GlobalTestSinkName;
         protected:
-            TestLogSink()  = default;
-
             std::deque<Log::LogMessage> m_Message;
             WantsLogLevelsVector m_WantsLevels;
         };

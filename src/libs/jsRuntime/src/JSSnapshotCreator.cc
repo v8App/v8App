@@ -37,7 +37,7 @@ namespace v8App
                 //V8LocalContext lContext = defaultContext->GetLocalContext();
                 V8LocalContext lContext = v8::Context::New(m_App->GetJSRuntime()->GetIsolate());
                 bool empty = lContext.IsEmpty();
-                creator->SetDefaultContext(lContext, v8::SerializeEmbedderFieldsCallback(JSSnapshotCreator::SerializeInternalField));
+                creator->SetDefaultContext(lContext, v8::SerializeInternalFieldsCallback(JSSnapshotCreator::SerializeInternalField));
             }
 
             V8Platform::Get()->SetWorkersPaused(true);

@@ -106,7 +106,6 @@ namespace v8App
                 return cached;
             }
 
-            V8LocalModule rootModule;
             return LoadModuleTree(m_Context, info);
         }
 
@@ -889,7 +888,7 @@ namespace v8App
                     LOG_ERROR(msg);
                     return nullptr;
                 }
-                std::vector<V8LocalString> exportNames{JSUtilities::StringToV8(isolate, "default")};
+                auto exportNames = v8::to_array<V8LocalString>({JSUtilities::StringToV8(isolate, "default")});
                 module = v8::Module::CreateSyntheticModule(isolate, JSUtilities::StringToV8(isolate, importPath.generic_string()), exportNames, JSContextModules::JSONEvalutionSteps);
                 inModuleInfo->SetV8Module(module);
                 inModuleInfo->SetV8JSON(parsedJSON);

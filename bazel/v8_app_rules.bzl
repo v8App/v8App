@@ -26,10 +26,12 @@ def _default_args():
                   }) +
                   selects.with_or({
                       ("//:windows-debug", "//:macos-debug", "//:ios-debug", "//:android-debug"): ["V8_ENABLE_CHECKS"],
+                      "//conditions:default": [],
                   }) +
                   selects.with_or({
                       ("@platforms//cpu:x86_64", "@platforms//cpu:arm64"): ["PLATFOEM_64"],
                       ("@platforms//cpu:x86_32", "@platforms//cpu:armv7"): ["PLATFORM_32"],
+                      "//conditions:default": [],
                   }) +
                   ["V8_COMPRESS_POINTERS"],
         copts = select({
@@ -38,6 +40,7 @@ def _default_args():
         }) + select({
             "@platforms//os:windows": ["/MT"],
             "//:windows-debug": ["/MTd"],
+            "//conditions:default": [],
         }),
         linkopts = select({
             "@platforms//os:windows": [
