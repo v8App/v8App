@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "d6def0e83360e441d30dfed20172ee583fb7f73b2e822bd0acace7f70bdc7ca5",
+  "moduleFileHash": "85269287806a96cc21a23e274c558acf67b7627fee65507feef8ed0570dfb750",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -42,7 +42,7 @@
               "tagName": "@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
               "attributeValues": {
                 "strip_prefix": "stduuid-1.2.3",
-                "build_file_content": "\ncc_library(\n    name = \"uuid\",\n    hdrs = glob([\"include/*.h\"]),\n    strip_include_prefix =\"include\",\n    visibility = [\"//visibility:public\"],\n    defines = [\n        \"UUID_SYSTEM_GENERATOR\"\n    ],\n    include_prefix = \"uuid\",\n    linkstatic = 1\n)\n",
+                "build_file_content": "\r\ncc_library(\r\n    name = \"uuid\",\r\n    hdrs = glob([\"include/*.h\"]),\r\n    strip_include_prefix =\"include\",\r\n    visibility = [\"//visibility:public\"],\r\n    defines = [\r\n        \"UUID_SYSTEM_GENERATOR\"\r\n    ],\r\n    include_prefix = \"uuid\",\r\n    linkstatic = 1\r\n)\r\n",
                 "sha256": "0f867768ce55f2d8fa361be82f87f0ea5e51438bc47ca30cd92c9fd8b014e84e",
                 "urls": [
                   "https://github.com/mariusbancila/stduuid/archive/v1.2.3.zip"

@@ -77,9 +77,9 @@ namespace v8App
 
         std::filesystem::path MakeRelativePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot)
         {
-#ifndef V8APP_WINDOW
-            std::string winPathDrive = ExtractWindowsUNC(inPath);
-            std::string winRootDrive = ExtractWindowsUNC(inPath);
+#ifndef V8APP_WINDOWS
+            std::string winPathDrive = ExtractWindowsUNC(inPath.string());
+            std::string winRootDrive = ExtractWindowsUNC(inPath.string());
             inPath = NormalizePath(inPath, true);
             inRoot = NormalizePath(inRoot, true);
 #endif
@@ -127,11 +127,13 @@ namespace v8App
 
         std::filesystem::path MakeAbsolutePathToRoot(std::filesystem::path inPath, std::filesystem::path inRoot)
         {
-#ifndef V8APP_WINDOW
-            std::string winPathDrive = ExtractWindowsUNC(inPath);
-            std::string winRootDrive = ExtractWindowsUNC(inRoot);
+#ifndef V8APP_WINDOWS
+            std::string winPathDrive = ExtractWindowsUNC(inPath.string());
+            std::string winRootDrive = ExtractWindowsUNC(inRoot.string());
             inPath = NormalizePath(inPath, true);
             inRoot = NormalizePath(inRoot, true);
+#else
+            std::string winRootDrive = "";
 #endif
 
             std::string gen_path = inPath.generic_string();

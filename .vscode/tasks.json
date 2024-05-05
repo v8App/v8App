@@ -45,7 +45,7 @@
 			"type": "shell",
 			"command": "bazel build //src/libs/core:core -c dbg",
 			"windows":{
-				"command": "bazel build //src/libs/core:core --config=config -c dbg"
+				"command": "bazel build //src/libs/core:core --config=windows -c dbg"
 			},
 			"label": "Bazel Build libcore Debug"
 		},
@@ -61,7 +61,7 @@
 			"type": "shell",
 			"command": "bazel build //src/testing/libs/core:testCore -c dbg --subcommands",
 			"windows":{
-				"command": "bazel build //src/testing/libs/core:testCore --config=config -c dbg"
+				"command": "bazel build //src/testing/libs/core:testCore --config=windows -c dbg"
 			},
 			"label": "Bazel Build testCore Debug"
 		},

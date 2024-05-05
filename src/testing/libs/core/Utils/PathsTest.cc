@@ -24,14 +24,14 @@ namespace v8App
             std::filesystem::path path7 = std::filesystem::path("\\\\?\\C:\\test\\test.txt");
             std::filesystem::path path8 = std::filesystem::path("\\\\.\\Volume{b75e2c83-0000-0000-0000-602f00000000}\\test\\test.txt");
 
-            EXPECT_EQ(ExtractWindowsUNC(path1), "C:");
-            EXPECT_EQ(ExtractWindowsUNC(path2), "C:");
-            EXPECT_EQ(ExtractWindowsUNC(path3), "");
-            EXPECT_EQ(ExtractWindowsUNC(path4), "");
-            EXPECT_EQ(ExtractWindowsUNC(path5), "\\\\system2\\share");
-            EXPECT_EQ(ExtractWindowsUNC(path6), "\\\\.\\C:");
-            EXPECT_EQ(ExtractWindowsUNC(path7), "\\\\?\\C:");
-            EXPECT_EQ(ExtractWindowsUNC(path8), "\\\\.\\Volume{b75e2c83-0000-0000-0000-602f00000000}");
+            EXPECT_EQ(ExtractWindowsUNC(path1.string()), "C:");
+            EXPECT_EQ(ExtractWindowsUNC(path2.string()), "C:");
+            EXPECT_EQ(ExtractWindowsUNC(path3.string()), "");
+            EXPECT_EQ(ExtractWindowsUNC(path4.string()), "");
+            EXPECT_EQ(ExtractWindowsUNC(path5.string()), "\\\\system2\\share");
+            EXPECT_EQ(ExtractWindowsUNC(path6.string()), "\\\\.\\C:");
+            EXPECT_EQ(ExtractWindowsUNC(path7.string()), "\\\\?\\C:");
+            EXPECT_EQ(ExtractWindowsUNC(path8.string()), "\\\\.\\Volume{b75e2c83-0000-0000-0000-602f00000000}");
         }
 
         TEST(PathsTest, NormalizePath)
