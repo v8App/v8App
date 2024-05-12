@@ -23,9 +23,19 @@ namespace v8App
         class JSSnapshotProvider
         {
         public:
+            JSSnapshotProvider(std::filesystem::path inSnapshotPath = std::filesystem::path()) : m_SnapshotPath(inSnapshotPath) {}
             virtual ~JSSnapshotProvider() = default;
-            virtual bool LoadSnapshotData(std::filesystem::path, JSAppSharedPtr inApp) = 0;
-            virtual const v8::StartupData *GetSnapshotData() = 0;
+            virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path = std::filesystem::path());
+            virtual const v8::StartupData *GetSnapshotData();
+            std::filesystem::path GetSnapshotPath();
+            bool SnapshotLoaded() { return m_Loaded; }
+
+        protected:
+            bool m_Loaded = false;
+            /** Snapshot data */
+            v8::StartupData m_V8StartupData{nullptr, 0};
+            /** Path loaded from in case a new one is loaded */
+            std::filesystem::path m_SnapshotPath;
         };
 
         using JSSnapshotProviderSharedPtr = std::shared_ptr<JSSnapshotProvider>;
@@ -33,13 +43,13 @@ namespace v8App
         class JSApp : public std::enable_shared_from_this<JSApp>
         {
         public:
-            JSApp(std::string inName, JSSnapshotProviderSharedPtr inSnapshotProvider);
+            JSApp(std::string inName, JSSnapshotProviderSharedPtr inSnapshotProvider = JSSnapshotProviderSharedPtr());
             virtual ~JSApp();
 
             /**
              * Initalizes stuff that can't be doe in the constrcutor like shared_from_this.
              */
-            bool InitializeRuntime(std::filesystem::path inAppRoot, std::filesystem::path inSnapshotFile, bool setupForSnapshot = false);
+            bool InitializeApp(std::filesystem::path inAppRoot, bool setupForSnapshot = false);
 
             /**
              * Use by subclasses to do theiir actual init and setup
@@ -102,26 +112,33 @@ namespace v8App
             JSAppSharedPtr CreateSnapshotApp();
 
             /**
-             * Create the snapshot for the app saving in te specified file.
-             */
-            bool CreateSnapshot(std::filesystem::path inSnapshotFile);
-
-           /**
              * Gets the snapshot creator for the app.
              */
-            v8::SnapshotCreator* GetSnapshotCreator();
+            V8SnapshotCreatorSharedPtr GetSnapshotCreator();
 
             /**
              * Is this runtime for creatign a snapshot
              */
             bool IsSnapshotCreator() { return m_IsSnapshotter; }
 
+            void SetSnapshotProvider(JSSnapshotProviderSharedPtr inProvider)
+            {
+                if (inProvider != nullptr)
+                {
+                    m_SnapshotProvider = inProvider;
+                }
+            }
+
+            JSSnapshotProviderSharedPtr GetSnapshotProvider()
+            {
+                return m_SnapshotProvider;
+            }
+
         protected:
             /**
              * Create the JSRuntime
              */
             bool CreateJSRuntime(std::string inName, bool setupForSnapshot, const intptr_t *inExternalReferences);
-
 
             /** The name of the app */
             std::string m_Name;
@@ -146,20 +163,6 @@ namespace v8App
 
             /** The JS rutime for the this app */
             JSRuntimeSharedPtr m_JSRuntime;
-            V8SnapshotCreatorUniquePtr m_Creator;
-        };
-
-        class V8BaseSnapshotProvider : public JSSnapshotProvider
-        {
-        public:
-            virtual bool LoadSnapshotData(std::filesystem::path, JSAppSharedPtr inApp) override;
-            virtual const v8::StartupData *GetSnapshotData() override;
-
-        private:
-            /** Snapshot data */
-            static v8::StartupData s_V8StartupData;
-            /** Path loaded from in case a new one is loaded */
-            static std::filesystem::path s_SnapshotPath;
         };
     }
 }

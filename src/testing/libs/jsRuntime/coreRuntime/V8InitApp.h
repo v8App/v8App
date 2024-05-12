@@ -11,6 +11,7 @@
 #include "test_main.h"
 #include "tools/cpp/runfiles/runfiles.h"
 #include "TestSnapshotProvider.h"
+#include "TestLogSink.h"
 
 #include "Utils/Environment.h"
 
@@ -27,13 +28,17 @@ namespace v8App
         class V8InitApp : public testing::Test
         {
         public:
-            V8InitApp()
+            void SetUp() override
             {
+                // setup the global test log
+                TestUtils::TestLogSink *testSink = TestUtils::TestLogSink::GetGlobalSink();
+                testSink->FlushMessages();
+
                 std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
                 m_App = std::make_shared<JSApp>("testCore", snapProvider);
-                m_App->InitializeRuntime(s_TestDir, "");
+                m_App->InitializeApp(s_TestDir);
             }
-            ~V8InitApp()
+            void TearDown() override
             {
                 m_App->DisposeApp();
                 m_App.reset();

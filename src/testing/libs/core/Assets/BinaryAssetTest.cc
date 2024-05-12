@@ -48,10 +48,9 @@ namespace v8App
 
 #ifndef V8APP_WINDOWS
             //Set file permissions doersn't seem to work on windows so skip this test on windows for now.
-            TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Error};
-            TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
-            std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
-            EXPECT_TRUE(Log::Log::AddLogSink(logSinkObj));
+            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
+            Log::Log::SetLogLevel(Log::LogLevel::Error);
+
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
                 Log::MsgKey::TimeStamp,

@@ -87,6 +87,7 @@ namespace v8App
             EXPECT_EQ(true, runtime->IdleTasksEnabled());
             EXPECT_EQ(nullptr, runtime->GetIsolate());
             EXPECT_EQ(nullptr, runtime->GetSharedIsolate());
+            EXPECT_EQ(nullptr, runtime->GetSnapshotCreator());
             EXPECT_EQ(runtimeName, runtime->GetName());
             EXPECT_NE(runtime->GetForegroundTaskRunner().get(), nullptr);
             EXPECT_EQ(nullptr, JSRuntime::GetJSRuntimeFromV8Isolate(runtime->GetIsolate()));
@@ -121,30 +122,31 @@ namespace v8App
         {
 
             std::vector<intptr_t> testExternal{reinterpret_cast<intptr_t>(nullptr)};
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntimeForSnapshot(m_App, IdleTasksSupport::kIdleTasksEnabled, "testCreateJSRuntimeForSnapshotIdleEnabled");
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(m_App, IdleTasksSupport::kIdleTasksEnabled, "testCreateJSRuntimeForSnapshotIdleEnabled", &s_V8StartupData, testExternal.data(), true);
             EXPECT_TRUE(runtimePtr->IdleTasksEnabled());
             EXPECT_NE(runtimePtr->GetSharedIsolate().get(), nullptr);
+            EXPECT_NE(runtimePtr->GetSnapshotCreator().get(), nullptr);
             EXPECT_NE(runtimePtr->GetIsolate(), nullptr);
             EXPECT_EQ(runtimePtr, JSRuntime::GetJSRuntimeFromV8Isolate(runtimePtr->GetIsolate()));
 
             // we need to init the isolate before we dispoe of it
-            v8::Isolate::CreateParams params;
-            params.snapshot_blob = &s_V8StartupData;
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
+            // v8::Isolate::CreateParams params;
+            // params.snapshot_blob = &s_V8StartupData;
+            // params.array_buffer_allocator =
+            //    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+            // v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
 
             runtimePtr->DisposeRuntime();
             runtimePtr.reset();
 
-            runtimePtr = JSRuntime::CreateJSRuntimeForSnapshot(m_App, IdleTasksSupport::kIdleTasksEnabled, "testCreateJSRuntimeForSnapshotIdleNotEnabled");
-            EXPECT_TRUE(runtimePtr->IdleTasksEnabled());
+            runtimePtr = JSRuntime::CreateJSRuntime(m_App, IdleTasksSupport::kIdleTasksDisabled, "testCreateJSRuntimeForSnapshotIdleNotEnabled", &s_V8StartupData, testExternal.data(), true);
+            EXPECT_FALSE(runtimePtr->IdleTasksEnabled());
 
             // we need to init the isolate before we dispoe of it
-            params.snapshot_blob = &s_V8StartupData;
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
+            // params.snapshot_blob = &s_V8StartupData;
+            // params.array_buffer_allocator =
+            //    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+            // v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
 
             runtimePtr->DisposeRuntime();
             runtimePtr.reset();
@@ -224,10 +226,11 @@ namespace v8App
 
         TEST_F(JSRuntimeTest, GetCreateContext)
         {
-            TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Warn, Log::LogLevel::Error};
-            TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
-            std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
-            EXPECT_TRUE(Log::Log::AddLogSink(logSinkObj));
+            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
+            Log::Log::SetLogLevel(Log::LogLevel::Error);
+            // make sure no message are in the list
+                logSink->FlushMessages();
+
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
                 Log::MsgKey::TimeStamp,
@@ -250,7 +253,6 @@ namespace v8App
                 {Log::MsgKey::LogLevel, "Warn"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
-            logSink->FlushMessages();
 
             EXPECT_EQ(nullptr, runtimePtr->CreateContext("test"));
 

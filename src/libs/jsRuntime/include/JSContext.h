@@ -61,7 +61,7 @@ namespace v8App
             void MoveContext(JSContext &&inContext);
 
             JSRuntimeSharedPtr m_Runtime;
-            V8GlobalContext m_Context;
+            v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> m_Context;
             bool m_Initialized = false;
             JSContextModulesSharedPtr m_Modules;
             std::string m_Name;

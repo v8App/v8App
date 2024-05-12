@@ -14,6 +14,8 @@ namespace v8App
         using V8GlobalContext = v8::Global<v8::Context>;
         using V8MaybeLocalContext = v8::MaybeLocal<v8::Context>;
 
+        using V8PerisitentContext = v8::Persistent<v8::Context>;
+
         using V8LocalModule = v8::Local<v8::Module>;
         using V8GlobalModule = v8::Global<v8::Module>;
         using V8MaybeLocalModule = v8::MaybeLocal<v8::Module>;
@@ -45,12 +47,12 @@ namespace v8App
 
         using V8ScriptSource = v8::ScriptCompiler::Source;
         using V8ScriptSourceUniquePtr = std::unique_ptr<v8::ScriptCompiler::Source>;
-        
+
         using V8LocalUnboundModuleScript = v8::Local<v8::UnboundModuleScript>;
         using V8GlobalUnboundModuleScript = v8::Global<v8::UnboundModuleScript>;
 
         using V8LocalModuleRequst = v8::Local<v8::ModuleRequest>;
-        
+
         using V8IdleTaskUniquePtr = std::unique_ptr<v8::IdleTask>;
         using V8TaskUniquePtr = std::unique_ptr<v8::Task>;
         using V8JobTaskUniquePtr = std::unique_ptr<v8::JobTask>;
@@ -58,7 +60,7 @@ namespace v8App
         using V8IsolateWeakPtr = std::weak_ptr<v8::Isolate>;
         using V8TaskRunnerSharedPtr = std::shared_ptr<v8::TaskRunner>;
 
-        using V8SnapshotCreatorUniquePtr = std::unique_ptr<v8::SnapshotCreator>;
+        using V8SnapshotCreatorSharedPtr = std::shared_ptr<v8::SnapshotCreator>;
 
         using JSAppSharedPtr = std::shared_ptr<class JSApp>;
 

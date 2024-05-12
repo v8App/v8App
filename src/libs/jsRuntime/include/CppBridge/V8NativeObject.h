@@ -60,7 +60,7 @@ namespace v8App
              * to this variable is used to cache the object template on the runtime.
              * 
              * To make sure that a wrapped object gets created correctly subclasses should make their construtors
-             * protected and have a CreteObject method that returns a V*NativeObjHandle otherwise the c++ object
+             * protected and have a CreteObject method that returns a V8NativeObjHandle otherwise the c++ object
              * will leak since the weakclass backs wouldn't be setup to delete it when the V8 side is disposed of.
              */
             template <typename T>

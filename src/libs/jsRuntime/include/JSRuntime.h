@@ -55,18 +55,13 @@ namespace v8App
             explicit JSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName);
             virtual ~JSRuntime();
 
-            JSRuntime(JSRuntime &&) = default; // TODO: use non default cause of the wekref
+            JSRuntime(JSRuntime && inRuntime); // TODO: use non default cause of the wekref
 
             /**
-             * Creates a JSRuntime and V8 isolate and inializes the iisolate for use.
+             * Creates a JSRuntime and V8 isolate and inializes the isolate for use.
              */
             static JSRuntimeSharedPtr CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
-                                                      const v8::StartupData *inSnapshot = nullptr, const intptr_t *inExternalReferences = nullptr);
-
-            /**
-             * Creaates a JSRuntime with a V8 Isolate but does not initlize the isolate. SnapshotCreator will init the isolate
-             */
-            static JSRuntimeSharedPtr CreateJSRuntimeForSnapshot(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName);
+                                                      const v8::StartupData *inSnapshot = nullptr, const intptr_t *inExternalReferences = nullptr, bool inForSnapshot = false);
 
             void Initialize();
 
@@ -97,7 +92,12 @@ namespace v8App
             JSAppSharedPtr GetApp() { return m_App; }
             std::string GetName() { return m_Name; }
 
-            void CreateIsolate();
+            /**
+             * Gets the snapshot creator for the app.
+             */
+            V8SnapshotCreatorSharedPtr GetSnapshotCreator();
+
+            void CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot);
         protected:
             //void CreateIsolate();
 
@@ -123,6 +123,8 @@ namespace v8App
             FunctionTemplateMap m_FunctionTemplates;
 
             JSContextCreationHelperUniquePtr m_ContextCreation;
+
+            V8SnapshotCreatorSharedPtr m_Creator;
 
             JSRuntime(const JSRuntime &) = delete;
             JSRuntime &operator=(const JSRuntime &) = delete;

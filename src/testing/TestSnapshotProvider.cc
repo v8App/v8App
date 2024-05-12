@@ -12,14 +12,19 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        bool TestSnapshotProvider::LoadSnapshotData(std::filesystem::path inSnaopshotFile, JSAppSharedPtr inApp)
+        bool TestSnapshotProvider::LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnaopshotPath)
         {
-            //the main test function loads it for us
-            return true;
+            // the main test function loads it for us but to test code that calls it base the return in m_Loaded
+            return m_Loaded;
         }
 
         const v8::StartupData *TestSnapshotProvider::GetSnapshotData()
         {
+            // if were loaded then return the data other wise return
+            if (m_ReturnEmpty)
+            {
+                return &m_TestStartup;
+            }
             return &s_V8StartupData;
         }
     }

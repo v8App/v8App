@@ -24,17 +24,55 @@ namespace v8App
     {
         TEST(JSAppTest, ConstrcutorInitializeDispose)
         {
+            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
+            Log::Log::SetLogLevel(Log::LogLevel::Error);
+
+            std::filesystem::path testRoot = s_TestDir / "ConstrcutorInitializeDispose";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
+            TestUtils::IgnoreMsgKeys ignoreKeys = {
+                Log::MsgKey::AppName,
+                Log::MsgKey::TimeStamp,
+                Log::MsgKey::File,
+                Log::MsgKey::Function,
+                Log::MsgKey::Line};
+
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppConstructor";
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
+            JSAppSharedPtr app = std::make_shared<JSApp>(appName);
             EXPECT_EQ(appName, app->GetName());
             EXPECT_EQ(nullptr, app->GetCodeCache());
             EXPECT_EQ(nullptr, app->GetAppRoots());
             EXPECT_EQ(nullptr, app->GetJSRuntime());
+            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_FALSE(app->IsSnapshotCreator());
             EXPECT_FALSE(app->IsInitialized());
+            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
 
-            app->InitializeRuntime(s_TestDir, "");
+            EXPECT_FALSE(app->InitializeApp(testRoot));
+
+            Log::LogMessage expected = {
+                {Log::MsgKey::Msg, "The snapshot provider must be set before calling InitializeApp"},
+                {Log::MsgKey::LogLevel, "Error"},
+            };
+            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
+
+            app = std::make_shared<JSApp>(appName, snapProvider);
+            EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
+            snapProvider->SetLoaded(false);
+            EXPECT_FALSE(app->InitializeApp(testRoot));
+
+            snapProvider->SetLoaded(true);
+            snapProvider->SetReturnEmpty(true);
+            EXPECT_FALSE(app->InitializeApp(testRoot));
+            expected = {
+                {Log::MsgKey::Msg, "Snapshot data seems to be empty"},
+                {Log::MsgKey::LogLevel, "Error"},
+            };
+            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
+
+            snapProvider->SetReturnEmpty(false);
+            EXPECT_TRUE(app->InitializeApp(testRoot));
             EXPECT_NE(nullptr, app->GetCodeCache());
             EXPECT_NE(nullptr, app->GetAppRoots());
             EXPECT_NE(nullptr, app->GetJSRuntime());
@@ -53,14 +91,18 @@ namespace v8App
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppInitializeSnapshot";
 
+            std::filesystem::path testRoot = s_TestDir / "InitializeAsSnapshot";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
 
-            app->InitializeRuntime(s_TestDir, "", true);
+            app->InitializeApp(testRoot, true);
             EXPECT_NE(nullptr, app->GetCodeCache());
             EXPECT_NE(nullptr, app->GetAppRoots());
             EXPECT_NE(nullptr, app->GetJSRuntime());
             EXPECT_EQ(appName + "-runtime", app->GetJSRuntime()->GetName());
             EXPECT_TRUE(app->IsInitialized());
+            EXPECT_TRUE(app->IsSnapshotCreator());
 
             app->DisposeApp();
             EXPECT_EQ(nullptr, app->GetCodeCache());
@@ -71,11 +113,14 @@ namespace v8App
 
         TEST(JSAppTest, GetCreateContext)
         {
+            std::filesystem::path testRoot = s_TestDir / "GetCreateContext";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppGetCreateContext";
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeRuntime(s_TestDir, "");
+            app->InitializeApp(testRoot);
             ASSERT_NE(nullptr, app->GetJSRuntime());
 
             std::string contextName1 = "AppJSContext1";
@@ -97,12 +142,12 @@ namespace v8App
 
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppEntryPointScript";
-            std::filesystem::path testRoot = s_TestDir /"EntryPointScript";
+            std::filesystem::path testRoot = s_TestDir / "EntryPointScript";
 
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeRuntime(testRoot, "");
+            app->InitializeApp(testRoot);
 
             EXPECT_EQ("", app->GetEntryPointScript().generic_string());
 
@@ -143,21 +188,20 @@ namespace v8App
             app->DisposeApp();
         }
 
-        TEST(JSAppTest, V8BaseSnapshotProviderLoadSnapshotData)
+        TEST(JSAppTest, JSSnapshotProviderLoadSnapshotData)
         {
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::shared_ptr<V8BaseSnapshotProvider> testingSnapProvider = std::make_shared<V8BaseSnapshotProvider>();
-            std::string appName = "testJSAppV8BaseSnapshotProviderLoadSnapshotData";
-            
-            std::filesystem::path testRoot = s_TestDir /"SnapshotProviderTest";
+            std::filesystem::path testRoot = s_TestDir / "SnapshotProviderTest";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
-            //need the test snapshot provider so we can init the app
+            std::shared_ptr<JSSnapshotProvider> testingSnapProvider = std::make_shared<JSSnapshotProvider>();
+            std::string appName = "testJSAppV8BaseSnapshotProviderLoadSnapshotData";
+
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeRuntime(testRoot, "");
+            app->InitializeApp(testRoot);
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
@@ -170,29 +214,47 @@ namespace v8App
 
             EXPECT_EQ(nullptr, testingSnapProvider->GetSnapshotData()->data);
             EXPECT_EQ(0, testingSnapProvider->GetSnapshotData()->raw_size);
+            EXPECT_EQ("", testingSnapProvider->GetSnapshotPath().generic_string());
+
+            // no path passed on construction or in function call
+            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(app));
+            Log::LogMessage expected = {
+                {Log::MsgKey::Msg, "A path needs to be specified at construction or passed to LoadSnapshotData"},
+                {Log::MsgKey::LogLevel, "Error"}};
+            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             // path escapes the app root
-            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(testFile, app));
-            Log::LogMessage expected = {
-                {Log::MsgKey::Msg, Utils::format("Passed snapshot data may have escaped the app root. File:{}", testFile)},
+            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(app, testFile));
+            expected = {
+                {Log::MsgKey::Msg, Utils::format("Specified snapshot path may have escaped the app root. File:{}", testFile)},
                 {Log::MsgKey::LogLevel, "Error"}};
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             // path doesn't exist
             testFile = testRoot / "resources/test.js";
-            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(testFile, app));
+            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(app, testFile));
             expected = {
-                {Log::MsgKey::Msg, Utils::format("Passed snapshot data doesn't exist {}", testFile)},
+                {Log::MsgKey::Msg, Utils::format("Passed snapshot path doesn't exist {}", testFile)},
                 {Log::MsgKey::LogLevel, "Error"}};
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
+            // loads the snapshot file
             {
                 Assets::BinaryAsset dataFile(testFile);
                 Assets::BinaryByteVector data{1, 2, 3, 4};
                 dataFile.SetContent(data);
                 EXPECT_TRUE(dataFile.WriteAsset());
             }
-            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(testFile, app));
+            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(app, testFile));
+            EXPECT_EQ(4, testingSnapProvider->GetSnapshotData()->raw_size);
+            EXPECT_TRUE(testingSnapProvider->SnapshotLoaded());
+
+            // return true since data is already loaded
+            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(app));
+
+            // loads via path in constructor
+            testingSnapProvider = std::make_shared<JSSnapshotProvider>(testFile);
+            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(app, testFile));
             EXPECT_EQ(4, testingSnapProvider->GetSnapshotData()->raw_size);
 
             std::filesystem::remove(testFile);

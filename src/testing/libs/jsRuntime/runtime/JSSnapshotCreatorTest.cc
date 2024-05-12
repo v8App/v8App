@@ -18,7 +18,6 @@ namespace v8App
 
         TEST_F(JSnapshotCreatorTest, Playground)
         {
-            return;
             std::filesystem::path snapshotFile = "playground.dat";
             snapshotFile = s_TestDir / snapshotFile;
 

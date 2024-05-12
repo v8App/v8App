@@ -14,8 +14,14 @@ namespace v8App
         class TestSnapshotProvider : public JSSnapshotProvider
         {
         public:
-            virtual bool LoadSnapshotData(std::filesystem::path, JSAppSharedPtr inApp) override;
+            TestSnapshotProvider(std::filesystem::path inSnapshotPath = std::filesystem::path()) : JSSnapshotProvider(inSnapshotPath) { m_Loaded = true; }
+            virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath = std::filesystem::path()) override;
             virtual const v8::StartupData *GetSnapshotData() override;
+            void SetLoaded(bool inLoaded) { m_Loaded = inLoaded; }
+            void SetReturnEmpty(bool inLoaded) { m_ReturnEmpty = inLoaded; }
+            protected:
+            bool m_ReturnEmpty = false;
+            v8::StartupData m_TestStartup{nullptr, 0};
         };
     }
 }

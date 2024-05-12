@@ -23,7 +23,7 @@ namespace v8App
             JSSnapshotProviderSharedPtr snapProvider = std::make_shared<TestSnapshotProvider>();
             JSAppSharedPtr app = std::make_shared<JSApp>("reducedTest", snapProvider);
             JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "reducedTest");
-            runtime->CreateIsolate();
+            //runtime->CreateIsolate();
             V8Isolate *isolate = runtime->GetIsolate();
 
             v8::Isolate::CreateParams params;

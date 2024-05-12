@@ -24,38 +24,39 @@ namespace v8App
 
         bool JSSnapshotCreator::CreateSnapshotFile(std::filesystem::path inSnapshotFile)
         {
-            v8::SnapshotCreator *creator = m_App->GetSnapshotCreator();
+            V8SnapshotCreatorSharedPtr creator = m_App->GetSnapshotCreator();
             if (creator == nullptr)
             {
                 return false;
             }
 
+            JSContextSharedPtr defaultContext = m_App->CreateJSContext("default");
             {
                 v8::HandleScope hScope(m_App->GetJSRuntime()->GetIsolate());
 
-                //JSContextSharedPtr defaultContext = m_App->CreateJSContext("default");
-                //V8LocalContext lContext = defaultContext->GetLocalContext();
-                V8LocalContext lContext = v8::Context::New(m_App->GetJSRuntime()->GetIsolate());
-                bool empty = lContext.IsEmpty();
-                creator->SetDefaultContext(lContext, v8::SerializeInternalFieldsCallback(JSSnapshotCreator::SerializeInternalField));
+                V8LocalContext lContext = defaultContext->GetLocalContext();
+
+                creator->SetDefaultContext(lContext);
             }
 
-            V8Platform::Get()->SetWorkersPaused(true);
-            v8::StartupData data = creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kClear);
-            if (data.raw_size == 0)
             {
+                V8Platform::Get()->SetWorkersPaused(true);
+                v8::StartupData data = creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kClear);
+                if (data.raw_size == 0)
+                {
+                    V8Platform::Get()->SetWorkersPaused(false);
+                    return false;
+                }
                 V8Platform::Get()->SetWorkersPaused(false);
-                return false;
-            }
-            V8Platform::Get()->SetWorkersPaused(false);
 
-            std::ofstream snapFile(inSnapshotFile, std::ios::out | std::ios::binary);
-            if (snapFile.is_open() == false || snapFile.fail())
-            {
-                return false;
+                std::ofstream snapFile(inSnapshotFile, std::ios::out | std::ios::binary);
+                if (snapFile.is_open() == false || snapFile.fail())
+                {
+                    return false;
+                }
+                snapFile.write(data.data, data.raw_size);
+                snapFile.close();
             }
-            snapFile.write(data.data, data.raw_size);
-            snapFile.close();
             return true;
 
             /**

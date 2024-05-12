@@ -15,12 +15,77 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        v8::StartupData V8BaseSnapshotProvider::s_V8StartupData{nullptr, 0};
-        std::filesystem::path V8BaseSnapshotProvider::s_SnapshotPath;
+        const v8::StartupData *JSSnapshotProvider::GetSnapshotData()
+        {
+            return &m_V8StartupData;
+        }
+
+        std::filesystem::path JSSnapshotProvider::GetSnapshotPath()
+        {
+            return m_SnapshotPath;
+        }
+
+        bool JSSnapshotProvider::LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
+        {
+            if (m_Loaded)
+            {
+                return true;
+            }
+            if (inSnapshotPath.empty() == false)
+            {
+                m_SnapshotPath = inSnapshotPath;
+            }
+            if (m_SnapshotPath.empty())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, "A path needs to be specified at construction or passed to LoadSnapshotData"}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            std::filesystem::path absPath = inApp->GetAppRoots()->MakeAbsolutePathToAppRoot(m_SnapshotPath);
+            if (absPath.empty())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Specified snapshot path may have escaped the app root. File:{}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            if (std::filesystem::exists(absPath) == false)
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Passed snapshot path doesn't exist {}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+
+            m_SnapshotPath = absPath;
+
+            std::ifstream snapData(absPath, std::ios_base::binary | std::ios_base::ate);
+            if (snapData.is_open() == false || snapData.fail())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Failed to open the snapshot file {}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            int dataLength = snapData.tellg();
+            snapData.seekg(0, std::ios::beg);
+            std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
+            snapData.read(buf.get(), dataLength);
+            if (snapData.fail())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Failed to read the snapshot file {}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            m_V8StartupData = v8::StartupData{buf.release(), dataLength};
+            m_Loaded = true;
+            return true;
+        }
 
         JSApp::JSApp(std::string inName, JSSnapshotProviderSharedPtr inSnapshotProvider) : m_Name(inName), m_SnapshotProvider(inSnapshotProvider)
         {
-            DCHECK_NOT_NULL(m_SnapshotProvider.get());
         }
 
         JSApp::~JSApp()
@@ -31,28 +96,31 @@ namespace v8App
             }
         }
 
-        bool JSApp::InitializeRuntime(std::filesystem::path inAppRoot, std::filesystem::path inSnapshotFile, bool setupForSnapshot)
+        bool JSApp::InitializeApp(std::filesystem::path inAppRoot, bool setupForSnapshot)
         {
-            JSAppSharedPtr sharedApp = shared_from_this();
             if (m_Initialized)
             {
                 return true;
             }
             if (m_SnapshotProvider == nullptr)
             {
+                Log::LogMessage msg = {{Log::MsgKey::Msg, "The snapshot provider must be set before calling InitializeApp"}};
+                LOG_ERROR(msg);
                 return false;
             }
-            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
-            m_AppAssets->SetAppRootPath(inAppRoot);
-            m_CodeCache = std::make_shared<CodeCache>(sharedApp);
 
-            if (inSnapshotFile != "")
+            JSAppSharedPtr sharedApp = shared_from_this();
+            if (m_SnapshotProvider->SnapshotLoaded() == false)
             {
-                if (m_SnapshotProvider->LoadSnapshotData(inSnapshotFile, sharedApp) == false)
+                if (m_SnapshotProvider->LoadSnapshotData(sharedApp) == false)
                 {
                     return false;
                 }
             }
+
+            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
+            m_AppAssets->SetAppRootPath(inAppRoot);
+            m_CodeCache = std::make_shared<CodeCache>(sharedApp);
 
             std::string runtimeName = m_Name + "-runtime";
             if (CreateJSRuntime(runtimeName, setupForSnapshot, nullptr) == false)
@@ -65,17 +133,19 @@ namespace v8App
 
         bool JSApp::AppInit()
         {
-            JSContextSharedPtr appContext = m_JSRuntime->CreateContext("main");
-            if (appContext == nullptr)
+            if (m_IsSnapshotter == false)
             {
-                return false;
+                JSContextSharedPtr appContext = m_JSRuntime->CreateContext("main");
+                if (appContext == nullptr)
+                {
+                    return false;
+                }
             }
             return true;
         }
 
         void JSApp::DisposeApp()
         {
-            m_Creator.reset();
             m_JSRuntime->DisposeRuntime();
             m_JSRuntime.reset();
             m_CodeCache.reset();
@@ -151,7 +221,7 @@ namespace v8App
                 return shared_from_this();
             }
             JSAppSharedPtr snapApp = std::make_shared<JSApp>(m_Name + "-snapshotter", m_SnapshotProvider);
-            if (snapApp->InitializeRuntime(m_AppAssets->GetAppRoot(), "", true) == false)
+            if (snapApp->InitializeApp(m_AppAssets->GetAppRoot(), true) == false)
             {
                 return nullptr;
             }
@@ -159,26 +229,32 @@ namespace v8App
             return snapApp;
         }
 
-        v8::SnapshotCreator *JSApp::GetSnapshotCreator()
+        V8SnapshotCreatorSharedPtr JSApp::GetSnapshotCreator()
         {
-            return m_Creator.get();
+            if(m_JSRuntime != nullptr)
+            {
+            return m_JSRuntime->GetSnapshotCreator();
+            }
+            return nullptr;
         }
 
         bool JSApp::CreateJSRuntime(std::string inName, bool setupForSnapshot, const intptr_t *inExternalReferences)
         {
             const v8::StartupData *data = m_SnapshotProvider->GetSnapshotData();
-            if (data == nullptr)
+            if (data->raw_size == 0)
             {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, "Snapshot data seems to be empty"}};
+                LOG_ERROR(msg);
                 return false;
             }
+            m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, data, inExternalReferences, setupForSnapshot);
             if (setupForSnapshot)
             {
-                m_JSRuntime = JSRuntime::CreateJSRuntimeForSnapshot(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName);
-                m_Creator = std::make_unique<v8::SnapshotCreator>(m_JSRuntime->GetIsolate(), inExternalReferences, data, false);
+                m_IsSnapshotter = true;
             }
             else
             {
-                m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, data, inExternalReferences);
             }
             if (m_JSRuntime == nullptr)
             {
@@ -188,58 +264,6 @@ namespace v8App
             JSContextCreationHelperUniquePtr helper = std::make_unique<JSContextCreator>();
             m_JSRuntime->SetContextCreationHelper(std::move(helper));
             return true;
-        }
-
-        bool V8BaseSnapshotProvider::LoadSnapshotData(std::filesystem::path inSnaopshotFile, JSAppSharedPtr inApp)
-        {
-            std::filesystem::path absPath = inApp->GetAppRoots()->MakeAbsolutePathToAppRoot(inSnaopshotFile);
-            if (absPath.empty())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Passed snapshot data may have escaped the app root. File:{}", inSnaopshotFile)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            if (std::filesystem::exists(absPath) == false)
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Passed snapshot data doesn't exist {}", inSnaopshotFile)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            // if it's already loaded and the same path then skip loading
-            if (s_SnapshotPath == absPath && s_V8StartupData.raw_size != 0)
-            {
-                return true;
-            }
-            s_SnapshotPath = absPath;
-
-            std::ifstream snapData(absPath, std::ios_base::binary | std::ios_base::ate);
-            if (snapData.is_open() == false || snapData.fail())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to open the snapshot file {}", inSnaopshotFile)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            int dataLength = snapData.tellg();
-            snapData.seekg(0, std::ios::beg);
-            std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
-            snapData.read(buf.get(), dataLength);
-            if (snapData.fail())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to read the snapshot file {}", inSnaopshotFile)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            s_V8StartupData = v8::StartupData{buf.release(), dataLength};
-            return true;
-        }
-
-        const v8::StartupData *V8BaseSnapshotProvider::GetSnapshotData()
-        {
-            return &s_V8StartupData;
         }
     }
 }

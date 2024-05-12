@@ -16,7 +16,6 @@ namespace v8App
 {
     namespace JSRuntime
     {
-
         JSContextSharedPtr JSContextCreator::CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName)
         {
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, inName);
@@ -149,7 +148,7 @@ namespace v8App
             v8::Local<v8::ObjectTemplate> global_template = v8::ObjectTemplate::New(isolate);
 
             V8LocalContext context = v8::Context::New(isolate, nullptr, global_template);
-            //DCHECK_FALSE(tryCatch.HasCaught());
+            DCHECK_FALSE(tryCatch.HasCaught());
 
             if (context.IsEmpty())
             {

@@ -28,10 +28,24 @@ namespace v8App
         }
 
         JSRuntimeSharedPtr JSRuntime::CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
-                                                      const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences)
+                                                      const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
         {
-            JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
-            temp->CreateIsolate();
+            JSRuntimeSharedPtr jsRuntime = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
+            jsRuntime->CreateIsolate(inSnapshot, inExternalReferences, inForSnapshot);
+
+            return jsRuntime;
+        }
+
+        void JSRuntime::CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
+        {
+            // custom deleter since we have to call dispose
+            v8::Isolate *temp = v8::Isolate::Allocate();
+            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
+                                                     { isolate->Dispose(); });
+            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+
+            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
+            m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), weakPtr);
 
             v8::Isolate::CreateParams params;
             params.snapshot_blob = inSnapshot;
@@ -39,29 +53,20 @@ namespace v8App
             // TODO: replace with custom allocator
             params.array_buffer_allocator =
                 v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(temp->m_Isolate.get(), params);
 
-            return temp;
+            if (inForSnapshot)
+            {
+                m_Creator = std::make_unique<v8::SnapshotCreator>(temp, params);
+            }
+            else
+            {
+                v8::Isolate::Initialize(temp, params);
+            }
         }
 
-        JSRuntimeSharedPtr JSRuntime::CreateJSRuntimeForSnapshot(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName)
+        V8SnapshotCreatorSharedPtr JSRuntime::GetSnapshotCreator()
         {
-            JSRuntimeSharedPtr temp = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
-            temp->CreateIsolate();
-
-            return temp;
-        }
-
-        void JSRuntime::CreateIsolate()
-        {
-            // custom deleter since we have to call dispose
-            v8::Isolate *temp = v8::Isolate::Allocate();
-            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
-                                                     {isolate->Dispose(); });
-            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
-
-            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
-            m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), weakPtr);
+            return m_Creator;
         }
 
         void JSRuntime::Initialize()
@@ -223,6 +228,7 @@ namespace v8App
 
         void JSRuntime::DisposeRuntime()
         {
+            m_Creator.reset();
             if (m_Isolate != nullptr)
             {
                 v8::Isolate::Scope isolateScope(m_Isolate.get());
