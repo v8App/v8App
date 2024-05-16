@@ -77,6 +77,27 @@ namespace v8App
             inIsolate->SetHostCreateShadowRealmContextCallback(JSContext::HostCreateShadowRealmContext);
         }
 
+        void JSContext::DisposeV8Context()
+        {
+            v8::Isolate *isolate = GetIsolate();
+            if (isolate != nullptr)
+            {
+                if (m_Context.IsEmpty() == false)
+                {
+                    v8::Local<v8::Context> context = m_Context.Get(isolate);
+
+                    // delink the class pointer
+                    JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(context->GetAlignedPointerFromEmbedderData(0));
+                    if (weakPtr != nullptr)
+                    {
+                        delete weakPtr;
+                    }
+                    context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), nullptr);
+                }
+                m_Context.Reset();
+            }
+        }
+
         std::string JSContext::GenerateShadowName()
         {
             constexpr const char *shadow_str = "shadow";
@@ -163,6 +184,8 @@ namespace v8App
             V8LocalString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
             context->SetSecurityToken(v8Uuid);
 
+            m_Runtime->RegisterSnapshotHandleCloser(shared_from_this());
+
             m_Context.Reset(isolate, context);
             m_Initialized = true;
         }
@@ -173,23 +196,8 @@ namespace v8App
             {
                 return;
             }
-            v8::Isolate *isolate = GetIsolate();
-            if (isolate != nullptr)
-            {
-                if (m_Context.IsEmpty() == false)
-                {
-                    v8::Local<v8::Context> context = m_Context.Get(isolate);
-
-                    // delink the class pointer
-                    JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(context->GetAlignedPointerFromEmbedderData(0));
-                    if (weakPtr != nullptr)
-                    {
-                        delete weakPtr;
-                    }
-                    context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), nullptr);
-                }
-                m_Context.Reset();
-            }
+            DisposeV8Context();
+            m_Runtime->UnregisterSnapshotHandlerCloser(shared_from_this());
             m_Runtime = nullptr;
             m_Initialized = false;
         }
@@ -211,11 +219,3 @@ namespace v8App
         }
     }
 }
-
-// template <>
-// v8App::JSRuntime::JSContextSharedPtr &v8App::JSRuntime::JSContextSharedPtr::operator=(v8App::JSRuntime::JSContextSharedPtr &&rhs) noexcept
-//{
-//     (*this)->MoveContext(std::move(*rhs));
-//     (*this)->SetContextWeakRef(*this);
-//     return *this;
-// }

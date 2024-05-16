@@ -106,6 +106,10 @@
         "numeric": "cpp",
         "random": "cpp"
     },
+    "gtest-adapter.debugConfig": [
+        "test libJSRuntime Debug"
+    ],
+    "gtest-adapter.supportLocation": true,
     "editor.tokenColorCustomizations": {
         "textMateRules": [
             {
@@ -127,9 +131,5 @@
                 }
             }
         ]
-    },
-    "gtest-adapter.debugConfig": [
-        "test libJSRuntime Debug"
-    ],
-    "gtest-adapter.supportLocation": true
+    }
 }

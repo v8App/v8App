@@ -36,39 +36,6 @@ namespace v8App
             return jsRuntime;
         }
 
-        void JSRuntime::CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
-        {
-            // custom deleter since we have to call dispose
-            v8::Isolate *temp = v8::Isolate::Allocate();
-            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
-                                                     { isolate->Dispose(); });
-            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
-
-            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
-            m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), weakPtr);
-
-            v8::Isolate::CreateParams params;
-            params.snapshot_blob = inSnapshot;
-            params.external_references = inExternalReferences;
-            // TODO: replace with custom allocator
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-
-            if (inForSnapshot)
-            {
-                m_Creator = std::make_unique<v8::SnapshotCreator>(temp, params);
-            }
-            else
-            {
-                v8::Isolate::Initialize(temp, params);
-            }
-        }
-
-        V8SnapshotCreatorSharedPtr JSRuntime::GetSnapshotCreator()
-        {
-            return m_Creator;
-        }
-
         void JSRuntime::Initialize()
         {
             JSContextModules::SetupModulesCallbacks(m_Isolate.get());
@@ -167,10 +134,16 @@ namespace v8App
             return it->second.Get(m_Isolate.get());
         }
 
-        void JSRuntime::SetContextCreationHelper(JSContextCreationHelperUniquePtr inCreator)
+        void JSRuntime::SetContextCreationHelper(JSContextCreationHelperSharedPtr inCreator)
         {
-            m_ContextCreation = std::move(inCreator);
+            m_ContextCreation = inCreator;
         }
+
+        JSContextCreationHelperSharedPtr  JSRuntime::GetContextCreationHelper()
+        {
+            return m_ContextCreation;
+        }
+
         JSContextSharedPtr JSRuntime::CreateContext(std::string inName)
         {
             CHECK_NOT_NULL(m_ContextCreation);
@@ -246,5 +219,105 @@ namespace v8App
             // TODO: Adds something to delete the object.function templates
         }
 
+        V8SnapshotCreatorSharedPtr JSRuntime::GetSnapshotCreator()
+        {
+            return m_Creator;
+        }
+
+        void JSRuntime::CloseOpenHandlesForSnapshot()
+        {
+            // If not a snapshotting runtime return
+            if (m_Creator == nullptr)
+            {
+                return;
+            }
+            for (auto callback : m_HandleClosers)
+            {
+                if (callback.expired())
+                {
+                    continue;
+                }
+                callback.lock()->CloseHandleForSnapshot();
+            }
+            // clear the callbacks since they are all called
+            m_HandleClosers.clear();
+        }
+
+        void JSRuntime::RegisterSnapshotHandleCloser(ISnapshotHandleCloserWeakPtr inCloser)
+        {
+            auto callback = std::find_if(m_HandleClosers.begin(), m_HandleClosers.end(),
+                             [&inCloser](const ISnapshotHandleCloserWeakPtr &inPtr)
+                             {
+                                 if (inPtr.expired() == false)
+                                 {
+                                     return inCloser.lock() == inPtr.lock();
+                                 }
+                                 return false;
+                             });
+            if (callback == m_HandleClosers.end())
+            {
+                m_HandleClosers.push_back(inCloser);
+            }
+        }
+
+        void JSRuntime::UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser)
+        {
+            if (m_HandleClosers.empty())
+            {
+                return;
+            }
+
+            // we loop through the callbacks to find the registered callback but
+            // also any callabcks that are expired just to clean them out
+            bool found = true;
+            while (found)
+            {
+                auto pos = std::find_if(m_HandleClosers.begin(), m_HandleClosers.end(),
+                                        [&inCloser](const ISnapshotHandleCloserWeakPtr &inPtr)
+                                        {
+                                            if (inPtr.expired() == false)
+                                            {
+                                                return inCloser.lock() == inPtr.lock();
+                                            }
+                                            return true;
+                                        });
+                if (m_HandleClosers.end() != pos)
+                {
+                    m_HandleClosers.erase(pos);
+                }
+                else
+                {
+                    found = false;
+                }
+            }
+        }
+
+        void JSRuntime::CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
+        {
+            // custom deleter since we have to call dispose
+            v8::Isolate *temp = v8::Isolate::Allocate();
+            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
+                                                     { isolate->Dispose(); });
+            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+
+            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
+            m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), weakPtr);
+
+            v8::Isolate::CreateParams params;
+            params.snapshot_blob = inSnapshot;
+            params.external_references = inExternalReferences;
+            // TODO: replace with custom allocator
+            params.array_buffer_allocator =
+                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+
+            if (inForSnapshot)
+            {
+                m_Creator = std::make_unique<v8::SnapshotCreator>(temp, params);
+            }
+            else
+            {
+                v8::Isolate::Initialize(temp, params);
+            }
+        }
     } // namespace JSRuntime
 } // namespace v8App

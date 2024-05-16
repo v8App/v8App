@@ -23,8 +23,10 @@ namespace v8App
             bool CreateSnapshotFile(std::filesystem::path inSnapshotFile);
 
             static v8::StartupData SerializeInternalField(V8LocalObject inHolder, int inIndex, void *inData);
+            static v8::StartupData SerializeContextInternalField(V8LocalContext inHolder, int inIndex, void *inData);
 
             static void DeserializeInternalField(V8LocalObject inHolder, int inINdex, v8::StartupData inPayload, void *inData);            
+            static void DeserializeContextInternalField(V8LocalContext inHolder, int inINdex, v8::StartupData inPayload, void *inData);            
         protected:
             JSAppSharedPtr m_App;
         };

@@ -49,10 +49,10 @@ namespace v8App
             EXPECT_FALSE(app->IsInitialized());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
 
-            EXPECT_FALSE(app->InitializeApp(testRoot));
+            EXPECT_FALSE(app->Initialize(testRoot));
 
             Log::LogMessage expected = {
-                {Log::MsgKey::Msg, "The snapshot provider must be set before calling InitializeApp"},
+                {Log::MsgKey::Msg, "The snapshot provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
@@ -60,11 +60,11 @@ namespace v8App
             app = std::make_shared<JSApp>(appName, snapProvider);
             EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
             snapProvider->SetLoaded(false);
-            EXPECT_FALSE(app->InitializeApp(testRoot));
+            EXPECT_FALSE(app->Initialize(testRoot));
 
             snapProvider->SetLoaded(true);
             snapProvider->SetReturnEmpty(true);
-            EXPECT_FALSE(app->InitializeApp(testRoot));
+            EXPECT_FALSE(app->Initialize(testRoot));
             expected = {
                 {Log::MsgKey::Msg, "Snapshot data seems to be empty"},
                 {Log::MsgKey::LogLevel, "Error"},
@@ -72,7 +72,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             snapProvider->SetReturnEmpty(false);
-            EXPECT_TRUE(app->InitializeApp(testRoot));
+            EXPECT_TRUE(app->Initialize(testRoot));
             EXPECT_NE(nullptr, app->GetCodeCache());
             EXPECT_NE(nullptr, app->GetAppRoots());
             EXPECT_NE(nullptr, app->GetJSRuntime());
@@ -96,7 +96,7 @@ namespace v8App
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
 
-            app->InitializeApp(testRoot, true);
+            app->Initialize(testRoot, true);
             EXPECT_NE(nullptr, app->GetCodeCache());
             EXPECT_NE(nullptr, app->GetAppRoots());
             EXPECT_NE(nullptr, app->GetJSRuntime());
@@ -120,7 +120,7 @@ namespace v8App
             std::string appName = "testJSAppGetCreateContext";
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeApp(testRoot);
+            app->Initialize(testRoot);
             ASSERT_NE(nullptr, app->GetJSRuntime());
 
             std::string contextName1 = "AppJSContext1";
@@ -147,7 +147,7 @@ namespace v8App
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeApp(testRoot);
+            app->Initialize(testRoot);
 
             EXPECT_EQ("", app->GetEntryPointScript().generic_string());
 
@@ -201,7 +201,7 @@ namespace v8App
 
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->InitializeApp(testRoot);
+            app->Initialize(testRoot);
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,

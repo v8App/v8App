@@ -36,7 +36,7 @@ namespace v8App
 
                 std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
                 m_App = std::make_shared<JSApp>("testCore", snapProvider);
-                m_App->InitializeApp(s_TestDir);
+                m_App->Initialize(s_TestDir);
             }
             void TearDown() override
             {

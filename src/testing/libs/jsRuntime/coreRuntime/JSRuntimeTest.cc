@@ -163,7 +163,7 @@ namespace v8App
 
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             JSAppSharedPtr app = std::make_shared<JSApp>("ProcessTaskIdleTask", snapProvider);
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME(), &s_V8StartupData);
+            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, "ProcessTaskIdleTask", &s_V8StartupData);
             V8TaskRunnerSharedPtr runner = runtimePtr->GetForegroundTaskRunner();
             runner->PostTask(std::make_unique<IntTask>(&taskInt, 10));
             runner->PostTask(std::make_unique<IntTask>(&taskInt2, 20));
@@ -269,11 +269,6 @@ namespace v8App
             EXPECT_TRUE(logSink->NoMessages());
             EXPECT_NE(nullptr, runtimePtr->GetContextByName("test"));
             createPtr->DisposeContext(std::shared_ptr<TestContext>());
-        }
-
-        TEST_F(JSRuntimeTest, GenerateRuntimeName)
-        {
-            EXPECT_EQ(Utils::format("JSRuntime_{}_{}_{}", __FILE__, __func__, __LINE__), GENERATE_JSRUNTIME_NAME());
         }
     }
 }

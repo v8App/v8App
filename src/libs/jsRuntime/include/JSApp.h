@@ -49,7 +49,7 @@ namespace v8App
             /**
              * Initalizes stuff that can't be doe in the constrcutor like shared_from_this.
              */
-            bool InitializeApp(std::filesystem::path inAppRoot, bool setupForSnapshot = false);
+            bool Initialize(std::filesystem::path inAppRoot, bool setupForSnapshot = false, JSContextCreationHelperSharedPtr inContextCreator = nullptr);
 
             /**
              * Use by subclasses to do theiir actual init and setup
@@ -138,7 +138,7 @@ namespace v8App
             /**
              * Create the JSRuntime
              */
-            bool CreateJSRuntime(std::string inName, bool setupForSnapshot, const intptr_t *inExternalReferences);
+            bool CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot, const intptr_t *inExternalReferences);
 
             /** The name of the app */
             std::string m_Name;

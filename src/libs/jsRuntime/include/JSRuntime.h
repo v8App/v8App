@@ -21,17 +21,26 @@ namespace v8App
     {
         class JSContext;
 
+        /**
+         * What type of data is stored in the runtime data slots
+         */
         enum class IsolateDataSlot : uint32_t
         {
             kJSRuntimeWeakPtr = 0
         };
 
+        /**
+         * Enum for controlling whether idle tasks are enabled
+         */
         enum class IdleTasksSupport
         {
             kIdleTasksDisabled,
             kIdleTasksEnabled
         };
 
+        /*
+         * Used to isolate the context creation during testing
+         */
         class JSContextCreationHelper
         {
         public:
@@ -40,22 +49,31 @@ namespace v8App
             virtual void DisposeContext(JSContextSharedPtr inContext) = 0;
         };
 
-        using JSContextCreationHelperUniquePtr = std::unique_ptr<JSContextCreationHelper>;
-
-        inline std::string GenerateRuntimeName(std::string inFile, std::string inFunc, int inLine)
+        /**
+         * Interface for classes that need to have their handles closed in order
+         * to create a snapshot
+         */
+        class ISnapshotHandleCloser
         {
-            return Utils::format("JSRuntime_{}_{}_{}", inFile, inFunc, inLine);
-        }
+        public:
+            ~ISnapshotHandleCloser() = default;
 
-#define GENERATE_JSRUNTIME_NAME() GenerateRuntimeName(__FILE__, __func__, __LINE__)
+        protected:
+            virtual void CloseHandleForSnapshot() = 0;
+            friend class JSRuntime;
+        };
+        using ISnapshotHandleCloserWeakPtr = std::weak_ptr<ISnapshotHandleCloser>;
 
+        /**
+         * Class that wrapps the v8 Isolate and provides a variety of utilitied related to it
+         */
         class JSRuntime : public std::enable_shared_from_this<JSRuntime>
         {
         public:
             explicit JSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName);
             virtual ~JSRuntime();
 
-            JSRuntime(JSRuntime && inRuntime); // TODO: use non default cause of the wekref
+            JSRuntime(JSRuntime &&inRuntime); // TODO: use non default cause of the wekref
 
             /**
              * Creates a JSRuntime and V8 isolate and inializes the isolate for use.
@@ -63,33 +81,98 @@ namespace v8App
             static JSRuntimeSharedPtr CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
                                                       const v8::StartupData *inSnapshot = nullptr, const intptr_t *inExternalReferences = nullptr, bool inForSnapshot = false);
 
+            /**
+             * Iniialies the runtime
+             */
             void Initialize();
 
+            /**
+             * Gets the foreground task runner used by the isolate
+             */
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner();
+            /**
+             * Returns whether idle tasks are enabled
+             */
             virtual bool IdleTasksEnabled();
 
+            /**
+             * Gets the JSRuntime from the specified v8 isolate
+             */
             static JSRuntimeSharedPtr GetJSRuntimeFromV8Isolate(v8::Isolate *inIsloate);
+            /**
+             * Returns a shared pointer for the v8 isolate
+             */
             const V8IsolateSharedPtr GetSharedIsolate() { return m_Isolate; }
+            /**
+             * Gets the v8 isolate pointer
+             */
             V8Isolate *GetIsolate() { return m_Isolate.get(); }
 
+            /**
+             * Runs the isolates tasks
+             */
             void ProcessTasks();
+            /**
+             * Runs the idle tasks for the isolate4
+             */
             void ProcessIdleTasks(double inTimeLeft);
 
+            /**
+             * Stores the Object tamplate for the isolate
+             */
             void SetObjectTemplate(void *inInfo, v8::Local<v8::ObjectTemplate> inTemplate);
+            /**
+             * Gets an object template for the isolate
+             */
             v8::Local<v8::ObjectTemplate> GetObjectTemplate(void *inInfo);
 
+            /**
+             * Stores a function template for the isolate
+             */
             void SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate);
+            /**
+             * Gets a function template for the isolate
+             */
             v8::Local<v8::FunctionTemplate> GetFunctionTemplate(void *inInfo);
 
-            void SetContextCreationHelper(JSContextCreationHelperUniquePtr inCreator);
+            /**
+             * Sets the context creation helper
+             */
+            void SetContextCreationHelper(JSContextCreationHelperSharedPtr inCreator);
+            /**
+             * Gets the context creator for this runtime
+             */
+            JSContextCreationHelperSharedPtr GetContextCreationHelper();
+
+            /**
+             * Creates a JSContext with the specified name
+             */
             JSContextSharedPtr CreateContext(std::string inName);
+            /**
+             * Gets the JSContext with the specified name
+             */
             JSContextSharedPtr GetContextByName(std::string inName);
+            /**
+             * Disposes of the JSContext with the specified name
+             */
             void DisposeContext(std::string inName);
+            /**
+             * Dispose of the JSContext pased in the shared pointer
+             */
             void DisposeContext(JSContextSharedPtr inContext);
 
+            /**
+             * Disposes of reousrces for the runtime
+             */
             void DisposeRuntime();
 
+            /**
+             * Gtes hte JSApp associated with the Runtime
+             */
             JSAppSharedPtr GetApp() { return m_App; }
+            /**
+             * Gets the name of the runtime
+             */
             std::string GetName() { return m_Name; }
 
             /**
@@ -97,39 +180,75 @@ namespace v8App
              */
             V8SnapshotCreatorSharedPtr GetSnapshotCreator();
 
-            void CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot);
+            /**
+             * Closes all open handles for snapshoting
+             */
+            void CloseOpenHandlesForSnapshot();
+            /**
+             * Register a callback to close a handle for the isolate
+             */
+            void RegisterSnapshotHandleCloser(ISnapshotHandleCloserWeakPtr inCloser);
+            void UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser);
+
         protected:
-            //void CreateIsolate();
+            /**
+             * Creates the v8 isolate and if for a snapshot the v8 snapshot creator as well
+             */
+            void CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot);
 
             IdleTasksSupport m_IdleEnabled;
             JSAppSharedPtr m_App;
             std::string m_Name;
 
-            // this has a custom no op deleter since we can't call delete on the pointer.
-            // we do this so in our code we can use weak ptrs as protection agaisnt tasks using the isolate after
-            // deletion
-            V8IsolateSharedPtr m_Isolate;
-            /** Owns the isolate and should disspose of it. */
+            /**
+             * Cllbacks to close out the handles when the isolate is snapshotting
+             */
+            std::vector<ISnapshotHandleCloserWeakPtr> m_HandleClosers;
 
+            /**
+             * Has a custom deleter to call dispose on the isolate
+             */
+            V8IsolateSharedPtr m_Isolate;
+
+            /**
+             * The contexts associated with the runtime
+             */
             std::map<std::string, JSContextSharedPtr> m_Contextes;
 
-            // the isolate's task queues
+            /**
+             * The task runner for the isolate
+             */
             std::shared_ptr<class ForegroundTaskRunner> m_TaskRunner;
 
             using ObjectTemplateMap = std::map<void *, v8::Eternal<v8::ObjectTemplate>>;
             using FunctionTemplateMap = std::map<void *, v8::Eternal<v8::FunctionTemplate>>;
 
+            /**
+             * The object templates for the isolate
+             */
             ObjectTemplateMap m_ObjectTemplates;
+            /**
+             * The function templates for the isolate
+             */
             FunctionTemplateMap m_FunctionTemplates;
 
-            JSContextCreationHelperUniquePtr m_ContextCreation;
+            /**
+             * The Context Creator
+             */
+            JSContextCreationHelperSharedPtr m_ContextCreation;
 
+            /**
+             * The v8 SnapshotCreator
+             */
             V8SnapshotCreatorSharedPtr m_Creator;
 
             JSRuntime(const JSRuntime &) = delete;
             JSRuntime &operator=(const JSRuntime &) = delete;
         };
 
+        /**
+         * The helper class that implments the Platform Isolate helper for JSRuntimes
+         */
         class JSRuntimeIsolateHelper : public PlatformIsolateHelper
         {
         public:

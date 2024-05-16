@@ -69,6 +69,8 @@ namespace v8App
         using JSRuntimeWeakPtr = std::weak_ptr<class JSRuntime>;
         using JSRuntimeSharedPtr = std::shared_ptr<class JSRuntime>;
 
+        using JSContextCreationHelperSharedPtr = std::shared_ptr<class JSContextCreationHelper>;
+
         using JSContextSharedPtr = std::shared_ptr<class JSContext>;
         using JSContextWeakPtr = std::weak_ptr<class JSContext>;
 

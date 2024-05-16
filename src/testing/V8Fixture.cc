@@ -25,12 +25,10 @@ namespace v8App
             std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             m_App = std::make_shared<JSApp>(suiteName, snapProvider);
             //no need for a parth the test prover doesn't do the loading the main function does
-            m_App->InitializeApp(s_TestDir);
+            m_App->Initialize(s_TestDir, false, std::make_shared<JSContextCreator>());
             
             m_Runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, m_Runtime);
-
-            m_Runtime->SetContextCreationHelper(std::make_unique<JSContextCreator>());
 
             m_Isolate = m_Runtime->GetIsolate();
             ASSERT_NE(m_Isolate, nullptr);

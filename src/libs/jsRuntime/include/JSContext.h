@@ -16,11 +16,17 @@ namespace v8App
 {
     namespace JSRuntime
     {
+        /**
+         * Enum for what type of data is stored in the data slot
+         */
         enum class ContextDataSlot : int
         {
             kJSContextWeakPtr = 0
         };
 
+        /**
+         * Implments the Context Creation hepler for JSContextes
+         */
         class JSContextCreator : public JSContextCreationHelper
         {
         public:
@@ -29,7 +35,10 @@ namespace v8App
             virtual void DisposeContext(JSContextSharedPtr inContext) override;
         };
 
-        class JSContext : public std::enable_shared_from_this<JSContext>
+        /**
+         * Class that wraps the v8 context
+        */
+        class JSContext : public std::enable_shared_from_this<JSContext>, public ISnapshotHandleCloser
         {
         public:
             JSContext(JSRuntimeSharedPtr inRuntime, std::string inName);
@@ -39,23 +48,69 @@ namespace v8App
             JSContext(JSContext &&inContext);
             JSContext &operator=(JSContext &&inContext);
 
+            /**
+             * Gets the Isolate associated with the context
+            */
             v8::Isolate *GetIsolate() { return m_Runtime == nullptr ? nullptr : m_Runtime->GetIsolate(); }
+            /**
+             * Gets the JSRuntime associated with this context
+            */
             JSRuntimeSharedPtr GetJSRuntime() { return m_Runtime; }
-            JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
-            std::string GetName() { return m_Name; }
-
+            /**
+             * Gets the JSContext from the v8 context
+            */
             static JSContextSharedPtr GetJSContextFromV8Context(V8LocalContext inContext);
 
+            /**
+             * Gets the JSModules for this context
+            */
+            JSContextModulesSharedPtr GetJSModules() { return m_Modules; }
+
+            /**
+             * Gets the name of the context
+            */
+            std::string GetName() { return m_Name; }
+
+            /**
+             * Gets a local context for use
+            */
             V8LocalContext GetLocalContext();
 
+            /**
+             * Sets up teh callback to create shadow realsm
+            */
             static void SetupShadowRealmCallback(V8Isolate *inIsolate);
 
         protected:
+            virtual void CloseHandleForSnapshot() override { DisposeV8Context(); }
+            /**
+             * Closes out the Global for the context and removes the weak ref so a
+             *  snapshot can be generated
+            */
+            void DisposeV8Context();
+
+            /**
+             * Generates a context for the shadow realm in the format of
+             * <base context name>:shadow:<int>
+            */
             std::string GenerateShadowName();
+            /**
+             * Callback V8 calls to create the shadow realm
+            */
             static V8MaybeLocalContext HostCreateShadowRealmContext(V8LocalContext inInitiator);
+
+            /**
+             * Gets the weakref from the v8 context
+            */
             JSContextWeakPtr *GetContextWeakRef();
 
+            /**
+             * Create the v8 context
+            */
             void CreateContext();
+            /**
+             * Disposes the resources for the js context
+            */
             void DisposeContext();
 
             void MoveContext(JSContext &&inContext);
@@ -70,6 +125,7 @@ namespace v8App
             JSContext &operator=(const JSContext &) = delete;
 
             friend JSContextCreator;
+            friend JSRuntime;
         };
     }
 }

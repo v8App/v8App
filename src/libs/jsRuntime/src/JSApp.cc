@@ -96,7 +96,7 @@ namespace v8App
             }
         }
 
-        bool JSApp::InitializeApp(std::filesystem::path inAppRoot, bool setupForSnapshot)
+        bool JSApp::Initialize(std::filesystem::path inAppRoot, bool setupForSnapshot, JSContextCreationHelperSharedPtr inContextCreator)
         {
             if (m_Initialized)
             {
@@ -104,12 +104,16 @@ namespace v8App
             }
             if (m_SnapshotProvider == nullptr)
             {
-                Log::LogMessage msg = {{Log::MsgKey::Msg, "The snapshot provider must be set before calling InitializeApp"}};
+                Log::LogMessage msg = {{Log::MsgKey::Msg, "The snapshot provider must be set before calling Initialize"}};
                 LOG_ERROR(msg);
                 return false;
             }
 
             JSAppSharedPtr sharedApp = shared_from_this();
+
+            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
+            m_AppAssets->SetAppRootPath(inAppRoot);
+
             if (m_SnapshotProvider->SnapshotLoaded() == false)
             {
                 if (m_SnapshotProvider->LoadSnapshotData(sharedApp) == false)
@@ -118,12 +122,10 @@ namespace v8App
                 }
             }
 
-            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
-            m_AppAssets->SetAppRootPath(inAppRoot);
             m_CodeCache = std::make_shared<CodeCache>(sharedApp);
 
             std::string runtimeName = m_Name + "-runtime";
-            if (CreateJSRuntime(runtimeName, setupForSnapshot, nullptr) == false)
+            if (CreateJSRuntime(runtimeName, inContextCreator, setupForSnapshot, nullptr) == false)
             {
                 return false;
             }
@@ -221,7 +223,7 @@ namespace v8App
                 return shared_from_this();
             }
             JSAppSharedPtr snapApp = std::make_shared<JSApp>(m_Name + "-snapshotter", m_SnapshotProvider);
-            if (snapApp->InitializeApp(m_AppAssets->GetAppRoot(), true) == false)
+            if (snapApp->Initialize(m_AppAssets->GetAppRoot(), true, m_JSRuntime->GetContextCreationHelper()) == false)
             {
                 return nullptr;
             }
@@ -231,14 +233,14 @@ namespace v8App
 
         V8SnapshotCreatorSharedPtr JSApp::GetSnapshotCreator()
         {
-            if(m_JSRuntime != nullptr)
+            if (m_JSRuntime != nullptr)
             {
-            return m_JSRuntime->GetSnapshotCreator();
+                return m_JSRuntime->GetSnapshotCreator();
             }
             return nullptr;
         }
 
-        bool JSApp::CreateJSRuntime(std::string inName, bool setupForSnapshot, const intptr_t *inExternalReferences)
+        bool JSApp::CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot, const intptr_t *inExternalReferences)
         {
             const v8::StartupData *data = m_SnapshotProvider->GetSnapshotData();
             if (data->raw_size == 0)
@@ -249,20 +251,16 @@ namespace v8App
                 return false;
             }
             m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, data, inExternalReferences, setupForSnapshot);
-            if (setupForSnapshot)
-            {
-                m_IsSnapshotter = true;
-            }
-            else
-            {
-            }
             if (m_JSRuntime == nullptr)
             {
                 return false;
             }
             m_JSRuntime->Initialize();
-            JSContextCreationHelperUniquePtr helper = std::make_unique<JSContextCreator>();
-            m_JSRuntime->SetContextCreationHelper(std::move(helper));
+            if (setupForSnapshot)
+            {
+                m_IsSnapshotter = true;
+            }
+            m_JSRuntime->SetContextCreationHelper(inContextCreator);
             return true;
         }
     }
