@@ -64,6 +64,7 @@ namespace v8App
 
         v8::StartupData JSSnapshotCreator::SerializeInternalField(V8LocalObject inHolder, int inIndex, void *inData)
         {
+            return {nullptr, 0};
         }
 
         v8::StartupData JSSnapshotCreator::SerializeContextInternalField(V8LocalContext inHolder, int inIndex, void *inData)

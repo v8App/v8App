@@ -138,7 +138,7 @@ namespace v8App
             /**
              * Create the JSRuntime
              */
-            bool CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot, const intptr_t *inExternalReferences);
+            bool CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot);
 
             /** The name of the app */
             std::string m_Name;

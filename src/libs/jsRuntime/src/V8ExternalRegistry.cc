@@ -5,34 +5,52 @@
 #include <algorithm>
 
 #include "V8ExternalRegistry.h"
+#include "CppBridge/V8FunctionTemplate.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        void V8ExternalRegistry::Register(void *inAddress)
+
+        std::unique_ptr<V8ExternalRegistry> V8ExternalRegistry::s_Instance;
+
+        V8ExternalRegistry *V8ExternalRegistry::GetInstance()
         {
-            intptr_t intAddress = reinterpret_cast<intptr_t>(inAddress);
-            if (std::find(m_Registry.begin(), m_Registry.end(), intAddress) == m_Registry.end())
+            if (s_Instance == nullptr)
             {
-                //registry always has to end in nullptr so replace it and push it back on the end
-                int index = m_Registry.size() == 0 ? 0 : m_Registry.size() - 1;
-                if (index == 0)
-                {
-                    m_Registry.push_back(intAddress);
-                }
-                else
-                {
-                    m_Registry[index] = intAddress;
-                }
-                m_Registry.push_back(reinterpret_cast<intptr_t>(nullptr));
+                s_Instance = std::make_unique<V8ExternalRegistry>();
             }
+            return s_Instance.get();
         }
 
         const std::vector<intptr_t> &V8ExternalRegistry::GetReferences()
         {
-            return m_Registry;
+            V8ExternalRegistry *instance = GetInstance();
+            if (instance->m_Registry.size() == 0 || instance->m_Registry.back() != 0)
+            {
+                instance->m_Registry.push_back((intptr_t) nullptr);
+            }
+            return instance->m_Registry;
         }
+
+        void V8ExternalRegistry::RegisterGlobalRegisterer(GlobalTemplateRegisterFunction inRegister)
+        {
+            V8ExternalRegistry *instance = GetInstance();
+            if (std::find(instance->m_RegisterFunctions.begin(), instance->m_RegisterFunctions.end(), inRegister) == instance->m_RegisterFunctions.end())
+            {
+                instance->m_RegisterFunctions.push_back(inRegister);
+            }
+        }
+
+        void V8ExternalRegistry::RunGlobalRegisterFunctions(V8Isolate *inIsolate, v8::Local<v8::ObjectTemplate> &inGlobal)
+        {
+            V8ExternalRegistry *instance = GetInstance();
+            for (auto func : instance->m_RegisterFunctions)
+            {
+                func(inIsolate, inGlobal);
+            }
+        }
+
     } // namespace JSRuntime
 
 }

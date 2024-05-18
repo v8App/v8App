@@ -18,6 +18,7 @@ v8App_library(
         "src/JSSnapshotCreator.cc",
         "src/JSUtilities.cc",
         "src/NestableQueue.cc",
+        "src/V8ExternalRegistry.cc",
         "src/V8Jobs.cc",
         "src/V8Platform.cc",
         "src/WorkerTaskRunner.cc",
@@ -39,6 +40,7 @@ v8App_library(
         "include/JSSnapshotCreator.h",
         "include/JSUtilities.h",
         "include/NestableQueue.h",
+        "include/V8ExternalRegistry.h",
         "include/V8Jobs.h",
         "include/V8Platform.h",
         "include/V8Types.h",
@@ -47,7 +49,6 @@ v8App_library(
     copts = [
         "-Isrc/libs/core/include",
         "-Isrc/libs/jsRuntime/include",
-       # "-Ithird_party/v8/include",
     ],
     defines = [
     ],

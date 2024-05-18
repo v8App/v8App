@@ -166,7 +166,7 @@ namespace v8App
             v8::HandleScope handleScope(isolate);
 
             // TODO: Hook a setup for classes to register to the global
-            v8::Local<v8::ObjectTemplate> global_template = v8::ObjectTemplate::New(isolate);
+            v8::Local<v8::ObjectTemplate> global_template = m_Runtime->GetGlobalTemplate();
 
             V8LocalContext context = v8::Context::New(isolate, nullptr, global_template);
             DCHECK_FALSE(tryCatch.HasCaught());

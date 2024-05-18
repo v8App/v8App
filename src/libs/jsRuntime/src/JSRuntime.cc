@@ -11,6 +11,7 @@
 #include "JSRuntime.h"
 #include "JSContextModules.h"
 #include "ForegroundTaskRunner.h"
+#include "V8ExternalRegistry.h"
 
 namespace v8App
 {
@@ -134,12 +135,20 @@ namespace v8App
             return it->second.Get(m_Isolate.get());
         }
 
+        void JSRuntime::RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject)
+        {
+            for (auto objTmpl : m_ObjectTemplates)
+            {
+                // inObject->Set()
+            }
+        }
+
         void JSRuntime::SetContextCreationHelper(JSContextCreationHelperSharedPtr inCreator)
         {
             m_ContextCreation = inCreator;
         }
 
-        JSContextCreationHelperSharedPtr  JSRuntime::GetContextCreationHelper()
+        JSContextCreationHelperSharedPtr JSRuntime::GetContextCreationHelper()
         {
             return m_ContextCreation;
         }
@@ -246,14 +255,14 @@ namespace v8App
         void JSRuntime::RegisterSnapshotHandleCloser(ISnapshotHandleCloserWeakPtr inCloser)
         {
             auto callback = std::find_if(m_HandleClosers.begin(), m_HandleClosers.end(),
-                             [&inCloser](const ISnapshotHandleCloserWeakPtr &inPtr)
-                             {
-                                 if (inPtr.expired() == false)
-                                 {
-                                     return inCloser.lock() == inPtr.lock();
-                                 }
-                                 return false;
-                             });
+                                         [&inCloser](const ISnapshotHandleCloserWeakPtr &inPtr)
+                                         {
+                                             if (inPtr.expired() == false)
+                                             {
+                                                 return inCloser.lock() == inPtr.lock();
+                                             }
+                                             return false;
+                                         });
             if (callback == m_HandleClosers.end())
             {
                 m_HandleClosers.push_back(inCloser);
@@ -262,7 +271,11 @@ namespace v8App
 
         void JSRuntime::UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser)
         {
-            if (m_HandleClosers.empty())
+            if (m_GlobalTemplate.IsEmpty() == false)
+            {
+                m_GlobalTemplate.Reset();
+            }
+            if (m_HandleClosers.empty() && m_GlobalTemplate.IsEmpty())
             {
                 return;
             }
@@ -292,6 +305,18 @@ namespace v8App
             }
         }
 
+        void JSRuntime::CreateGlobalTemplate(bool inRegister)
+        {
+            v8::Isolate::Scope iScope(m_Isolate.get());
+            v8::HandleScope hScope(m_Isolate.get());
+            v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate.get());
+            if (inRegister)
+            {
+                V8ExternalRegistry::RunGlobalRegisterFunctions(m_Isolate.get(), global);
+            }
+            m_GlobalTemplate.Reset(m_Isolate.get(), global);
+        }
+
         void JSRuntime::CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
         {
             // custom deleter since we have to call dispose
@@ -305,7 +330,7 @@ namespace v8App
 
             v8::Isolate::CreateParams params;
             params.snapshot_blob = inSnapshot;
-            params.external_references = inExternalReferences;
+            params.external_references = V8ExternalRegistry::GetReferences().data();
             // TODO: replace with custom allocator
             params.array_buffer_allocator =
                 v8::ArrayBuffer::Allocator::NewDefaultAllocator();

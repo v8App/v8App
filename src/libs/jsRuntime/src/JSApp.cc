@@ -125,7 +125,7 @@ namespace v8App
             m_CodeCache = std::make_shared<CodeCache>(sharedApp);
 
             std::string runtimeName = m_Name + "-runtime";
-            if (CreateJSRuntime(runtimeName, inContextCreator, setupForSnapshot, nullptr) == false)
+            if (CreateJSRuntime(runtimeName, inContextCreator, setupForSnapshot) == false)
             {
                 return false;
             }
@@ -240,7 +240,7 @@ namespace v8App
             return nullptr;
         }
 
-        bool JSApp::CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot, const intptr_t *inExternalReferences)
+        bool JSApp::CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot)
         {
             const v8::StartupData *data = m_SnapshotProvider->GetSnapshotData();
             if (data->raw_size == 0)
@@ -250,7 +250,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, data, inExternalReferences, setupForSnapshot);
+            m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, data, nullptr, setupForSnapshot);
             if (m_JSRuntime == nullptr)
             {
                 return false;

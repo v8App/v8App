@@ -135,6 +135,8 @@ namespace v8App
              */
             v8::Local<v8::FunctionTemplate> GetFunctionTemplate(void *inInfo);
 
+            void RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject);
+
             /**
              * Sets the context creation helper
              */
@@ -190,6 +192,9 @@ namespace v8App
             void RegisterSnapshotHandleCloser(ISnapshotHandleCloserWeakPtr inCloser);
             void UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser);
 
+            v8::Local<v8::ObjectTemplate> GetGlobalTemplate() { return m_GlobalTemplate.Get(m_Isolate.get()); }
+            void CreateGlobalTemplate(bool inRegister);
+
         protected:
             /**
              * Creates the v8 isolate and if for a snapshot the v8 snapshot creator as well
@@ -232,6 +237,7 @@ namespace v8App
              */
             FunctionTemplateMap m_FunctionTemplates;
 
+            V8PersistentObjTpl m_GlobalTemplate;
             /**
              * The Context Creator
              */

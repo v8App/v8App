@@ -37,6 +37,11 @@ namespace v8App
 
         using V8FuncCallInfoValue = v8::FunctionCallbackInfo<v8::Value>;
 
+        using V8LocalFuncTpl = v8::Local<v8::FunctionTemplate>;
+        using V8LocalObjTpl = v8::Local<v8::ObjectTemplate>;
+
+        using V8PersistentObjTpl = v8::Persistent<v8::ObjectTemplate>;
+
         using V8LocalPromise = v8::Local<v8::Promise>;
         using V8MaybeLocalPromise = v8::MaybeLocal<v8::Promise>;
         using V8LocalPromiseResolver = v8::Local<v8::Promise::Resolver>;
