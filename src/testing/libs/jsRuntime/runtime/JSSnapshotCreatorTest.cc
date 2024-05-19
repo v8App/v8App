@@ -20,15 +20,23 @@ namespace v8App
         using JSnapshotCreatorTest = V8Fixture;
 
         static std::string g_FunctionString;
+        static std::string g_FunctionString2;
         void testFunctionInRuntime(std::string inString)
         {
             g_FunctionString = inString;
+        }
+
+        void testFunctionInRuntime2(std::string inString)
+        {
+            g_FunctionString2 = inString;
         }
 
         void RegisterFuncTemplate(V8Isolate* inIsolate, v8::Local<v8::ObjectTemplate>&inGlobal)
         {
             auto funcTpl = CppBridge::CreateFunctionTemplate(inIsolate, Utils::MakeCallback(testFunctionInRuntime));
             inGlobal->Set(JSUtilities::StringToV8(inIsolate, "test"), funcTpl);
+            funcTpl = CppBridge::CreateFunctionTemplate(inIsolate, Utils::MakeCallback(testFunctionInRuntime2));
+            inGlobal->Set(JSUtilities::StringToV8(inIsolate, "test2"), funcTpl);
         }
 
         REGISTER_FUNCS(testFunctionInRuntime)
@@ -60,6 +68,7 @@ namespace v8App
 
                 const char csource1[] = R"(
                     test('test');
+                    test2('test2');
                 )";
 
                 v8::TryCatch try_catch(isolate);
@@ -76,7 +85,9 @@ namespace v8App
                 }
 
                 EXPECT_EQ("test", g_FunctionString);
+                EXPECT_EQ("test2", g_FunctionString2);
             }
+
             JSSnapshotCreator creator(snapApp);
 
             EXPECT_TRUE(creator.CreateSnapshotFile(snapshotFile));
@@ -113,7 +124,8 @@ namespace v8App
                     EXPECT_TRUE(false);
                 }
 
-                EXPECT_EQ("test2", g_FunctionString);
+                EXPECT_EQ("test", g_FunctionString);
+                EXPECT_EQ("test2", g_FunctionString2);
             }
             restore->DisposeApp();
         }

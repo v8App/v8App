@@ -14,6 +14,7 @@
 #include "V8Types.h"
 #include "V8Platform.h"
 #include "JSSnapshotCreator.h"
+#include "CppBridge/CallbackHolderBase.h"
 
 namespace v8App
 {
@@ -129,11 +130,11 @@ namespace v8App
             /**
              * Stores a function template for the isolate
              */
-            void SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate);
+            void SetFunctionTemplate(intptr_t inFuncAddress, CppBridge::CallbackHolderBase* inHolder);
             /**
              * Gets a function template for the isolate
              */
-            v8::Local<v8::FunctionTemplate> GetFunctionTemplate(void *inInfo);
+           CppBridge::CallbackHolderBase* GetFunctionTemplate(intptr_t inFuncAddress);
 
             void RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject);
 
@@ -226,7 +227,7 @@ namespace v8App
             std::shared_ptr<class ForegroundTaskRunner> m_TaskRunner;
 
             using ObjectTemplateMap = std::map<void *, v8::Eternal<v8::ObjectTemplate>>;
-            using FunctionTemplateMap = std::map<void *, v8::Eternal<v8::FunctionTemplate>>;
+            using FunctionTemplateMap = std::map<intptr_t, CppBridge::CallbackHolderBase*>;
 
             /**
              * The object templates for the isolate

@@ -118,21 +118,19 @@ namespace v8App
             return it->second.Get(m_Isolate.get());
         }
 
-        void JSRuntime::SetFunctionTemplate(void *inInfo, v8::Local<v8::FunctionTemplate> inTemplate)
+        void JSRuntime::SetFunctionTemplate(intptr_t inFuncAddres,CppBridge::CallbackHolderBase* inCallbackHolder)
         {
-            CHECK_NOT_NULL(m_Isolate.get());
-            m_FunctionTemplates[inInfo] = v8::Eternal<v8::FunctionTemplate>(m_Isolate.get(), inTemplate);
+            m_FunctionTemplates[inFuncAddres] = inCallbackHolder;
         }
 
-        v8::Local<v8::FunctionTemplate> JSRuntime::GetFunctionTemplate(void *inInfo)
+        CppBridge::CallbackHolderBase* JSRuntime::GetFunctionTemplate(intptr_t inFuncAddres)
         {
-            CHECK_NOT_NULL(m_Isolate.get());
-            FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inInfo);
+            FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inFuncAddres);
             if (it == m_FunctionTemplates.end())
             {
-                return v8::Local<v8::FunctionTemplate>();
+                return nullptr;
             }
-            return it->second.Get(m_Isolate.get());
+            return it->second;
         }
 
         void JSRuntime::RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject)
@@ -240,6 +238,7 @@ namespace v8App
             {
                 return;
             }
+            m_GlobalTemplate.Reset();
             for (auto callback : m_HandleClosers)
             {
                 if (callback.expired())

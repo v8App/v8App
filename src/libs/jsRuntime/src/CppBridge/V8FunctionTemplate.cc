@@ -13,8 +13,8 @@ namespace v8App
         {
             CallbackHolderBase::CallbackHolderBase(v8::Isolate* inIsolate)
             {
-                m_ExHolder.Reset(inIsolate, v8::External::New(inIsolate, this));
-                m_ExHolder.SetWeak(this, &CallbackHolderBase::FirstWeakCallback, v8::WeakCallbackType::kParameter);
+                //m_ExHolder.Reset(inIsolate, v8::External::New(inIsolate, this));
+                //m_ExHolder.SetWeak(this, &CallbackHolderBase::FirstWeakCallback, v8::WeakCallbackType::kParameter);
             }
 
             CallbackHolderBase::~CallbackHolderBase()

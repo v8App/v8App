@@ -25,6 +25,7 @@ v8App_library(
     ],
     hdrs = [
         "include/CodeCache.h",
+        "include/CppBridge/CallbackHolderBase.h",
         "include/CppBridge/V8Arguments.h",
         "include/CppBridge/V8FunctionTemplate.h",
         "include/CppBridge/V8NativeObject.h",

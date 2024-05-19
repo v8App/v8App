@@ -13,6 +13,7 @@
 #include "Utils/CallbackWrapper.h"
 #include "JSRuntime.h"
 #include "V8Arguments.h"
+#include "CallbackHolderBase.h"
 
 namespace v8App
 {
@@ -22,26 +23,6 @@ namespace v8App
     {
         namespace CppBridge
         {
-
-            class CallbackHolderBase
-            {
-            public:
-                v8::Local<v8::External> GetExternalHandle(v8::Isolate *inIsolate);
-
-            protected:
-                explicit CallbackHolderBase(v8::Isolate *inIsolate);
-                virtual ~CallbackHolderBase();
-
-            private:
-                static void FirstWeakCallback(const v8::WeakCallbackInfo<CallbackHolderBase> &info);
-                static void SecondWeakCallback(const v8::WeakCallbackInfo<CallbackHolderBase> &info);
-
-                v8::Global<v8::External> m_ExHolder;
-
-                CallbackHolderBase(const CallbackHolderBase &) = delete;
-                CallbackHolderBase &operator=(const CallbackHolderBase &) = delete;
-            };
-
             template <typename Signature>
             class CallbackHolder : public CallbackHolderBase
             {
@@ -112,7 +93,6 @@ namespace v8App
                 }
             }
 
-
             template <typename Signature>
             struct CallbackDispatcher;
 
@@ -121,12 +101,17 @@ namespace v8App
             struct CallbackDispatcher<R (*)(Args...)>
             {
                 using Functor = R (*)(Args...);
-                static void DispatchCallback(V8Arguments *inArgs)
+                static void DispatchCallback(V8Arguments *inArgs, JSRuntimeSharedPtr inRuntime)
                 {
 
-                    v8::Local<v8::External> v8Holder;
-                    CHECK_TRUE(inArgs->GetData(&v8Holder));
-                    CallbackHolderBase *holderBase = reinterpret_cast<CallbackHolderBase *>(v8Holder->Value());
+                    // v8::Local<v8::External> v8Holder;
+                    // CHECK_TRUE(inArgs->GetData(&v8Holder));
+                    intptr_t funcAddress = reinterpret_cast<intptr_t>(&CppBridge::CallbackDispatcher<Functor>::V8CallbackForFunction);
+                    CallbackHolderBase *holderBase = inRuntime->GetFunctionTemplate(funcAddress);
+                    if (holderBase == nullptr)
+                    {
+                        return;
+                    }
 
                     using HolderInstType = CallbackHolder<Functor>;
                     HolderInstType *holder = static_cast<HolderInstType *>(holderBase);
@@ -138,13 +123,20 @@ namespace v8App
                 static void V8CallbackForFunction(const v8::FunctionCallbackInfo<v8::Value> &info)
                 {
                     V8Arguments args(info);
-                    DispatchCallback(&args);
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    DispatchCallback(&args, runtime);
                 }
 
                 static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
                 {
                     V8Arguments args(info);
-                    DispatchCallback(&args);
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    if (runtime == nullptr)
+                    {
+                        // should throw some sort of error
+                        return;
+                    }
+                    DispatchCallback(&args, runtime);
                 }
 
             private:
@@ -172,7 +164,7 @@ namespace v8App
             struct CallbackDispatcher<R (C::*)(Args...)>
             {
                 using Functor = R (C::*)(Args...);
-                static void DispatchCallback(V8Arguments *inArgs)
+                static void DispatchCallback(V8Arguments *inArgs, JSRuntimeSharedPtr inRuntime)
                 {
 
                     v8::Local<v8::External> v8Holder;
@@ -189,13 +181,15 @@ namespace v8App
                 static void V8CallbackForFunction(const v8::FunctionCallbackInfo<v8::Value> &info)
                 {
                     V8Arguments args(info);
-                    DispatchCallback(&args);
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    DispatchCallback(&args, runtime);
                 }
 
                 static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
                 {
                     V8Arguments args(info);
-                    DispatchCallback(&args);
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    DispatchCallback(&args, runtime);
                 }
 
             private:
@@ -229,7 +223,7 @@ namespace v8App
             struct CallbackDispatcher<R (C::*)(Args...) const>
             {
                 using Functor = R (C::*)(Args...) const;
-                static void DispatchCallback(V8Arguments *inArgs)
+                static void DispatchCallback(V8Arguments *inArgs, JSRuntimeSharedPtr inRuntime)
                 {
 
                     v8::Local<v8::External> v8Holder;
@@ -246,13 +240,15 @@ namespace v8App
                 static void V8CallbackForFunction(const v8::FunctionCallbackInfo<v8::Value> &info)
                 {
                     V8Arguments args(info);
-                    DispatchCallback(&args);
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    DispatchCallback(&args, runtime);
                 }
 
                 static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
                 {
                     V8Arguments args(info);
-                    DispatchCallback(&args);
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    DispatchCallback(&args, runtime);
                 }
 
             private:
@@ -294,28 +290,28 @@ namespace v8App
                 JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
                 CHECK_NE(nullptr, runtime);
 
+                intptr_t funcAddress = reinterpret_cast<intptr_t>(&CppBridge::CallbackDispatcher<Signature>::V8CallbackForFunction);
+                runtime->SetFunctionTemplate(funcAddress, holder);
                 if (isConstructor)
                 {
                     // for the constrcutor function we don't need a holder object since it'll be creatig one when called
                     tmpl = v8::FunctionTemplate::New(inIsolate);
-                    tmpl->SetCallHandler(&CallbackDispatcher<Signature>::V8CallbackForFunction, holder->GetExternalHandle(inIsolate));
+                    tmpl->SetCallHandler(&CallbackDispatcher<Signature>::V8CallbackForFunction);
                     tmpl->SetLength(1);
                 }
                 else
                 {
                     tmpl = v8::FunctionTemplate::New(
                         inIsolate,
-                        &CallbackDispatcher<Signature>::V8CallbackForFunction,
-                        ConvertToV8<v8::Local<v8::External>>(inIsolate,
-                                                             holder->GetExternalHandle(inIsolate)));
+                        &CallbackDispatcher<Signature>::V8CallbackForFunction);
 
                     tmpl->RemovePrototype();
                 }
                 // register the external reference
-                //runtime->GetExternalRegistry().Register((void *)&CallbackDispatcher<Signature>::V8CallbackForFunction);
+                // runtime->GetExternalRegistry().Register((void *)&CallbackDispatcher<Signature>::V8CallbackForFunction);
                 return tmpl;
             }
         } // namespace CppBridge
-    } // namespace JSRuntime
+    }     // namespace JSRuntime
 } // namespace v8App
 #endif

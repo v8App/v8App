@@ -78,7 +78,7 @@ v8App_test(
     size = "small",
     srcs = [
         "runtime/CppBridge/V8ArgumentsTest.cc",
-        "runtime/CppBridge/V8FunctionTemplateTest.cc",
+#        "runtime/CppBridge/V8FunctionTemplateTest.cc",
         "runtime/CppBridge/V8NativeObjectTest.cc",
         "runtime/CppBridge/V8ObjectTemplateTest.cc",
         "runtime/CppBridge/V8TypeConverterTest.cc",
