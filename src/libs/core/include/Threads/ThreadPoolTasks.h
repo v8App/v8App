@@ -24,6 +24,9 @@ namespace v8App
         {
         public:
             virtual ~IThreadPoolTask() = default;
+            /**
+             * The actual code to run for the task
+            */
             virtual void Run() = 0;
         };
 

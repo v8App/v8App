@@ -12,7 +12,7 @@ namespace v8App
 {
     namespace Utils
     {
-        // Because Apple's clang doesn't support std::format
+        // Because Apple's clang doesn't support std::format at the moment
         template <typename T>
         inline void format_helper(std::ostringstream &oss, std::string_view &str, const T &value)
         {

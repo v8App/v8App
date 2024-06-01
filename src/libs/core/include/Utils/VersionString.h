@@ -11,6 +11,10 @@ namespace v8App
 {
     namespace Utils
     {
+        /**
+         * Implements class that deals with version string parsing based on Semantic version strings
+         * See https://semver.org/
+        */
         class VersionString
         {
         public:

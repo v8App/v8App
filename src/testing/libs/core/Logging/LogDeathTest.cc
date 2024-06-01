@@ -8,6 +8,9 @@
 #include "Logging/Log.h"
 #include "Logging/ILogSink.h"
 #include "Logging/LogMacros.h"
+#include "Assets/TextAsset.h"
+#include "Logging/LogJSONFile.h"
+#include "test_main.h"
 
 namespace v8App
 {
@@ -67,16 +70,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_FULL(1 == 0, "File", "Function", 10);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_FULL(1 == 0, "File", "Function", 10); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_FULL(1 == 1, "File", "Function", 10);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckUnimplemented)
@@ -87,10 +85,7 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                UNIMPLEMENTED();
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ UNIMPLEMENTED(); }, "v8App Log \\{");
         }
 
         TEST(LogDeathTest, CheckUnreachable)
@@ -101,10 +96,7 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                UNREACHABLE();
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ UNREACHABLE(); }, "v8App Log \\{");
         }
 
         TEST(LogDeathTest, CheckMacro)
@@ -115,16 +107,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK(1 == 0);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK(1 == 0); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK(1 == 1);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckEqualMacro)
@@ -135,16 +122,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_EQ(1, 0);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_EQ(1, 0); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_EQ(1, 1);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckNotEqualMacro)
@@ -155,16 +137,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_NE(1, 1);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_NE(1, 1); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_NE(1, 0);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckGreaterThanMacro)
@@ -175,16 +152,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_GT(1, 5);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_GT(1, 5); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_GT(1, 0);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckGreaterThanEqualMacro)
@@ -195,22 +167,15 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_GE(1, 5);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_GE(1, 5); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_GE(1, 1);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
 
             EXPECT_EXIT({
                 CHECK_GE(1, 0);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckLessThanMacro)
@@ -221,16 +186,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_LT(1, 0);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_LT(1, 0); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_LT(0, 1);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckLessThanEqualMacro)
@@ -241,22 +201,15 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_LE(1, 0);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_LE(1, 0); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_LE(1, 1);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
 
             EXPECT_EXIT({
                 CHECK_LE(0, 1);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckNullMacro)
@@ -269,15 +222,11 @@ namespace v8App
             // which is why it's just the first line of the log message.
             ASSERT_DEATH({
                 int n = 5;
-                CHECK_NULL(&n);
-            },
-                         "v8App Log \\{");
+                CHECK_NULL(&n); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_NULL(nullptr);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckNotNullMacro)
@@ -288,17 +237,12 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_NOT_NULL(nullptr);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_NOT_NULL(nullptr); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 int n = 5;
                 CHECK_NOT_NULL(&n);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckTrueMacro)
@@ -309,16 +253,11 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_TRUE(false);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_TRUE(false); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_TRUE(true);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
         }
 
         TEST(LogDeathTest, CheckFalseMacro)
@@ -329,16 +268,31 @@ namespace v8App
             // The output for this is really a multiline message however
             //  the assert only checks the first line against what's passed
             // which is why it's just the first line of the log message.
-            ASSERT_DEATH({
-                CHECK_FALSE(true);
-            },
-                         "v8App Log \\{");
+            ASSERT_DEATH({ CHECK_FALSE(true); }, "v8App Log \\{");
 
             EXPECT_EXIT({
                 CHECK_FALSE(false);
-                std::exit(0);
-            },
-                        ::testing::ExitedWithCode(0), "");
+                std::exit(0); }, ::testing::ExitedWithCode(0), "");
+        }
+
+        TEST(LogDeathTest, CheckLogShutdown)
+        {
+            GTEST_FLAG_SET(death_test_style, "threadsafe");
+            LogTest::LogDouble::ResetLog();
+
+            std::filesystem::path logFile = s_TestDir / "log/LogShutdownAbort.log";
+            std::filesystem::create_directory(s_TestDir / "log");
+
+            ASSERT_DEATH({
+             std::filesystem::path logFile = s_TestDir / "log/LogShutdownAbort.log";
+               std::unique_ptr<ILogSink> log = std::make_unique<LogJSONFile>("Test", logFile);
+               Log::Log::AddLogSink(log);
+            UNREACHABLE(); }, "");
+
+            Assets::TextAsset logOutput(logFile);
+            EXPECT_TRUE(logOutput.ReadAsset());
+            std::string content = logOutput.GetContent();
+            EXPECT_TRUE(content.find("Hit a supposedly unreacable code point") != content.npos);
         }
     } // namespace Log
 } // namespace v8App

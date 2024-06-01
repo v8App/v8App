@@ -54,6 +54,15 @@ namespace v8App
             return inLevel != LogLevel::Off;
         }
 
+        void LogJSONFile::Close()
+        {
+            if(m_FileHandle.is_open())
+            {
+                m_FileHandle.flush();
+            }
+            m_FileHandle.close();
+        }
+
         bool LogJSONFile::OpenFile()
         {
             if (m_FileHandle.is_open() && m_FileHandle.bad() == false && m_FileHandle.fail() == false)

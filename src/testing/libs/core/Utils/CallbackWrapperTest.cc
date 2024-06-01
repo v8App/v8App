@@ -73,12 +73,13 @@ namespace v8App
         {
             resetGlobals();
 
-            //function
+            // function
             auto voidFunc = MakeCallback(testFunctionVoid);
             EXPECT_FALSE(voidFunc.IsMemberFunction());
             EXPECT_FALSE(voidFunc.IsLambdaFunction());
             EXPECT_FALSE(voidFunc.IsStdFunction());
             EXPECT_TRUE(voidFunc.IsVoid());
+            EXPECT_EQ((size_t)&testFunctionVoid, voidFunc.GetFuncAddress());
 
             voidFunc.Invoke(5, 10.0f);
 
@@ -87,17 +88,19 @@ namespace v8App
 
             resetGlobals();
 
-            //test function that returns vallue
+            // test function that returns vallue
             auto retFunc = MakeCallback(testFunctionReturns);
             EXPECT_EQ(20, retFunc.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
             EXPECT_FALSE(retFunc.IsVoid());
+            EXPECT_EQ((size_t)&testFunctionReturns, retFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //function pointer
+            // function pointer
             auto voidFunc2 = MakeCallback(&testFunctionVoid);
+            EXPECT_EQ((size_t)&testFunctionVoid, voidFunc2.GetFuncAddress());
             voidFunc2.Invoke(5, 10.0f);
 
             EXPECT_EQ(5, testInt);
@@ -105,43 +108,48 @@ namespace v8App
 
             resetGlobals();
 
-            //test function pointer that returns value
+            // test function pointer that returns value
             auto retFunc2 = MakeCallback(&testFunctionReturns);
             EXPECT_EQ(20, retFunc2.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
+            EXPECT_EQ((size_t)&testFunctionReturns, retFunc2.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy constructor
+            // test copy constructor
             auto newFunc(retFunc2);
             EXPECT_EQ(20, newFunc.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
+            EXPECT_EQ((size_t)&testFunctionReturns, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy constructor nove
+            // test copy constructor nove
             auto newFunc2(std::move(newFunc));
             EXPECT_EQ(20, newFunc2.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
+            EXPECT_EQ((size_t)&testFunctionReturns, newFunc2.GetFuncAddress());
 
             resetGlobals();
 
-            //test operator=
+            // test operator=
             newFunc = newFunc2;
             EXPECT_EQ(20, newFunc.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
+            EXPECT_EQ((size_t)&testFunctionReturns, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test operator= move
+            // test operator= move
             retFunc = std::move(newFunc);
             EXPECT_EQ(20, retFunc.Invoke(5.0f, "test"));
             EXPECT_EQ(5.0f, testFloat);
             EXPECT_EQ("test", testStr);
+            EXPECT_EQ((size_t)&testFunctionReturns, retFunc.GetFuncAddress());
         }
 
         TEST(CallWrapperTest, MemberFunctionPtrRawObjectPtr)
@@ -150,12 +158,15 @@ namespace v8App
 
             TestMemberFuncs *object = new TestMemberFuncs();
 
-            //test static member function
+            // test static member function
             auto staticMember = MakeCallback(&TestMemberFuncs::testStatic);
             EXPECT_FALSE(staticMember.IsMemberFunction());
             EXPECT_FALSE(staticMember.IsLambdaFunction());
             EXPECT_FALSE(staticMember.IsStdFunction());
             EXPECT_TRUE(staticMember.IsVoid());
+            // statics get routed as if they were a free function and thus pass the actual function address
+            // rather than hash like memeber functions
+            EXPECT_EQ((size_t)&TestMemberFuncs::testStatic, staticMember.GetFuncAddress());
 
             staticMember.Invoke(5, 5);
 
@@ -164,70 +175,84 @@ namespace v8App
 
             resetGlobals();
 
-            //test void memeber function
+            // test void memeber function
             auto voidFunc = MakeCallback(&TestMemberFuncs::Test1);
             voidFunc.Invoke(object, 5, 10.0f);
             EXPECT_TRUE(voidFunc.IsMemberFunction());
             EXPECT_FALSE(voidFunc.IsLambdaFunction());
             EXPECT_FALSE(voidFunc.IsStdFunction());
             EXPECT_TRUE(voidFunc.IsVoid());
+            size_t hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test1).name());
+            EXPECT_EQ(hash, voidFunc.GetFuncAddress());
 
             EXPECT_EQ(5, testInt);
             EXPECT_EQ(10.0f, testFloat);
 
             resetGlobals();
 
-            //test memeber function returns
+            // test memeber function returns
             auto retFunc = MakeCallback(&TestMemberFuncs::Test2);
             EXPECT_EQ(20, retFunc.Invoke(object, 5, "test"));
             EXPECT_FALSE(retFunc.IsVoid());
 
             EXPECT_EQ(5.0, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test2).name());
+            EXPECT_EQ(hash, retFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test const member function passing object
+            // test const member function passing object
             auto constFunc = MakeCallback(&TestMemberFuncs::Test3);
             EXPECT_EQ(5, constFunc.Invoke(object));
             EXPECT_FALSE(constFunc.IsVoid());
+            hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test3).name());
+            EXPECT_EQ(hash, constFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy constrcutor
+            // test copy constrcutor
 
             auto newFunc(retFunc);
             EXPECT_EQ(20, newFunc.Invoke(object, 5, "test"));
 
             EXPECT_EQ(5.0, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test2).name());
+            EXPECT_EQ(hash, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy move constructor
+            // test copy move constructor
             auto newFunc2(std::move(retFunc));
             EXPECT_EQ(20, newFunc2.Invoke(object, 5, "test"));
 
             EXPECT_EQ(5.0, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test2).name());
+            EXPECT_EQ(hash, newFunc2.GetFuncAddress());
 
             resetGlobals();
 
-            //test operator=
+            // test operator=
             newFunc = newFunc2;
             EXPECT_EQ(20, newFunc2.Invoke(object, 5, "test"));
 
             EXPECT_EQ(5.0, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test2).name());
+            EXPECT_EQ(hash, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test opreator= move
+            // test opreator= move
             retFunc = std::move(newFunc2);
             EXPECT_EQ(20, retFunc.Invoke(object, 5, "test"));
 
             EXPECT_EQ(5.0, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(&TestMemberFuncs::Test2).name());
+            EXPECT_EQ(hash, retFunc.GetFuncAddress());
         }
 
         TEST(CallWrapperTest, MemberFunctionPtrWeakObjectPtrInvoke)
@@ -237,7 +262,7 @@ namespace v8App
             std::shared_ptr<TestMemberFuncs> shared = std::make_shared<TestMemberFuncs>();
             std::weak_ptr<TestMemberFuncs> weak = shared;
 
-            //test unbounded member function passing object
+            // test unbounded member function passing object
             auto voidFunc = MakeCallback(&TestMemberFuncs::Test1);
             voidFunc.Invoke(weak, 5, 10.0f);
 
@@ -246,7 +271,7 @@ namespace v8App
 
             resetGlobals();
 
-            //test unbounded const member function passing object
+            // test unbounded const member function passing object
             auto constFunc = MakeCallback(&TestMemberFuncs::Test3);
             EXPECT_EQ(5, constFunc.Invoke(weak));
         }
@@ -255,7 +280,7 @@ namespace v8App
         {
             resetGlobals();
 
-            //non capture values and void return
+            // non capture values and void return
             auto lambda1 = [](int x, float y)
             {
                 testInt = x;
@@ -267,6 +292,8 @@ namespace v8App
             EXPECT_TRUE(func.IsLambdaFunction());
             EXPECT_FALSE(func.IsStdFunction());
             EXPECT_TRUE(func.IsVoid());
+            size_t hash = std::hash<std::string>{}(typeid(lambda1).name());
+            EXPECT_EQ(hash, func.GetFuncAddress());
 
             func.Invoke(7, 12.0f);
 
@@ -278,7 +305,7 @@ namespace v8App
             int x = 30;
             float y = 20.0f;
 
-            //caputer all by reference
+            // caputer all by reference
             auto lambda2 = [&]()
             {
                 testInt = x;
@@ -291,13 +318,15 @@ namespace v8App
 
             EXPECT_EQ(30, testInt);
             EXPECT_EQ(20.0f, testFloat);
+            hash = std::hash<std::string>{}(typeid(lambda2).name());
+            EXPECT_EQ(hash, func2.GetFuncAddress());
 
             resetGlobals();
 
             x = 14;
             y = 50.0f;
 
-            //capture all by copy
+            // capture all by copy
             auto lambda3 = [=]()
             {
                 testInt = x;
@@ -311,13 +340,15 @@ namespace v8App
 
             EXPECT_EQ(14, testInt);
             EXPECT_EQ(50.0f, testFloat);
+            hash = std::hash<std::string>{}(typeid(lambda3).name());
+            EXPECT_EQ(hash, func3.GetFuncAddress());
 
             resetGlobals();
 
             x = 1;
             y = 50.0f;
 
-            //capture x pass y and return int
+            // capture x pass y and return int
             auto lambda4 = [x](float y) -> int
             {
                 testInt = x;
@@ -332,24 +363,30 @@ namespace v8App
 
             EXPECT_EQ(1, testInt);
             EXPECT_EQ(24.0f, testFloat);
+            hash = std::hash<std::string>{}(typeid(lambda4).name());
+            EXPECT_EQ(hash, func4.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy constructor
+            // test copy constructor
             auto newFunc(func4);
             EXPECT_EQ(6, newFunc.Invoke(24.0f));
 
             EXPECT_EQ(1, testInt);
             EXPECT_EQ(24.0f, testFloat);
+            hash = std::hash<std::string>{}(typeid(lambda4).name());
+            EXPECT_EQ(hash, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy constructor move
+            // test copy constructor move
             auto newFunc2(std::move(func4));
             EXPECT_EQ(6, newFunc2.Invoke(24.0f));
 
             EXPECT_EQ(1, testInt);
             EXPECT_EQ(24.0f, testFloat);
+            hash = std::hash<std::string>{}(typeid(lambda4).name());
+            EXPECT_EQ(hash, newFunc2.GetFuncAddress());
 
             resetGlobals();
         }
@@ -365,6 +402,8 @@ namespace v8App
             EXPECT_FALSE(callback1.IsLambdaFunction());
             EXPECT_TRUE(callback1.IsStdFunction());
             EXPECT_TRUE(callback1.IsVoid());
+            size_t hash = std::hash<std::string>{}(typeid(func1).name());
+            EXPECT_EQ(hash, callback1.GetFuncAddress());
 
             callback1.Invoke(10, 20.0f);
 
@@ -381,42 +420,52 @@ namespace v8App
 
             EXPECT_EQ(10, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(func2).name());
+            EXPECT_EQ(hash, callback2.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy constructor
+            // test copy constructor
             auto newFunc(callback2);
             EXPECT_EQ(20, newFunc.Invoke(10, "test"));
 
             EXPECT_EQ(10, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(func2).name());
+            EXPECT_EQ(hash, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test copy move construcotr
+            // test copy move construcotr
             auto newFunc2(std::move(callback2));
             EXPECT_EQ(20, newFunc2.Invoke(10, "test"));
 
             EXPECT_EQ(10, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(func2).name());
+            EXPECT_EQ(hash, newFunc2.GetFuncAddress());
 
             resetGlobals();
 
-            //test operator =
+            // test operator =
             newFunc = newFunc2;
             EXPECT_EQ(20, newFunc.Invoke(10, "test"));
 
             EXPECT_EQ(10, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(func2).name());
+            EXPECT_EQ(hash, newFunc.GetFuncAddress());
 
             resetGlobals();
 
-            //test operator= move
+            // test operator= move
             callback2 = std::move(newFunc2);
             EXPECT_EQ(20, callback2.Invoke(10, "test"));
 
             EXPECT_EQ(10, testFloat);
             EXPECT_EQ("test", testStr);
+            hash = std::hash<std::string>{}(typeid(func2).name());
+            EXPECT_EQ(hash, callback2.GetFuncAddress());
         }
 
     }

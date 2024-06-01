@@ -86,6 +86,10 @@ namespace v8App
             static void Trace(LogMessage &inMessage, std::string File, std::string Function, int Line);
             static void Fatal(LogMessage &inMessage, std::string File, std::string Function, int Line);
 
+            /**
+             * Closes out all the of the sinks used mainly by fatal to flush them all.
+            */
+            static void Shutdown();
         protected:
             static void InternalLog(LogMessage &inMessage, LogLevel inLevel, std::string File, std::string Function, int Line);
             static void InternalLog(LogMessage &inMessage, LogLevel inLevel);

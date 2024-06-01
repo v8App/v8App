@@ -11,6 +11,9 @@ namespace v8App
 {
     namespace Assets
     {
+        /**
+         * Text Asset override this to load specifc text formats
+        */
         class TextAsset : public BaseAsset
         {
         public:

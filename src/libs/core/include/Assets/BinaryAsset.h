@@ -14,6 +14,9 @@ namespace v8App
     {
         using BinaryByteVector = std::vector<uint8_t>;
 
+        /**
+         * Binary Asset subclass to load specific binary file formats
+        */
         class BinaryAsset : public BaseAsset
         {
         public:

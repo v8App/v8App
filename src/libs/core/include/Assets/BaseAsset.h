@@ -11,6 +11,9 @@ namespace v8App
 {
     namespace Assets
     {
+        /**
+         * Base class for assets
+        */
         class BaseAsset
         {
         public:

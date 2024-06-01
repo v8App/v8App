@@ -44,7 +44,7 @@ namespace v8App
 
         void Log::SetLogLevel(LogLevel inLevel)
         {
-            //Fatal can't be set.
+            // Fatal can't be set.
             if (inLevel == LogLevel::Fatal)
             {
                 return;
@@ -77,16 +77,15 @@ namespace v8App
             m_LogSinks.erase(it);
         }
 
-        ILogSink* Log::GetLogSink(const std::string& inName)
+        ILogSink *Log::GetLogSink(const std::string &inName)
         {
             auto it = m_LogSinks.find(inName);
-            if(it == m_LogSinks.end())
+            if (it == m_LogSinks.end())
             {
                 return nullptr;
             }
             return it->second.get();
         }
-
 
         std::string Log::GenerateISO8601Time(bool inUTC)
         {
@@ -146,7 +145,7 @@ namespace v8App
 
         void Log::Fatal(LogMessage &inMessage)
         {
-            //Fatal always logs a message
+            // Fatal always logs a message
             InternalLog(inMessage, LogLevel::Fatal);
         }
 
@@ -192,8 +191,16 @@ namespace v8App
 
         void Log::Fatal(LogMessage &inMessage, std::string File, std::string Function, int Line)
         {
-            //Fata always logs a message
+            // Fata always logs a message
             InternalLog(inMessage, LogLevel::Fatal, File, Function, Line);
+        }
+
+        void Log::Shutdown()
+        {
+            for(auto &it: m_LogSinks)
+            {
+                it.second->Close();
+            }
         }
 
         void Log::InternalLog(LogMessage &inMessage, LogLevel inLevel, std::string File, std::string Function, int Line)
@@ -206,16 +213,16 @@ namespace v8App
 
         void Log::InternalLog(LogMessage &inMessage, LogLevel inLevel)
         {
-            //add in the timestamp
+            // add in the timestamp
             inMessage.emplace(MsgKey::TimeStamp, GenerateISO8601Time(m_UseUTC));
-            //add the app name
+            // add the app name
             inMessage.emplace(MsgKey::AppName, m_AppName);
-            //Add the log level
+            // Add the log level
             inMessage.emplace(MsgKey::LogLevel, LogLevelToString(inLevel));
 
             for (auto &it : m_LogSinks)
             {
-                //sinks always get fatal message whther they want them or not
+                // sinks always get fatal message whther they want them or not
                 if (it.second->WantsLogMessage(inLevel) == false && inLevel != LogLevel::Fatal)
                 {
                     continue;
@@ -223,13 +230,13 @@ namespace v8App
                 it.second->SinkMessage(inMessage);
             }
 
-            //if there were no sinks then send the message to the std::cerr
+            // if there were no sinks then send the message to the std::cerr
             if (m_LogSinks.empty())
             {
                 std::cerr << m_AppName << " Log {" << std::endl;
                 for (auto &it : inMessage)
                 {
-                    //skip the app name key
+                    // skip the app name key
                     if (it.first == MsgKey::AppName)
                     {
                         continue;
