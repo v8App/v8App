@@ -11,7 +11,8 @@
 #include "JSRuntime.h"
 #include "JSContextModules.h"
 #include "ForegroundTaskRunner.h"
-#include "V8ExternalRegistry.h"
+#include "CppBridge/CallbackRegistry.h"
+#include "JSContext.h"
 
 namespace v8App
 {
@@ -104,7 +105,7 @@ namespace v8App
         void JSRuntime::SetObjectTemplate(void *inInfo, v8::Local<v8::ObjectTemplate> inTemplate)
         {
             CHECK_NOT_NULL(m_Isolate.get());
-            m_ObjectTemplates[inInfo] = v8::Eternal<v8::ObjectTemplate>(m_Isolate.get(), inTemplate);
+            m_ObjectTemplates[inInfo] = v8::Global<v8::ObjectTemplate>(m_Isolate.get(), inTemplate);
         }
 
         v8::Local<v8::ObjectTemplate> JSRuntime::GetObjectTemplate(void *inInfo)
@@ -118,27 +119,12 @@ namespace v8App
             return it->second.Get(m_Isolate.get());
         }
 
-        void JSRuntime::SetFunctionTemplate(intptr_t inFuncAddres,CppBridge::CallbackHolderBase* inCallbackHolder)
-        {
-            m_FunctionTemplates[inFuncAddres] = inCallbackHolder;
-        }
-
-        CppBridge::CallbackHolderBase* JSRuntime::GetFunctionTemplate(intptr_t inFuncAddres)
-        {
-            FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inFuncAddres);
-            if (it == m_FunctionTemplates.end())
-            {
-                return nullptr;
-            }
-            return it->second;
-        }
-
         void JSRuntime::RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject)
         {
-            for (auto objTmpl : m_ObjectTemplates)
-            {
+            //for (auto objTmpl : m_ObjectTemplates)
+            //{
                 // inObject->Set()
-            }
+            //}
         }
 
         void JSRuntime::SetContextCreationHelper(JSContextCreationHelperSharedPtr inCreator)
@@ -164,6 +150,7 @@ namespace v8App
             else
             {
                 m_Contextes.insert(std::make_pair(inName, context));
+                m_ContextCreation->RegisterSnapshotCloser(context);
             }
             return context;
         }
@@ -195,6 +182,9 @@ namespace v8App
             {
                 return;
             }
+           
+            m_ContextCreation->UnregisterSnapshotCloser(inContext);
+           
             m_ContextCreation->DisposeContext(inContext);
             for (auto it = m_Contextes.begin(); it != m_Contextes.end(); it++)
             {
@@ -209,11 +199,16 @@ namespace v8App
         void JSRuntime::DisposeRuntime()
         {
             m_Creator.reset();
+            m_HandleClosers.clear();
             if (m_Isolate != nullptr)
             {
                 v8::Isolate::Scope isolateScope(m_Isolate.get());
                 v8::Locker locker(m_Isolate.get());
                 v8::HandleScope handleScope(m_Isolate.get());
+                for(auto &it: m_ObjectTemplates)
+                {
+                    it.second.Reset();
+                }
                 m_Contextes.clear();
                 JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr)));
                 delete weakPtr;
@@ -222,8 +217,6 @@ namespace v8App
             m_Isolate.reset();
             m_App.reset();
             m_TaskRunner.reset();
-
-            // TODO: Adds something to delete the object.function templates
         }
 
         V8SnapshotCreatorSharedPtr JSRuntime::GetSnapshotCreator()
@@ -239,6 +232,16 @@ namespace v8App
                 return;
             }
             m_GlobalTemplate.Reset();
+            if (m_ObjectTemplates.empty() == false)
+            {
+                
+                for (auto it = m_ObjectTemplates.begin(); it != m_ObjectTemplates.end(); it++)
+                {
+                    it->second.Reset();
+                }
+            }
+
+            m_ObjectTemplates.clear();
             for (auto callback : m_HandleClosers)
             {
                 if (callback.expired())
@@ -270,11 +273,7 @@ namespace v8App
 
         void JSRuntime::UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser)
         {
-            if (m_GlobalTemplate.IsEmpty() == false)
-            {
-                m_GlobalTemplate.Reset();
-            }
-            if (m_HandleClosers.empty() && m_GlobalTemplate.IsEmpty())
+            if (m_HandleClosers.empty())
             {
                 return;
             }
@@ -311,7 +310,7 @@ namespace v8App
             v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate.get());
             if (inRegister)
             {
-                V8ExternalRegistry::RunGlobalRegisterFunctions(m_Isolate.get(), global);
+                CppBridge::CallbackRegistry::RunGlobalRegisterFunctions(shared_from_this(), global);
             }
             m_GlobalTemplate.Reset(m_Isolate.get(), global);
         }
@@ -329,7 +328,7 @@ namespace v8App
 
             v8::Isolate::CreateParams params;
             params.snapshot_blob = inSnapshot;
-            params.external_references = V8ExternalRegistry::GetReferences().data();
+            params.external_references = CppBridge::CallbackRegistry::GetReferences().data();
             // TODO: replace with custom allocator
             params.array_buffer_allocator =
                 v8::ArrayBuffer::Allocator::NewDefaultAllocator();

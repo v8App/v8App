@@ -75,8 +75,19 @@ namespace v8App
                 return m_Context;
             }
             virtual void DisposeContext(JSContextSharedPtr inContext) override { m_Context->TestDisposeContext(); }
+            virtual void RegisterSnapshotCloser(JSContextSharedPtr inContext) {}
+            virtual void UnregisterSnapshotCloser(JSContextSharedPtr inContext) {}
 
             std::shared_ptr<TestContext> m_Context;
+        };
+
+        class TestCloseHandlerJSRuntime : public ISnapshotHandleCloser
+        {
+        public:
+            int m_Value = 0;
+
+        protected:
+            virtual void CloseHandleForSnapshot() { m_Value = 10; }
         };
 
         TEST_F(JSRuntimeTest, Constrcutor)
@@ -129,24 +140,11 @@ namespace v8App
             EXPECT_NE(runtimePtr->GetIsolate(), nullptr);
             EXPECT_EQ(runtimePtr, JSRuntime::GetJSRuntimeFromV8Isolate(runtimePtr->GetIsolate()));
 
-            // we need to init the isolate before we dispoe of it
-            // v8::Isolate::CreateParams params;
-            // params.snapshot_blob = &s_V8StartupData;
-            // params.array_buffer_allocator =
-            //    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            // v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
-
             runtimePtr->DisposeRuntime();
             runtimePtr.reset();
 
             runtimePtr = JSRuntime::CreateJSRuntime(m_App, IdleTasksSupport::kIdleTasksDisabled, "testCreateJSRuntimeForSnapshotIdleNotEnabled", &s_V8StartupData, testExternal.data(), true);
             EXPECT_FALSE(runtimePtr->IdleTasksEnabled());
-
-            // we need to init the isolate before we dispoe of it
-            // params.snapshot_blob = &s_V8StartupData;
-            // params.array_buffer_allocator =
-            //    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            // v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
 
             runtimePtr->DisposeRuntime();
             runtimePtr.reset();
@@ -207,21 +205,13 @@ namespace v8App
             EXPECT_FALSE(runtimePtr->GetObjectTemplate(&info).IsEmpty());
         }
 
-        TEST_F(JSRuntimeTest, SetGetFunctionTemplate)
+        TEST_F(JSRuntimeTest, GetSetContextCreationHelper)
         {
-            JSRuntimeSharedPtr runtimePtr = m_App->GetJSRuntime();
-            v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate());
-            v8::HandleScope scope(runtimePtr->GetIsolate());
-
-            v8::Local<v8::FunctionTemplate> funcTemplate = v8::FunctionTemplate::New(runtimePtr->GetIsolate());
-            ASSERT_FALSE(funcTemplate.IsEmpty());
-
-            struct TemplateInfo info;
-
-            EXPECT_TRUE(runtimePtr->GetFunctionTemplate(&info).IsEmpty());
-
-            runtimePtr->SetFunctionTemplate(&info, funcTemplate);
-            EXPECT_FALSE(runtimePtr->GetFunctionTemplate(&info).IsEmpty());
+            JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
+            EXPECT_NE(nullptr, runtime->GetContextCreationHelper());
+            std::shared_ptr<TestContextCreator> creator;
+            runtime->SetContextCreationHelper(creator);
+            EXPECT_EQ(nullptr, runtime->GetContextCreationHelper());
         }
 
         TEST_F(JSRuntimeTest, GetCreateContext)
@@ -229,7 +219,7 @@ namespace v8App
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
             // make sure no message are in the list
-                logSink->FlushMessages();
+            logSink->FlushMessages();
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
@@ -270,5 +260,24 @@ namespace v8App
             EXPECT_NE(nullptr, runtimePtr->GetContextByName("test"));
             createPtr->DisposeContext(std::shared_ptr<TestContext>());
         }
+
+        TEST_F(JSRuntimeTest, RegisterUnregisterCloseHandlers)
+        {
+            JSAppSharedPtr snapApp = m_App->CreateSnapshotApp();
+            JSRuntimeSharedPtr runtime = snapApp->GetJSRuntime();
+            std::shared_ptr<TestCloseHandlerJSRuntime> closer = std::make_shared<TestCloseHandlerJSRuntime>();
+
+            runtime->RegisterSnapshotHandleCloser(closer);
+            EXPECT_EQ(closer->m_Value, 0);
+            runtime->CloseOpenHandlesForSnapshot();
+            EXPECT_EQ(closer->m_Value, 10);
+            closer->m_Value = 0;
+            EXPECT_EQ(closer->m_Value, 0);
+            runtime->UnregisterSnapshotHandlerCloser(closer);
+            runtime->CloseOpenHandlesForSnapshot();
+            EXPECT_EQ(closer->m_Value, 0);
+            snapApp->DisposeApp();
+        }
+
     }
 }

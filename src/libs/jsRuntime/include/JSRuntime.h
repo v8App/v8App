@@ -48,6 +48,8 @@ namespace v8App
             virtual ~JSContextCreationHelper() = default;
             virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName) = 0;
             virtual void DisposeContext(JSContextSharedPtr inContext) = 0;
+            virtual void RegisterSnapshotCloser(JSContextSharedPtr inContext) = 0;
+            virtual void UnregisterSnapshotCloser(JSContextSharedPtr inContext) = 0;
         };
 
         /**
@@ -126,15 +128,6 @@ namespace v8App
              * Gets an object template for the isolate
              */
             v8::Local<v8::ObjectTemplate> GetObjectTemplate(void *inInfo);
-
-            /**
-             * Stores a function template for the isolate
-             */
-            void SetFunctionTemplate(intptr_t inFuncAddress, CppBridge::CallbackHolderBase* inHolder);
-            /**
-             * Gets a function template for the isolate
-             */
-           CppBridge::CallbackHolderBase* GetFunctionTemplate(intptr_t inFuncAddress);
 
             void RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject);
 
@@ -226,18 +219,16 @@ namespace v8App
              */
             std::shared_ptr<class ForegroundTaskRunner> m_TaskRunner;
 
-            using ObjectTemplateMap = std::map<void *, v8::Eternal<v8::ObjectTemplate>>;
-            using FunctionTemplateMap = std::map<intptr_t, CppBridge::CallbackHolderBase*>;
+            using ObjectTemplateMap = std::map<void *, v8::Global<v8::ObjectTemplate>>;
 
             /**
              * The object templates for the isolate
              */
             ObjectTemplateMap m_ObjectTemplates;
-            /**
-             * The function templates for the isolate
-             */
-            FunctionTemplateMap m_FunctionTemplates;
 
+            /**
+             * The global template to use for contexts
+             */
             V8PersistentObjTpl m_GlobalTemplate;
             /**
              * The Context Creator

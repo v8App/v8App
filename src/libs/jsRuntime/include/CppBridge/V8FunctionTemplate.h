@@ -14,6 +14,7 @@
 #include "JSRuntime.h"
 #include "V8Arguments.h"
 #include "CallbackHolderBase.h"
+#include "CppBridge/CallbackRegistry.h"
 
 namespace v8App
 {
@@ -27,8 +28,8 @@ namespace v8App
             class CallbackHolder : public CallbackHolderBase
             {
             public:
-                CallbackHolder(v8::Isolate *inIsolate, Utils::CallbackWrapper<Signature> inCallback, const char *inTypeName)
-                    : CallbackHolderBase(inIsolate), m_Callback(inCallback), m_TypeName(inTypeName) {}
+                CallbackHolder(Utils::CallbackWrapper<Signature> inCallback, const char *inTypeName)
+                    : m_Callback(inCallback), m_TypeName(inTypeName) {}
 
                 Utils::CallbackWrapper<Signature> m_Callback;
                 const char *m_TypeName;
@@ -81,6 +82,10 @@ namespace v8App
                     }
                     return inArgs->GetPropertyInfo();
                 }
+                else if constexpr (std::is_same<v8::Isolate *, LocalType>::value)
+                {
+                    return inArgs->GetIsolate();
+                }
                 else
                 {
                     LocalType value;
@@ -104,17 +109,17 @@ namespace v8App
                 static void DispatchCallback(V8Arguments *inArgs, JSRuntimeSharedPtr inRuntime)
                 {
 
-                    // v8::Local<v8::External> v8Holder;
-                    // CHECK_TRUE(inArgs->GetData(&v8Holder));
-                    intptr_t funcAddress = reinterpret_cast<intptr_t>(&CppBridge::CallbackDispatcher<Functor>::V8CallbackForFunction);
-                    CallbackHolderBase *holderBase = inRuntime->GetFunctionTemplate(funcAddress);
-                    if (holderBase == nullptr)
+                    v8::Local<v8::BigInt> v8FuncAddress;
+                    CHECK_TRUE(inArgs->GetData(&v8FuncAddress));
+                    size_t funcAddress = reinterpret_cast<size_t>((void*)v8FuncAddress->Uint64Value());
+
+                    using HolderInstType = CallbackHolder<Functor>;
+                    HolderInstType *holder = static_cast<HolderInstType *>(CallbackRegistry::GetCallbackHolder(funcAddress));
+
+                    if (holder == nullptr)
                     {
                         return;
                     }
-
-                    using HolderInstType = CallbackHolder<Functor>;
-                    HolderInstType *holder = static_cast<HolderInstType *>(holderBase);
 
                     InvokeCallback(inArgs, holder->m_Callback,
                                    std::move(ConvertArgument<Args>(inArgs, false))...);
@@ -122,20 +127,25 @@ namespace v8App
 
                 static void V8CallbackForFunction(const v8::FunctionCallbackInfo<v8::Value> &info)
                 {
-                    V8Arguments args(info);
-                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
-                    DispatchCallback(&args, runtime);
-                }
-
-                static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
-                {
-                    V8Arguments args(info);
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
                     if (runtime == nullptr)
                     {
                         // should throw some sort of error
                         return;
                     }
+                    V8Arguments args(info);
+                    DispatchCallback(&args, runtime);
+                }
+
+                static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
+                {
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    if (runtime == nullptr)
+                    {
+                        // should throw some sort of error
+                        return;
+                    }
+                    V8Arguments args(info);
                     DispatchCallback(&args, runtime);
                 }
 
@@ -166,13 +176,17 @@ namespace v8App
                 using Functor = R (C::*)(Args...);
                 static void DispatchCallback(V8Arguments *inArgs, JSRuntimeSharedPtr inRuntime)
                 {
-
-                    v8::Local<v8::External> v8Holder;
-                    CHECK_TRUE(inArgs->GetData(&v8Holder));
-                    CallbackHolderBase *holderBase = reinterpret_cast<CallbackHolderBase *>(v8Holder->Value());
+                    v8::Local<v8::BigInt> v8FuncAddress;
+                    CHECK_TRUE(inArgs->GetData(&v8FuncAddress));
+                    size_t funcAddress = reinterpret_cast<size_t>((void*)v8FuncAddress->Uint64Value());
 
                     using HolderInstType = CallbackHolder<Functor>;
-                    HolderInstType *holder = static_cast<HolderInstType *>(holderBase);
+                    HolderInstType *holder = static_cast<HolderInstType *>(CallbackRegistry::GetCallbackHolder(funcAddress));
+
+                    if (holder == nullptr)
+                    {
+                        return;
+                    }
 
                     InvokeCallback(inArgs, holder->m_Callback,
                                    std::move(ConvertArgument<Args>(inArgs, true))...);
@@ -180,15 +194,25 @@ namespace v8App
 
                 static void V8CallbackForFunction(const v8::FunctionCallbackInfo<v8::Value> &info)
                 {
-                    V8Arguments args(info);
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    if (runtime == nullptr)
+                    {
+                        // should throw some sort of error
+                        return;
+                    }
+                    V8Arguments args(info);
                     DispatchCallback(&args, runtime);
                 }
 
                 static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
                 {
-                    V8Arguments args(info);
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    if (runtime == nullptr)
+                    {
+                        // should throw some sort of error
+                        return;
+                    }
+                    V8Arguments args(info);
                     DispatchCallback(&args, runtime);
                 }
 
@@ -226,12 +250,17 @@ namespace v8App
                 static void DispatchCallback(V8Arguments *inArgs, JSRuntimeSharedPtr inRuntime)
                 {
 
-                    v8::Local<v8::External> v8Holder;
-                    CHECK_TRUE(inArgs->GetData(&v8Holder));
-                    CallbackHolderBase *holderBase = reinterpret_cast<CallbackHolderBase *>(v8Holder->Value());
+                    v8::Local<v8::BigInt> v8FuncAddress;
+                    CHECK_TRUE(inArgs->GetData(&v8FuncAddress));
+                    size_t funcAddress = reinterpret_cast<size_t>((void*)v8FuncAddress->Uint64Value());
 
                     using HolderInstType = CallbackHolder<Functor>;
-                    HolderInstType *holder = static_cast<HolderInstType *>(holderBase);
+                    HolderInstType *holder = static_cast<HolderInstType *>(CallbackRegistry::GetCallbackHolder(funcAddress));
+
+                    if (holder == nullptr)
+                    {
+                        return;
+                    }
 
                     InvokeCallback(inArgs, holder->m_Callback,
                                    std::move(ConvertArgument<Args>(inArgs, true))...);
@@ -239,15 +268,25 @@ namespace v8App
 
                 static void V8CallbackForFunction(const v8::FunctionCallbackInfo<v8::Value> &info)
                 {
-                    V8Arguments args(info);
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    if (runtime == nullptr)
+                    {
+                        // should throw some sort of error
+                        return;
+                    }
+                    V8Arguments args(info);
                     DispatchCallback(&args, runtime);
                 }
 
                 static void V8CallbackForProperty(const v8::PropertyCallbackInfo<v8::Value> &info)
                 {
-                    V8Arguments args(info);
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(info.GetIsolate());
+                    if (runtime == nullptr)
+                    {
+                        // should throw some sort of error
+                        return;
+                    }
+                    V8Arguments args(info);
                     DispatchCallback(&args, runtime);
                 }
 
@@ -280,38 +319,41 @@ namespace v8App
 
             template <typename Signature>
             v8::Local<v8::FunctionTemplate> CreateFunctionTemplate(v8::Isolate *inIsolate, CallbackWrapper<Signature> inCallback,
-                                                                   const char *TypeName = "", bool isConstructor = false)
+                                                                   const char *inTypeName = "", bool isConstructor = false)
             {
                 using HolderInstType = CallbackHolder<Signature>;
                 v8::Local<v8::FunctionTemplate> tmpl;
 
-                HolderInstType *holder = new HolderInstType(inIsolate, std::move(inCallback), TypeName);
+                size_t funcAddress = inCallback.GetFuncAddress();
+                HolderInstType *holder = static_cast<HolderInstType *>(CallbackRegistry::GetCallbackHolder(funcAddress));
+                if (holder == nullptr)
+                {
+                    CallbackRegistry::Register(inCallback, inTypeName);
+                }
 
                 JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
                 CHECK_NE(nullptr, runtime);
 
-                intptr_t funcAddress = reinterpret_cast<intptr_t>(&CppBridge::CallbackDispatcher<Signature>::V8CallbackForFunction);
-                runtime->SetFunctionTemplate(funcAddress, holder);
                 if (isConstructor)
                 {
                     // for the constrcutor function we don't need a holder object since it'll be creatig one when called
                     tmpl = v8::FunctionTemplate::New(inIsolate);
-                    tmpl->SetCallHandler(&CallbackDispatcher<Signature>::V8CallbackForFunction);
+                    tmpl->SetCallHandler(&CallbackDispatcher<Signature>::V8CallbackForFunction,
+                                         v8::BigInt::NewFromUnsigned(inIsolate, funcAddress));
                     tmpl->SetLength(1);
                 }
                 else
                 {
                     tmpl = v8::FunctionTemplate::New(
                         inIsolate,
-                        &CallbackDispatcher<Signature>::V8CallbackForFunction);
+                        &CallbackDispatcher<Signature>::V8CallbackForFunction,
+                        v8::BigInt::NewFromUnsigned(inIsolate, funcAddress));
 
                     tmpl->RemovePrototype();
                 }
-                // register the external reference
-                // runtime->GetExternalRegistry().Register((void *)&CallbackDispatcher<Signature>::V8CallbackForFunction);
                 return tmpl;
             }
         } // namespace CppBridge
-    }     // namespace JSRuntime
+    } // namespace JSRuntime
 } // namespace v8App
 #endif

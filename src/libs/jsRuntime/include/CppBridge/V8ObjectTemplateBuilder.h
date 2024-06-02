@@ -23,12 +23,16 @@ namespace v8App
     {
         namespace CppBridge
         {
+            /**
+             * Class to maek it easier to hook up a cpp class to a v8 object.
+             * 
+             * Note: you should set the constructor first before setting any other 
+             * function as the contructor will clear the already registered functions.
+            */
             class V8ObjectTemplateBuilder
             {
             public:
-                explicit V8ObjectTemplateBuilder(v8::Isolate* inIsolate);
-                V8ObjectTemplateBuilder(v8::Isolate* inIsolate, const char *inTypeName);
-                V8ObjectTemplateBuilder(v8::Isolate* inIsolate, const char *inTypeName, v8::Local<v8::ObjectTemplate> inTemplate, bool inConstructorAllows = false);
+                explicit V8ObjectTemplateBuilder(v8::Isolate* inIsolate, v8::Local<v8::ObjectTemplate> inGlobal, const char* inTypeName = nullptr);
 
                 V8ObjectTemplateBuilder(const V8ObjectTemplateBuilder &inTemplate);
                 ~V8ObjectTemplateBuilder();
@@ -84,10 +88,10 @@ namespace v8App
                                                              v8::Local<v8::FunctionTemplate> inSetter);
 
                 v8::Isolate* m_Isolate;
+                v8::Local<v8::ObjectTemplate> m_Global;
                 v8::Local<v8::ObjectTemplate> m_Template;
                 bool m_ConstructorAllowed;
-
-                const char *m_TypeName = nullptr;
+                const char* m_TypeName;
             };
         }
     }

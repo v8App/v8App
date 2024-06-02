@@ -17,6 +17,7 @@
 #include "Utils/Paths.h"
 
 #include "JSApp.h"
+#include "JSContext.h"
 
 namespace v8App
 {
@@ -120,7 +121,7 @@ namespace v8App
             std::string appName = "testJSAppGetCreateContext";
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->Initialize(testRoot);
+            app->Initialize(testRoot, false, std::make_shared<JSContextCreator>());
             ASSERT_NE(nullptr, app->GetJSRuntime());
 
             std::string contextName1 = "AppJSContext1";
@@ -260,6 +261,5 @@ namespace v8App
             std::filesystem::remove(testFile);
             app->DisposeApp();
         }
-
     }
 }

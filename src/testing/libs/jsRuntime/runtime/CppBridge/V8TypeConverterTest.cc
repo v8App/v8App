@@ -885,6 +885,49 @@ namespace v8App
                 EXPECT_FALSE(returnedValue.IsEmpty());
             }
 
+           TEST_F(ConverterTests, V8Number)
+            {
+                v8::Isolate::Scope iScope(m_Isolate);
+                v8::HandleScope scope(m_Isolate);
+                v8::Context::Scope cScope(m_Context->GetLocalContext());
+
+                v8::Local<v8::Number> number = v8::Local<v8::Number>::New(m_Isolate, v8::Number::New(m_Isolate, 10));
+                EXPECT_TRUE(V8TypeConverter<v8::Local<v8::Number>>::To(m_Isolate, number)->StrictEquals(number));
+
+                v8::Local<v8::Number> returnedValue;
+
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::Boolean::New(m_Isolate, false).As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::Boolean::New(m_Isolate, true).As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::String::NewFromUtf8(m_Isolate, "", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::String::NewFromUtf8(m_Isolate, "foo", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::Object::New(m_Isolate).As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::Null(m_Isolate).As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+
+                returnedValue.Clear();
+                EXPECT_FALSE(V8TypeConverter<v8::Local<v8::Number>>::From(m_Isolate, v8::External::New(m_Isolate, (void *)testFunc).As<v8::Value>(), &returnedValue));
+                EXPECT_TRUE(returnedValue.IsEmpty());
+            }
+
             TEST_F(ConverterTests, StdVector)
             {
                 v8::Isolate::Scope iScope(m_Isolate);

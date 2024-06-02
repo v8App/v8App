@@ -2,8 +2,8 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#ifndef __CALLBACK_HOLDER_BASE__
-#define __CALLBACK_HOLDER_BASE__
+#ifndef __CALLBACK_HOLDER_BASE_H__
+#define __CALLBACK_HOLDER_BASE_H__
 
 #include <functional>
 
@@ -20,21 +20,17 @@ namespace v8App
         namespace CppBridge
         {
 
+            /**
+             * Common class for all the Callbacks to be stored together
+             */
             class CallbackHolderBase
             {
-            public:
-                v8::Local<v8::External> GetExternalHandle(v8::Isolate *inIsolate);
-
+                public:
+                CallbackHolderBase() = default;
             protected:
-                explicit CallbackHolderBase(v8::Isolate *inIsolate);
-                virtual ~CallbackHolderBase();
+                virtual ~CallbackHolderBase() = default;
 
             private:
-                static void FirstWeakCallback(const v8::WeakCallbackInfo<CallbackHolderBase> &info);
-                static void SecondWeakCallback(const v8::WeakCallbackInfo<CallbackHolderBase> &info);
-
-                v8::Global<v8::External> m_ExHolder;
-
                 CallbackHolderBase(const CallbackHolderBase &) = delete;
                 CallbackHolderBase &operator=(const CallbackHolderBase &) = delete;
             };
@@ -42,4 +38,4 @@ namespace v8App
     }
 }
 
-#endif //__CALLBACK_HOLDER_BASE__
+#endif //__CALLBACK_HOLDER_BASE_H__

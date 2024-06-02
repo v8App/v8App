@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     for (int x = 0; x < argc; x++)
     {
         std::string arg(argv[x]);
-        //std::cout << arg << std::endl;
+        // std::cout << arg << std::endl;
 
         if (arg.starts_with("--test-dir="))
         {
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 
             std::string cmd = "cp -r " + testFileDir.string() + "/* " + s_TestDir.string();
 #if defined(V8APP_WINDOWS)
-            cmd = "xcopy \""+testFileDir.string()+"\\\" \""+s_TestDir.string()+"\" /E /Q";
+            cmd = "xcopy \"" + testFileDir.string() + "\\\" \"" + s_TestDir.string() + "\" /E /Q";
 #endif
             if (std::system(cmd.c_str()) != 0)
             {
@@ -137,12 +137,12 @@ int main(int argc, char **argv)
 #ifdef USE_JSRUNTIME
 #if defined(V8_APP_WIN)
     std::filesystem::path logPath = s_TestDir / std::filesystem::path("C:log");
-    #else
+#else
     std::filesystem::path logPath = s_TestDir / std::filesystem::path("log");
-    #endif
+#endif
     std::filesystem::create_directories(logPath);
     logPath /= std::filesystem::path("UnitTestLog.json");
-    //only omit it if we detected we are a child run from like  death test
+    // only omit it if we detected we are a child run from like  death test
     if (setupDone == false)
     {
         std::cout << "Log File: " << logPath << std::endl;
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
     v8::V8::InitializeICU(icuData.c_str());
 
     std::ifstream sData(snapshotData, std::ios_base::binary | std::ios_base::ate);
-    if(sData.is_open() == false || sData.fail())
+    if (sData.is_open() == false || sData.fail())
     {
         std::cout << "Failed to open " << snapshotData << std::endl;
         std::exit(1);
@@ -176,7 +176,9 @@ int main(int argc, char **argv)
     sData.seekg(0, std::ios::beg);
     std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
     sData.read(buf.get(), dataLength);
-    s_V8StartupData =  v8::StartupData{buf.release(), dataLength};
+    s_V8StartupData = v8::StartupData{buf.release(), dataLength};
+
+    v8::V8::SetFlagsFromString("--expose_gc");
 
     v8App::JSRuntime::PlatformIsolateHelperUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
     v8App::JSRuntime::V8Platform::InitializeV8(std::move(helper));

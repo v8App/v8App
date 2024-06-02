@@ -30,27 +30,6 @@ namespace v8App
                 m_Object.Reset();
             }
 
-            V8ObjectTemplateBuilder V8NativeObjectBase::GetObjectTemplateBuilder(v8::Isolate *inIsolate)
-            {
-                return V8ObjectTemplateBuilder(inIsolate, GetTypeName());
-            }
-
-            v8::Local<v8::ObjectTemplate> V8NativeObjectBase::GetOrCreateObjectTemplate(v8::Isolate *inIsolate, V8NativeObjectInfo *inInfo)
-            {
-                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
-                v8::Local<v8::ObjectTemplate> objTemplate = runtime->GetObjectTemplate(inInfo);
-                if (objTemplate.IsEmpty())
-                {
-                    objTemplate = GetObjectTemplateBuilder(inIsolate).Build();
-                    CHECK_FALSE(objTemplate.IsEmpty());
-                    runtime->SetObjectTemplate(inInfo, objTemplate);
-                }
-
-                CHECK_EQ(kMaxReservedInternalFields, objTemplate->InternalFieldCount());
-
-                return objTemplate;
-            }
-
             const char *V8NativeObjectBase::GetTypeName()
             {
                 return nullptr;
@@ -72,7 +51,6 @@ namespace v8App
 
             v8::MaybeLocal<v8::Object> V8NativeObjectBase::GetV8NativeObjectInternal(v8::Isolate *inIsolate, V8NativeObjectInfo *inInfo)
             {
-
                 if (m_Object.IsEmpty() == false)
                 {
                     return v8::MaybeLocal<v8::Object>(v8::Local<v8::Object>::New(inIsolate, m_Object));
@@ -83,8 +61,18 @@ namespace v8App
                     return v8::MaybeLocal<v8::Object>();
                 }
 
-                v8::Local<v8::ObjectTemplate> objTemplate = GetOrCreateObjectTemplate(inIsolate, inInfo);
-                
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
+                if (runtime == nullptr)
+                {
+                    return v8::MaybeLocal<v8::Object>();
+                }
+
+                v8::Local<v8::ObjectTemplate> objTemplate = runtime->GetObjectTemplate(inInfo);
+                if (objTemplate.IsEmpty())
+                {
+                    return v8::MaybeLocal<v8::Object>();
+                }
+
                 v8::Local<v8::Object> object;
                 if (objTemplate->NewInstance(inIsolate->GetCurrentContext()).ToLocal(&object) == false)
                 {
@@ -108,7 +96,7 @@ namespace v8App
                     return nullptr;
                 }
                 v8::Local<v8::Object> object = v8::Local<v8::Object>::Cast(inValue);
-                //we should at a min have kMaxReservedInternalFields fields
+                // we should at a min have kMaxReservedInternalFields fields
                 if (object->InternalFieldCount() < kMaxReservedInternalFields)
                 {
                     return nullptr;

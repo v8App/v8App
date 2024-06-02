@@ -19,11 +19,11 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        using V8ObjectTemplateTest = V8Fixture;
+        using V8ObjectTemplateBuilderTest = V8Fixture;
 
         namespace CppBridge
         {
-            //used to test binding a non mmember function to the object template.
+            // used to test binding a non mmember function to the object template.
             void TestNonMember() {}
 
             class TestBase
@@ -37,21 +37,14 @@ namespace v8App
                 TestBase &operator=(const TestBase &) = delete;
             };
 
-            class TestUnnamed* constructerCreatedObjectUnnamed = nullptr;
+            class TestUnnamed *constructerCreatedObjectUnnamed = nullptr;
 
             class TestUnnamed : public V8NativeObject<TestUnnamed>
             {
             public:
-                static V8NativeObjectInfo s_V8NativeObjectInfo;
-
                 static V8NativeObjectHandle<TestUnnamed> CreateObject(v8::Isolate *inIsolate)
                 {
                     return CreateV8NativeObjHandle(inIsolate, new TestUnnamed());
-                }
-
-                static void BuildObjectTemplate(v8::Isolate *inIsolate)
-                {
-                    TestUnnamed().GetOrCreateObjectTemplate(inIsolate, &s_V8NativeObjectInfo);
                 }
 
                 int GetValue() const { return m_Value; }
@@ -63,9 +56,8 @@ namespace v8App
                 }
                 static void TestStatic() {}
 
-                static void Constructor(const v8::FunctionCallbackInfo<v8::Value> &inInfo)
+                static void Constructor(const v8::FunctionCallbackInfo<v8::Value> &inInfo, V8Isolate *isolate)
                 {
-                    v8::Isolate *isolate = inInfo.GetIsolate();
 
                     if (inInfo.IsConstructCall() == false)
                     {
@@ -77,19 +69,11 @@ namespace v8App
                     inInfo.GetReturnValue().Set(ConvertToV8(isolate, instance.Get()).ToLocalChecked());
                 }
 
+                DEF_V8NATIVE_FUNCTIONS(TestUnnamed);
+
             protected:
                 TestUnnamed() : m_Value(0){};
                 virtual ~TestUnnamed() override = default;
-
-                V8ObjectTemplateBuilder GetObjectTemplateBuilder(v8::Isolate *inIsolate) override
-                {
-                    return V8NativeObject<TestUnnamed>::GetObjectTemplateBuilder(inIsolate)
-                        .SetConstuctor("testUnamed", &TestUnnamed::Constructor)
-                        .SetProperty("value", &TestUnnamed::GetValue, &TestUnnamed::SetValue)
-                        .SetMethod("testMember", &TestUnnamed::TestMethod)
-                        .SetMethod("testStaticMember", &TestUnnamed::TestStatic)
-                        .SetMethod("testNonMember", &TestNonMember);
-                }
 
             private:
                 int m_Value;
@@ -98,23 +82,42 @@ namespace v8App
                 TestUnnamed &operator=(const TestUnnamed &) = delete;
             };
 
-            V8NativeObjectInfo TestUnnamed::s_V8NativeObjectInfo;
+            IMPL_DESERIALIZER(TestUnnamed) {}
+            IMPL_SERIALIZER(TestUnnamed) {}
 
-            class TestNamed* constructerCreatedObjectNamed = nullptr;
+            IMPL_REGISTER_CLASS_FUNCS(TestUnnamed)
+            {
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestUnnamed::Constructor));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestUnnamed::GetValue));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestUnnamed::SetValue));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestUnnamed::TestMethod));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestUnnamed::TestStatic));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestNonMember));
+            }
+
+            IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(TestUnnamed)
+            {
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), inGlobal, "TestUnamed");
+                v8::Local<v8::ObjectTemplate> tpl =
+                    builder.SetConstuctor("testUnamed", &TestUnnamed::Constructor)
+                        .SetProperty("value", &TestUnnamed::GetValue, &TestUnnamed::SetValue)
+                        .SetMethod("testMember", &TestUnnamed::TestMethod)
+                        .SetMethod("testStaticMember", &TestUnnamed::TestStatic)
+                        .SetMethod("testNonMember", &TestNonMember)
+                        .Build();
+                inRuntime->SetObjectTemplate(&TestUnnamed::s_V8NativeObjectInfo, tpl);
+            }
+
+            REGISTER_CLASS_FUNCS(TestUnnamed);
+
+            class TestNamed *constructerCreatedObjectNamed = nullptr;
 
             class TestNamed : public V8NativeObject<TestNamed>
             {
             public:
-                static V8NativeObjectInfo s_V8NativeObjectInfo;
-
                 static V8NativeObjectHandle<TestNamed> CreateObject(v8::Isolate *inIsolate)
                 {
                     return CreateV8NativeObjHandle(inIsolate, new TestNamed());
-                }
-
-                static void BuildObjectTemplate(v8::Isolate *inIsolate)
-                {
-                    TestNamed().GetOrCreateObjectTemplate(inIsolate, &s_V8NativeObjectInfo);
                 }
 
                 void TestMethod() {}
@@ -133,69 +136,114 @@ namespace v8App
                     inInfo.GetReturnValue().Set(ConvertToV8(isolate, instance.Get()).ToLocalChecked());
                 }
 
+                DEF_V8NATIVE_FUNCTIONS(TestNamed);
+
             protected:
                 TestNamed() = default;
                 ~TestNamed() = default;
-
-                V8ObjectTemplateBuilder GetObjectTemplateBuilder(v8::Isolate *inIsolate) override
-                {
-                    return V8NativeObject<TestNamed>::GetObjectTemplateBuilder(inIsolate)
-                        .SetConstuctor(&TestNamed::Constructor)
-                        .SetMethod("testMember", &TestNamed::TestMethod)
-                        .SetMethod("testNonMember", &TestNonMember);
-                }
-
-                const char *GetTypeName() override { return "TestNamed"; }
             };
 
-            V8NativeObjectInfo TestNamed::s_V8NativeObjectInfo;
+            IMPL_DESERIALIZER(TestNamed) {}
+            IMPL_SERIALIZER(TestNamed) {}
+
+            IMPL_REGISTER_CLASS_FUNCS(TestNamed)
+            {
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestNamed::Constructor));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestNamed::TestMethod));
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestNonMember));
+            }
+
+            IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(TestNamed)
+            {
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), inGlobal, "TestNamed");
+                v8::Local<v8::ObjectTemplate> tpl =
+                    builder.SetConstuctor("testNamed", &TestNamed::Constructor)
+                        .SetMethod("testMember", &TestNamed::TestMethod)
+                        .SetMethod("testNonMember", &TestNonMember)
+                        .Build();
+                inRuntime->SetObjectTemplate(&TestNamed::s_V8NativeObjectInfo, tpl);
+            }
+
+            REGISTER_CLASS_FUNCS(TestNamed);
 
             class TestMismatch : public V8NativeObject<TestMismatch>
             {
             public:
-                static V8NativeObjectInfo s_V8NativeObjectInfo;
+                DEF_V8NATIVE_FUNCTIONS(TestMismatch);
+
+                static void Constructor(const v8::FunctionCallbackInfo<v8::Value> &inInfo)
+                {
+                    v8::Isolate *isolate = inInfo.GetIsolate();
+
+                    if (inInfo.IsConstructCall() == false)
+                    {
+                        JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, "must be an instance call (new)");
+                        return;
+                    }
+                    V8NativeObjectHandle<TestMismatch> instance = CreateV8NativeObjHandle(isolate, new TestMismatch());
+                    inInfo.GetReturnValue().Set(ConvertToV8(isolate, instance.Get()).ToLocalChecked());
+                }
             };
 
-            V8NativeObjectInfo TestMismatch::s_V8NativeObjectInfo;
+            IMPL_DESERIALIZER(TestMismatch) {}
+            IMPL_SERIALIZER(TestMismatch) {}
 
-            TEST_F(V8ObjectTemplateTest, testV8ToFromConversion)
+            IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(TestMismatch)
             {
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), inGlobal, "TestMismatch");
+                v8::Local<v8::ObjectTemplate> tpl =
+                    builder.SetConstuctor(&TestMismatch::Constructor)
+                        .Build();
+                inRuntime->SetObjectTemplate(&TestMismatch::s_V8NativeObjectInfo, tpl);
+            }
+
+            IMPL_REGISTER_CLASS_FUNCS(TestMismatch)
+            {
+                CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestMismatch::Constructor));
+            }
+
+            REGISTER_CLASS_FUNCS(TestMismatch);
+
+            TEST_F(V8ObjectTemplateBuilderTest, testV8ToFromConversion)
+            {
+                m_App->GetJSRuntime()->CreateGlobalTemplate(true);
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
                 v8::Context::Scope cScope(m_Context->GetLocalContext());
 
                 V8NativeObjectHandle<TestUnnamed> object = TestUnnamed::CreateObject(m_Isolate);
 
-                //test conerting to v8
+                // test conerting to v8
                 v8::Local<v8::Value> wrapper = ConvertToV8(m_Isolate, object.Get()).ToLocalChecked();
                 EXPECT_FALSE(wrapper.IsEmpty());
 
-                //test converting from v8
+                // test converting from v8
                 TestUnnamed *unwrapped = nullptr;
                 EXPECT_TRUE(ConvertFromV8(m_Isolate, wrapper, &unwrapped));
                 EXPECT_EQ(object.Get(), unwrapped);
 
-                //test conversion that isn't an object
+                // test conversion that isn't an object
                 v8::Local<v8::Value> notObject = v8::Number::New(m_Isolate, 10);
                 unwrapped = nullptr;
                 EXPECT_FALSE(ConvertFromV8(m_Isolate, notObject, &unwrapped));
                 EXPECT_EQ(nullptr, unwrapped);
 
-                //test empty object
+                // test empty object
                 unwrapped = nullptr;
                 v8::Local<v8::Value> emptyObject = v8::Object::New(m_Isolate);
                 EXPECT_FALSE(ConvertFromV8(m_Isolate, emptyObject, &unwrapped));
                 EXPECT_EQ(nullptr, unwrapped);
 
-                //test wrong native object class
+                // test wrong native object class
                 v8::Local<v8::Value> wrongType = ConvertToV8(m_Isolate, new TestMismatch()).ToLocalChecked();
                 EXPECT_FALSE(wrapper.IsEmpty());
                 EXPECT_FALSE(ConvertFromV8(m_Isolate, wrongType, &unwrapped));
                 EXPECT_EQ(nullptr, unwrapped);
             }
 
-            TEST_F(V8ObjectTemplateTest, testProperty)
+            TEST_F(V8ObjectTemplateBuilderTest, testProperty)
             {
+                m_App->GetJSRuntime()->CreateGlobalTemplate(true);
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
                 v8::Context::Scope cScope(m_Context->GetLocalContext());
@@ -264,11 +312,13 @@ namespace v8App
                 return JSUtilities::V8ToString(inIsolate, tryCatch.Message()->Get());
             }
 
-            TEST_F(V8ObjectTemplateTest, InvocationErrorOnUnnamedObjectMethods)
+            TEST_F(V8ObjectTemplateBuilderTest, InvocationErrorOnUnnamedObjectMethods)
             {
+                m_App->GetJSRuntime()->CreateGlobalTemplate(true);
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope scope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context->GetLocalContext();
+                JSContextSharedPtr jsContext = m_App->CreateJSContext("InvocationErrorOnUnnamedObjectMethods");
+                v8::Local<v8::Context> context = jsContext->GetLocalContext();
                 v8::Context::Scope cScope(context);
 
                 V8NativeObjectHandle<TestUnnamed> object = TestUnnamed::CreateObject(m_Isolate);
@@ -286,28 +336,30 @@ namespace v8App
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, staticMemberMethod, v8Object));
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, v8Object));
 
-                //pass null object casuing invocation error
+                // pass null object casuing invocation error
                 EXPECT_EQ("Uncaught TypeError", getError(m_Isolate, context, memberMethod, v8::Null(m_Isolate)));
-                //since the static doesn't require the object should not throw
+                // since the static doesn't require the object should not throw
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, staticMemberMethod, v8::Null(m_Isolate)));
 
-                //no invocation error since the method isn't a member method
+                // no invocation error since the method isn't a member method
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, v8::Null(m_Isolate)));
 
-                //test calling on the wrong object
+                // test calling on the wrong object
                 v8::Local<v8::Object> wrongObject = v8::Object::New(m_Isolate);
                 EXPECT_EQ("Uncaught TypeError", getError(m_Isolate, context, memberMethod, wrongObject));
-                //since the static doesn't require the object should not throw
+                // since the static doesn't require the object should not throw
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, staticMemberMethod, wrongObject));
-                //but non memeber won't throw
+                // but non memeber won't throw
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, wrongObject));
             }
 
-            TEST_F(V8ObjectTemplateTest, InvocationErrorsOnNamedObjectMethods)
+            TEST_F(V8ObjectTemplateBuilderTest, InvocationErrorsOnNamedObjectMethods)
             {
+                m_App->GetJSRuntime()->CreateGlobalTemplate(true);
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context->GetLocalContext();
+                JSContextSharedPtr jsContext = m_App->CreateJSContext("InvocationErrorsOnNamedObjectMethods");
+                v8::Local<v8::Context> context = jsContext->GetLocalContext();
                 v8::Context::Scope cScope(context);
 
                 V8NativeObjectHandle<TestNamed> object = TestNamed::CreateObject(m_Isolate);
@@ -322,27 +374,27 @@ namespace v8App
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, memberMethod, v8Object));
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, v8Object));
 
-                //pass null object casuing invocation error
+                // pass null object casuing invocation error
                 EXPECT_EQ("Uncaught TypeError", getError(m_Isolate, context, memberMethod, v8::Null(m_Isolate)));
 
-                //no invocation error since the method isn't a member method
+                // no invocation error since the method isn't a member method
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, v8::Null(m_Isolate)));
 
-                //test calling on the wrong object
+                // test calling on the wrong object
                 v8::Local<v8::Object> wrongObject = v8::Object::New(m_Isolate);
                 EXPECT_EQ("Uncaught TypeError", getError(m_Isolate, context, memberMethod, wrongObject));
-                //but non memeber won't throw
+                // but non memeber won't throw
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, wrongObject));
             }
 
-            TEST_F(V8ObjectTemplateTest, TestObjectConstructionInJSUnnamed)
+            TEST_F(V8ObjectTemplateBuilderTest, TestObjectConstructionInJSUnnamed)
             {
+                m_App->GetJSRuntime()->CreateGlobalTemplate(true);
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context->GetLocalContext();
+                JSContextSharedPtr jsContext = m_App->CreateJSContext("TestObjectConstructionInJSUnnamed");
+                v8::Local<v8::Context> context = jsContext->GetLocalContext();
                 v8::Context::Scope cScope(context);
-
-                TestUnnamed::BuildObjectTemplate(m_Isolate);
 
                 const char source[] = R"script(
                         let obj = new testUnamed();
@@ -383,18 +435,17 @@ namespace v8App
                 }
             }
 
-            TEST_F(V8ObjectTemplateTest, TestObjectConstructionInJSNamed)
+            TEST_F(V8ObjectTemplateBuilderTest, TestObjectConstructionInJSNamed)
             {
+                m_App->GetJSRuntime()->CreateGlobalTemplate(true);
                 v8::Isolate::Scope iScope(m_Isolate);
                 v8::HandleScope handleScope(m_Isolate);
-                v8::Local<v8::Context> context = m_Context->GetLocalContext();
+                JSContextSharedPtr jsContext = m_App->CreateJSContext("TestObjectConstructionInJSNamed");
+                v8::Local<v8::Context> context = jsContext->GetLocalContext();
                 v8::Context::Scope cScopt(context);
-                
-                //V8NativeObjectHandle<TestNamed> handle = TestNamed::CreateObject(m_Isolate);
-                TestNamed::BuildObjectTemplate(m_Isolate);
 
                 const char source[] = R"script(
-                        let obj = new TestNamed();
+                        let obj = new testNamed();
                 )script";
                 v8::Local<v8::String> v8Source = JSUtilities::StringToV8(m_Isolate, source);
                 EXPECT_FALSE(v8Source.IsEmpty());

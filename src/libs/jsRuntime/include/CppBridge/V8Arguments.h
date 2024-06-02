@@ -55,6 +55,7 @@ namespace v8App
                     {
                         return false;
                     }
+
                     v8::Local<v8::Value> v8Value;
                     if (m_CppArgsReveresed)
                     {
@@ -77,7 +78,7 @@ namespace v8App
                         if (ConvertFromV8(m_Isolate, v8Value, outType))
                         {
                             m_CppArgsReveresed = true;
-                            m_NextArg = tempNext-1;
+                            m_NextArg = tempNext - 1;
                             return true;
                         }
                     }
@@ -159,6 +160,6 @@ namespace v8App
 
             void ThrowConversionError(V8Arguments *inArgs, size_t inIndex, bool isMemberFunction, const char *inTypeNmae = nullptr);
         } // namespace CppBridge
-    }     // namespace JSRuntime
+    } // namespace JSRuntime
 } // namespace v8App
 #endif

@@ -32,7 +32,7 @@ namespace v8App
             void ClearIsolate() { m_Runtime.reset(); }
 
             void TestCreateContext() { CreateContext(); }
-            void testDisposeContext() { DisposeContext(); }
+            void TestDisposeContext() { DisposeContext(); }
             void SetJSRuntime(JSRuntimeSharedPtr inRUntime) { m_Runtime = inRUntime; }
 
             JSContextWeakPtr *TestGetContextWeakRef() { return GetContextWeakRef(); }
@@ -80,7 +80,7 @@ namespace v8App
             EXPECT_EQ(context->TestGetContextWeakRef()->lock().get(), context.get());
             EXPECT_TRUE(context->Initialized());
 
-            context->testDisposeContext();
+            context->TestDisposeContext();
             EXPECT_TRUE(context->ContextEmpty());
             EXPECT_FALSE(context->Initialized());
             EXPECT_EQ(nullptr, context->GetJSRuntime());
@@ -91,11 +91,11 @@ namespace v8App
             context->TestCreateContext();
             EXPECT_FALSE(context->ContextEmpty());
             context->ClearIsolate();
-            context->testDisposeContext();
+            context->TestDisposeContext();
             EXPECT_FALSE(context->ContextEmpty());
             context->SetJSRuntime(runtime);
             context->SetInit(true);
-            context->testDisposeContext();
+            context->TestDisposeContext();
         }
 
         TEST_F(JSContextTest, MoveContext)

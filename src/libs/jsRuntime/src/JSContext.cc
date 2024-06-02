@@ -28,6 +28,16 @@ namespace v8App
             inContext->DisposeContext();
         }
 
+        void JSContextCreator::RegisterSnapshotCloser(JSContextSharedPtr inContext)
+        {
+            inContext->RegisterSnapshotCloser();
+        }
+
+        void JSContextCreator::UnregisterSnapshotCloser(JSContextSharedPtr inContext)
+        {
+            inContext->UnregisterSnapshotCloser();
+        }
+
         JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName) : m_Runtime(inRuntime), m_Name(inName)
         {
             CHECK_NE(m_Runtime.get(), nullptr);
@@ -77,7 +87,7 @@ namespace v8App
             inIsolate->SetHostCreateShadowRealmContextCallback(JSContext::HostCreateShadowRealmContext);
         }
 
-        void JSContext::DisposeV8Context()
+        void JSContext::DisposeV8Context(bool forSnapshot)
         {
             v8::Isolate *isolate = GetIsolate();
             if (isolate != nullptr)
@@ -92,7 +102,16 @@ namespace v8App
                     {
                         delete weakPtr;
                     }
-                    context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), nullptr);
+                    // if we are doing a snapshot then we'll be serializeing the context so we set the pointer
+                    // for the JSContext directly
+                    if (forSnapshot)
+                    {
+                        context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), this);
+                    }
+                    else
+                    {
+                        context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), nullptr);
+                    }
                 }
                 m_Context.Reset();
             }
@@ -184,10 +203,29 @@ namespace v8App
             V8LocalString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
             context->SetSecurityToken(v8Uuid);
 
-            m_Runtime->RegisterSnapshotHandleCloser(shared_from_this());
-
             m_Context.Reset(isolate, context);
             m_Initialized = true;
+        }
+
+        void JSContext::RegisterSnapshotCloser()
+        {
+            if (m_Runtime != nullptr)
+            {
+                m_Runtime->RegisterSnapshotHandleCloser(shared_from_this());
+            }
+        }
+
+        void JSContext::UnregisterSnapshotCloser()
+        {
+            if (m_Runtime != nullptr)
+            {
+                m_Runtime->UnregisterSnapshotHandlerCloser(shared_from_this());
+            }
+        }
+
+        void JSContext::CloseHandleForSnapshot()
+        {
+            DisposeV8Context(true);
         }
 
         void JSContext::DisposeContext()
@@ -197,7 +235,7 @@ namespace v8App
                 return;
             }
             DisposeV8Context();
-            m_Runtime->UnregisterSnapshotHandlerCloser(shared_from_this());
+
             m_Runtime = nullptr;
             m_Initialized = false;
         }

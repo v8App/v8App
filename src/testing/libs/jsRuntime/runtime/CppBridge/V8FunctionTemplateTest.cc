@@ -71,18 +71,6 @@ namespace v8App
                     std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
                      EXPECT_TRUE(false);
                }
-
-                //normal we'd be using the pointer to the V8NativeObjectInfo to find/store the template
-                int templateFinder = 5;
-
-                //test that nothing is found
-                EXPECT_EQ(true, m_Runtime->GetFunctionTemplate(&templateFinder).IsEmpty());
-
-                //now lets set them
-                m_Runtime->SetFunctionTemplate(&templateFinder, func_template);
-
-                //should not get back a null
-                EXPECT_EQ(false, m_Runtime->GetFunctionTemplate(&templateFinder).IsEmpty());
             }
 
             TEST_F(V8FunctionTemplateTest, testFunctionInfoCallback)

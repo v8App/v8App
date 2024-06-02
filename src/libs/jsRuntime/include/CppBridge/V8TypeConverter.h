@@ -17,9 +17,9 @@ namespace v8App
     {
         namespace CppBridge
         {
-            //Used for when the converter's to may throw
-            //Create a specializtion for a type when the
-            //conversion to v8 returns a Maybe value
+            // Used for when the converter's to may throw
+            // Create a specializtion for a type when the
+            // conversion to v8 returns a Maybe value
             template <typename T, typename Enable = void>
             struct ToReturnsMaybe
             {
@@ -136,6 +136,20 @@ namespace v8App
                 static bool From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Value> *outValue);
             };
 
+            template <>
+            struct V8TypeConverter<v8::Local<v8::Number>>
+            {
+                static v8::Local<v8::Value> To(v8::Isolate *inIsolate, v8::Local<v8::Number> inValue);
+                static bool From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Number> *outValue);
+            };
+
+            template <>
+            struct V8TypeConverter<v8::Local<v8::BigInt>>
+            {
+                static v8::Local<v8::Value> To(v8::Isolate *inIsolate, v8::Local<v8::BigInt> inValue);
+                static bool From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::BigInt> *outValue);
+            };
+
             template <typename T>
             struct ToReturnsMaybe<std::vector<T>>
             {
@@ -230,7 +244,7 @@ namespace v8App
                 return V8TypeConverter<T>::From(inIsolate, inValue, outValue);
             }
         } // namespace CppBridge
-    }     // namespace JSRuntime
+    } // namespace JSRuntime
 } // namespace v8App
 
 #endif

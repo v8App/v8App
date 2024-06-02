@@ -240,6 +240,36 @@ namespace v8App
                 *outValue = inValue;
                 return true;
             }
-       }
+
+            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::Number>>::To(v8::Isolate *inIsolate, v8::Local<v8::Number> inValue)
+            {
+                return inValue.As<v8::Value>();
+            }
+
+            bool V8TypeConverter<v8::Local<v8::Number>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Number> *outValue)
+            {
+                if (inValue->IsNumber())
+                {
+                    *outValue = v8::Local<v8::Number>::Cast(inValue);
+                    return true;
+                }
+                return false;
+            }
+
+            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::BigInt>>::To(v8::Isolate *inIsolate, v8::Local<v8::BigInt> inValue)
+            {
+                return inValue.As<v8::Value>();
+            }
+
+            bool V8TypeConverter<v8::Local<v8::BigInt>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::BigInt> *outValue)
+            {
+                if (inValue->IsBigInt())
+                {
+                    *outValue = v8::Local<v8::BigInt>::Cast(inValue);
+                    return true;
+                }
+                return false;
+            }
+        }
     }
 }
