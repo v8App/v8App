@@ -6,6 +6,8 @@
 #define __TYPE_SERIALIZER_H__
 
 #include <type_traits>
+#include <string>
+
 #include "Serialization/BaseBuffer.h"
 
 namespace V8App

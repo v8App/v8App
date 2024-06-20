@@ -6,6 +6,7 @@
 #define __BASE_BUFFER_H__
 
 #include <vector>
+#include <bit>
 
 namespace V8App
 {

@@ -736,7 +736,8 @@ namespace V8App
             wchar_t value = L'A';
             wchar_t testWChar = value;
             // use the int value of it swapped
-            wchar_t testSwapped = 1090519040;
+            wchar_t testSwapped = value;
+            SwapBytes(testSwapped);
 
             EXPECT_TRUE(CallSerializer(*wBuffer, value));
             EXPECT_EQ(testSwapped, *((wchar_t *)(wBuffer->GetData())));
@@ -939,7 +940,7 @@ namespace V8App
             std::string testChars = value;
 
             // we need the /0 as well
-            size_t len = value.size();
+            size_t len = value.size()+1;
             size_t size_t_size = sizeof(size_t);
 
             EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*wBuffer, value));
@@ -977,7 +978,7 @@ namespace V8App
             std::string testChars = value;
 
             // we need the /0 as well
-            size_t len = value.size();
+            size_t len = value.size()+1;
             size_t size_t_size = sizeof(size_t);
             size_t swappedLen = len;
             SwapBytes(swappedLen);
@@ -1018,7 +1019,7 @@ namespace V8App
             std::wstring testChars = value;
 
             // we need the /0 as well
-            size_t len = value.size();
+            size_t len = value.size()+1;
             size_t size_t_size = sizeof(size_t);
 
             EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*wBuffer, value));
@@ -1058,7 +1059,7 @@ namespace V8App
             std::wstring testSwapped = value;
 
             // we need the /0 as well
-            size_t len = value.size();
+            size_t len = value.size()+1;
             size_t size_t_size = sizeof(size_t);
             size_t swappedLen = len;
             SwapBytes(swappedLen);

@@ -137,7 +137,7 @@ namespace V8App
             size_t swappedLength;
             if (inBuffer.IsWriter())
             {
-                length = inValue.size();
+                length = inValue.size() + 1;
                 swappedLength = length;
 
                 if (inBuffer.IsByteSwapping())
@@ -174,7 +174,10 @@ namespace V8App
                     {
                         SwapBytes(c);
                     }
-                    inValue+= c;
+                    if (c != '\0')
+                    {
+                        inValue += c;
+                    }
                 }
             }
             return true;
@@ -187,7 +190,7 @@ namespace V8App
             {
                 return false;
             }
-            size_t length = inValue.size();
+            size_t length = inValue.size() + 1;
             size_t swappedLength = length;
             if (inBuffer.IsByteSwapping())
             {
@@ -205,7 +208,7 @@ namespace V8App
             size_t swappedLength;
             if (inBuffer.IsWriter())
             {
-                length = inValue.size();
+                length = inValue.size() + 1;
                 swappedLength = length;
 
                 if (inBuffer.IsByteSwapping())
@@ -242,7 +245,10 @@ namespace V8App
                     {
                         SwapBytes(wc);
                     }
-                    inValue += wc;
+                    if (wc != L'\0')
+                    {
+                        inValue += wc;
+                    }
                 }
             }
             return true;
@@ -256,7 +262,7 @@ namespace V8App
                 return false;
             }
             // we want to copy the /0 in the string as well
-            size_t length = inValue.size();
+            size_t length = inValue.size()+1;
             size_t swappedLength = length;
             if (inBuffer.IsByteSwapping())
             {
@@ -386,7 +392,7 @@ namespace V8App
 
         BaseBuffer &operator>>(BaseBuffer &inBuffer, std::string &inValue)
         {
-           if (TypeSerializer<std::string>::Serialize(inBuffer, inValue) == false)
+            if (TypeSerializer<std::string>::Serialize(inBuffer, inValue) == false)
             {
                 inBuffer.SetError();
             }
@@ -395,7 +401,7 @@ namespace V8App
 
         BaseBuffer &operator>>(BaseBuffer &inBuffer, const std::string &inValue)
         {
-           if (TypeSerializer<const std::string>::Serialize(inBuffer, inValue) == false)
+            if (TypeSerializer<const std::string>::Serialize(inBuffer, inValue) == false)
             {
                 inBuffer.SetError();
             }
@@ -404,7 +410,7 @@ namespace V8App
 
         BaseBuffer &operator>>(BaseBuffer &inBuffer, std::wstring &inValue)
         {
-           if (TypeSerializer<std::wstring>::Serialize(inBuffer, inValue) == false)
+            if (TypeSerializer<std::wstring>::Serialize(inBuffer, inValue) == false)
             {
                 inBuffer.SetError();
             }
@@ -413,7 +419,7 @@ namespace V8App
 
         BaseBuffer &operator>>(BaseBuffer &inBuffer, const std::wstring &inValue)
         {
-           if (TypeSerializer<const std::wstring>::Serialize(inBuffer, inValue) == false)
+            if (TypeSerializer<const std::wstring>::Serialize(inBuffer, inValue) == false)
             {
                 inBuffer.SetError();
             }
