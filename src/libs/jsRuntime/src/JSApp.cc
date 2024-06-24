@@ -15,76 +15,7 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        const v8::StartupData *JSSnapshotProvider::GetSnapshotData()
-        {
-            return &m_V8StartupData;
-        }
-
-        std::filesystem::path JSSnapshotProvider::GetSnapshotPath()
-        {
-            return m_SnapshotPath;
-        }
-
-        bool JSSnapshotProvider::LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
-        {
-            if (m_Loaded)
-            {
-                return true;
-            }
-            if (inSnapshotPath.empty() == false)
-            {
-                m_SnapshotPath = inSnapshotPath;
-            }
-            if (m_SnapshotPath.empty())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "A path needs to be specified at construction or passed to LoadSnapshotData"}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            std::filesystem::path absPath = inApp->GetAppRoots()->MakeAbsolutePathToAppRoot(m_SnapshotPath);
-            if (absPath.empty())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Specified snapshot path may have escaped the app root. File:{}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            if (std::filesystem::exists(absPath) == false)
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Passed snapshot path doesn't exist {}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-
-            m_SnapshotPath = absPath;
-
-            std::ifstream snapData(absPath, std::ios_base::binary | std::ios_base::ate);
-            if (snapData.is_open() == false || snapData.fail())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to open the snapshot file {}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            int dataLength = snapData.tellg();
-            snapData.seekg(0, std::ios::beg);
-            std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
-            snapData.read(buf.get(), dataLength);
-            if (snapData.fail())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to read the snapshot file {}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            m_V8StartupData = v8::StartupData{buf.release(), dataLength};
-            m_Loaded = true;
-            return true;
-        }
-
-        JSApp::JSApp(std::string inName, JSSnapshotProviderSharedPtr inSnapshotProvider) : m_Name(inName), m_SnapshotProvider(inSnapshotProvider)
+        JSApp::JSApp(std::string inName, V8SnapshotProviderSharedPtr inSnapshotProvider) : m_Name(inName), m_SnapshotProvider(inSnapshotProvider)
         {
         }
 
@@ -137,7 +68,7 @@ namespace v8App
         {
             if (m_IsSnapshotter == false)
             {
-                JSContextSharedPtr appContext = m_JSRuntime->CreateContext("main");
+                JSContextSharedPtr appContext = m_JSRuntime->CreateContext("main", m_AppEntryPoint);
                 if (appContext == nullptr)
                 {
                     return false;
@@ -162,11 +93,14 @@ namespace v8App
             return m_JSRuntime;
         }
 
-        JSContextSharedPtr JSApp::CreateJSContext(std::string inName)
+        JSContextSharedPtr JSApp::CreateJSContext(std::string inName, std::filesystem::path inEntryPoint,
+                                                  std::string inNamespace, std::filesystem::path inSnapEntryPoint,
+                                                  bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
         {
             if (m_JSRuntime != nullptr)
             {
-                return m_JSRuntime->CreateContext(inName);
+                return m_JSRuntime->CreateContext(inName, inEntryPoint, inNamespace,
+                                                  inSnapEntryPoint, inSupportsSnapshot, inSnapMethod);
             }
             return nullptr;
         }

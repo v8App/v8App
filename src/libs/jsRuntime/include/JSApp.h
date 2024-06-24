@@ -11,39 +11,18 @@
 #include "Assets/AppAssetRoots.h"
 
 #include "CodeCache.h"
+#include "JSContext.h"
 #include "V8Types.h"
+#include "V8SnapshotProvider.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        /**
-         * Class used to load and provider the snapshot data. So test and the main app can handle things differently
-         */
-        class JSSnapshotProvider
-        {
-        public:
-            JSSnapshotProvider(std::filesystem::path inSnapshotPath = std::filesystem::path()) : m_SnapshotPath(inSnapshotPath) {}
-            virtual ~JSSnapshotProvider() = default;
-            virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path = std::filesystem::path());
-            virtual const v8::StartupData *GetSnapshotData();
-            std::filesystem::path GetSnapshotPath();
-            bool SnapshotLoaded() { return m_Loaded; }
-
-        protected:
-            bool m_Loaded = false;
-            /** Snapshot data */
-            v8::StartupData m_V8StartupData{nullptr, 0};
-            /** Path loaded from in case a new one is loaded */
-            std::filesystem::path m_SnapshotPath;
-        };
-
-        using JSSnapshotProviderSharedPtr = std::shared_ptr<JSSnapshotProvider>;
-
         class JSApp : public std::enable_shared_from_this<JSApp>
         {
         public:
-            JSApp(std::string inName, JSSnapshotProviderSharedPtr inSnapshotProvider = JSSnapshotProviderSharedPtr());
+            JSApp(std::string inName, V8SnapshotProviderSharedPtr inSnapshotProvider = V8SnapshotProviderSharedPtr());
             virtual ~JSApp();
 
             /**
@@ -67,9 +46,12 @@ namespace v8App
             JSRuntimeSharedPtr GetJSRuntime();
 
             /**
-             * Create a context from the runtim
+             * Create a context from the runtime using the specified namespace.
+             * If no namespace is provided then a v8 context with just the global namespace
              */
-            JSContextSharedPtr CreateJSContext(std::string inName);
+            JSContextSharedPtr CreateJSContext(std::string inName, std::filesystem::path inEntryPoint, std::string inNamespace = "",
+                                             std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                                             SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
 
             /**
              * Gets a context from the JSRuntime.
@@ -121,7 +103,7 @@ namespace v8App
              */
             bool IsSnapshotCreator() { return m_IsSnapshotter; }
 
-            void SetSnapshotProvider(JSSnapshotProviderSharedPtr inProvider)
+            void SetSnapshotProvider(V8SnapshotProviderSharedPtr inProvider)
             {
                 if (inProvider != nullptr)
                 {
@@ -129,7 +111,7 @@ namespace v8App
                 }
             }
 
-            JSSnapshotProviderSharedPtr GetSnapshotProvider()
+            V8SnapshotProviderSharedPtr GetSnapshotProvider()
             {
                 return m_SnapshotProvider;
             }
@@ -144,7 +126,7 @@ namespace v8App
             std::string m_Name;
 
             /** The class that provides the snapshot data*/
-            JSSnapshotProviderSharedPtr m_SnapshotProvider;
+            V8SnapshotProviderSharedPtr m_SnapshotProvider;
 
             /** Is this instance setup for snapshotting*/
             bool m_IsSnapshotter = false;

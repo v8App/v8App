@@ -2,10 +2,11 @@
 // Use of this source code is governed by the MIT license
 // that can be found in the LICENSE file.
 
-#include "v8/v8.h"
+#include "v8/v8-cppgc.h"
 
 #include "Logging/LogMacros.h"
 #include "Time/Time.h"
+#include "Serialization/ReadBuffer.h"
 #include "Utils/Format.h"
 
 #include "JSRuntime.h"
@@ -13,6 +14,7 @@
 #include "ForegroundTaskRunner.h"
 #include "CppBridge/CallbackRegistry.h"
 #include "JSContext.h"
+#include "V8Types.h"
 
 namespace v8App
 {
@@ -22,6 +24,8 @@ namespace v8App
             : m_IdleEnabled(inEnableIdle), m_App(inApp), m_Name(inName)
         {
             m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
+            // by default index 0 is always the bare v8 context
+            AddContextSnapIndexName(0, "v8");
         }
 
         JSRuntime::~JSRuntime()
@@ -30,11 +34,14 @@ namespace v8App
         }
 
         JSRuntimeSharedPtr JSRuntime::CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
-                                                      const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
+                                                      const intptr_t *inExternalReferences, bool inForSnapshot)
         {
+            DCHECK_NOT_NULL(inApp.get());
             JSRuntimeSharedPtr jsRuntime = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
-            jsRuntime->CreateIsolate(inSnapshot, inExternalReferences, inForSnapshot);
-
+            if (jsRuntime->CreateIsolate(inExternalReferences, inForSnapshot) == false)
+            {
+                return nullptr;
+            }
             return jsRuntime;
         }
 
@@ -59,7 +66,7 @@ namespace v8App
             {
                 return nullptr;
             }
-            JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(inIsloate->GetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr)));
+            JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(inIsloate->GetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr)));
             if (weakPtr == nullptr || weakPtr->expired())
             {
                 return JSRuntimeSharedPtr();
@@ -121,9 +128,9 @@ namespace v8App
 
         void JSRuntime::RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject)
         {
-            //for (auto objTmpl : m_ObjectTemplates)
+            // for (auto objTmpl : m_ObjectTemplates)
             //{
-                // inObject->Set()
+            //  inObject->Set()
             //}
         }
 
@@ -137,10 +144,13 @@ namespace v8App
             return m_ContextCreation;
         }
 
-        JSContextSharedPtr JSRuntime::CreateContext(std::string inName)
+        JSContextSharedPtr JSRuntime::CreateContext(std::string inName, std::filesystem::path inEntryPoint, std::string inNamespace,
+                                                    std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
         {
             CHECK_NOT_NULL(m_ContextCreation);
-            JSContextSharedPtr context = m_ContextCreation->CreateContext(shared_from_this(), inName);
+            JSContextSharedPtr context = m_ContextCreation->CreateContextFromIndex(shared_from_this(), inName,
+                                                                                   inNamespace, inEntryPoint, inSnapEntryPoint,
+                                                                                   inSupportsSnapshot, inSnapMethod);
             if (context == nullptr)
             {
                 Log::LogMessage message;
@@ -175,6 +185,31 @@ namespace v8App
             DisposeContext(context);
         }
 
+        std::string JSRuntime::GetNamespaceForSnapIndex(size_t inSnapIndex)
+        {
+            CHECK_NOT_NULL(m_ContextCreation);
+            return m_ContextCreation->GetNamespaceForSnapIndex(inSnapIndex)
+        }
+
+        size_t JSRuntime::GetSnapIndexForNamespace(std::string inNamespace)
+        {
+            CHECK_NOT_NULL(m_ContextCreation);
+            return m_ContextCreation->GetSnapIndexForNamespace(inSnapIndex)
+        }
+
+        bool JSRuntime::AddContextSnapIndexName(size_t inSnapIndex, std::string inSnapIndexName)
+        {
+            if (m_SnapshotContextNames.exists(inSnapIndex) == false)
+            {
+                if (GetSnapContextIndexForName(inSnapIndexNmae) == JSRuntime::MaxSnapshotContextes)
+                {
+                    m_SnapshotContextNames.insert({inSnapIndex, inSnapIndexNmae});
+                    return true;
+                }
+            }
+            return false;
+        }
+
         void JSRuntime::DisposeContext(JSContextSharedPtr inContext)
         {
             DCHECK_NOT_NULL(m_ContextCreation);
@@ -182,9 +217,9 @@ namespace v8App
             {
                 return;
             }
-           
+
             m_ContextCreation->UnregisterSnapshotCloser(inContext);
-           
+
             m_ContextCreation->DisposeContext(inContext);
             for (auto it = m_Contextes.begin(); it != m_Contextes.end(); it++)
             {
@@ -205,14 +240,14 @@ namespace v8App
                 v8::Isolate::Scope isolateScope(m_Isolate.get());
                 v8::Locker locker(m_Isolate.get());
                 v8::HandleScope handleScope(m_Isolate.get());
-                for(auto &it: m_ObjectTemplates)
+                for (auto &it : m_ObjectTemplates)
                 {
                     it.second.Reset();
                 }
                 m_Contextes.clear();
-                JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr)));
+                JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr)));
                 delete weakPtr;
-                m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), nullptr);
+                m_Isolate->SetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr), nullptr);
             }
             m_Isolate.reset();
             m_App.reset();
@@ -234,7 +269,7 @@ namespace v8App
             m_GlobalTemplate.Reset();
             if (m_ObjectTemplates.empty() == false)
             {
-                
+
                 for (auto it = m_ObjectTemplates.begin(); it != m_ObjectTemplates.end(); it++)
                 {
                     it->second.Reset();
@@ -303,44 +338,54 @@ namespace v8App
             }
         }
 
-        void JSRuntime::CreateGlobalTemplate(bool inRegister)
+        v8::CppHeap *JSRuntime::GetCppHeap()
         {
-            v8::Isolate::Scope iScope(m_Isolate.get());
-            v8::HandleScope hScope(m_Isolate.get());
-            v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate.get());
-            if (inRegister)
+            if (m_Isolate == nullptr)
             {
-                CppBridge::CallbackRegistry::RunGlobalRegisterFunctions(shared_from_this(), global);
+                return nullptr;
             }
-            m_GlobalTemplate.Reset(m_Isolate.get(), global);
+            return m_Isolate->GetCppHeap();
         }
 
-        void JSRuntime::CreateIsolate(const v8::StartupData *inSnapshot, const intptr_t *inExternalReferences, bool inForSnapshot)
+        bool JSRuntime::CreateIsolate(bool inForSnapshot)
         {
+            if (m_App == nullptr || m_App->GetSnapshotProvider() == nullptr)
+            {
+                return false;
+            }
+            v8::Isolate::CreateParams params;
+            params.snapshot_blob = m_App->GetSnapshotProvider()->GetSnapshotData();
+            params.external_references = m_App->GetSnapshotProvider()->GetExternalReferences();
+
             // custom deleter since we have to call dispose
-            v8::Isolate *temp = v8::Isolate::Allocate();
-            m_Isolate = std::shared_ptr<v8::Isolate>(temp, [](v8::Isolate *isolate)
+            v8::Isolate *isolate = v8::Isolate::Allocate();
+            m_Isolate = std::shared_ptr<v8::Isolate>(isolate, [](v8::Isolate *isolate)
                                                      { isolate->Dispose(); });
             m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
 
             JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
-            m_Isolate->SetData(uint32_t(IsolateDataSlot::kJSRuntimeWeakPtr), weakPtr);
+            m_Isolate->SetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr), weakPtr);
 
-            v8::Isolate::CreateParams params;
-            params.snapshot_blob = inSnapshot;
-            params.external_references = CppBridge::CallbackRegistry::GetReferences().data();
             // TODO: replace with custom allocator
             params.array_buffer_allocator =
                 v8::ArrayBuffer::Allocator::NewDefaultAllocator();
 
+            std::unique_ptr<v8::CppHeap> heap = v8::CppHeap::Create(
+                V8Platform::Get().get(),
+                v8::CppHeapCreateParams({}, v8::WrapperDescriptor((int)V8CppObjDataIntField::ObjInfo, (int)V8CppObjDataIntField::ObjInstance, m_CppHeapID)));
+            params.cpp_heap = heap.get();
+            // the isolate will own the heap so release it
+            heap.release();
+
             if (inForSnapshot)
             {
-                m_Creator = std::make_unique<v8::SnapshotCreator>(temp, params);
+                m_Creator = std::make_unique<v8::SnapshotCreator>(isolate, params);
             }
             else
             {
-                v8::Isolate::Initialize(temp, params);
+                v8::Isolate::Initialize(isolate, params);
             }
+            return true;
         }
     } // namespace JSRuntime
 } // namespace v8App

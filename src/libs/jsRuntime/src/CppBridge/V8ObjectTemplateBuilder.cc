@@ -17,7 +17,7 @@ namespace v8App
     {
         namespace CppBridge
         {
-            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(v8::Isolate *inIsolate, v8::Local<v8::ObjectTemplate> inGlobal, const char *inTypeName)
+            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(v8::Isolate *inIsolate, v8::Local<v8::Object> inGlobal, const char *inTypeName)
                 : m_Isolate(inIsolate), m_Global(inGlobal), m_TypeName(inTypeName)
             {
             }
@@ -34,18 +34,18 @@ namespace v8App
                 return templ;
             }
 
-            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetConstructorInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inConstructor)
+            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetConstructorInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inConstructor, v8::Local<v8::Context> inContext)
             {
                 // assert if the template was passed in externally since we don't know what was setup before it was passed
                 CHECK_FALSE(m_ConstructorAllowed);
                 // recreate the object template with the constrcutor
                 m_Template.Clear();
                 m_Template = inConstructor->PrototypeTemplate();
-                m_Template->SetInternalFieldCount(kMaxReservedInternalFields);
+                m_Template->SetInternalFieldCount((int)V8CppObjDataIntField::MaxInternalFields);
 
-                inConstructor->SetClassName(JSUtilities::StringToV8(m_Isolate, inName));
+                 inConstructor->SetClassName(JSUtilities::StringToV8(m_Isolate, inName));
 
-                m_Global->Set(JSUtilities::StringToV8(m_Isolate, inName), inConstructor);
+                m_Global->Set(inContext, JSUtilities::StringToV8(m_Isolate, inName), inConstructor->GetFunction(inContext).ToLocalChecked());
 
                 return *this;
             }

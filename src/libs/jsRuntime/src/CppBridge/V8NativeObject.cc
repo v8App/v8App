@@ -12,14 +12,14 @@ namespace v8App
         namespace CppBridge
         {
 
-            V8NativeObjectInfo *V8NativeObjectInfo::From(v8::Local<v8::Object> inObject)
+            V8CppObjInfo *V8CppObjInfo::From(v8::Local<v8::Object> inObject)
             {
-                if (inObject->InternalFieldCount() != kMaxReservedInternalFields)
+                if (inObject->InternalFieldCount() != (int)V8CppObjDataIntField::MaxInternalFields)
                 {
                     return nullptr;
                 }
-                V8NativeObjectInfo *info = static_cast<V8NativeObjectInfo *>(
-                    inObject->GetAlignedPointerFromInternalField(kV8NativeObjectInfo));
+                V8CppObjInfo *info = static_cast<V8CppObjInfo *>(
+                    inObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInfo));
                 return info;
             }
 
@@ -38,81 +38,40 @@ namespace v8App
             void V8NativeObjectBase::FirstWeakCallback(const v8::WeakCallbackInfo<V8NativeObjectBase> &inInfo)
             {
                 V8NativeObjectBase *baseObject = inInfo.GetParameter();
-                baseObject->m_Destrying = true;
+                baseObject->m_Dead = true;
                 baseObject->m_Object.Reset();
-                inInfo.SetSecondPassCallback(SecondWeakCallback);
             }
 
-            void V8NativeObjectBase::SecondWeakCallback(const v8::WeakCallbackInfo<V8NativeObjectBase> &inInfo)
+            V8LocalObject V8NativeObjectBase::CreateAndSetupJSObject(V8LocalContext inContext, V8CppObjInfo *inInfo)
             {
-                V8NativeObjectBase *baseObject = inInfo.GetParameter();
-                delete baseObject;
-            }
-
-            v8::MaybeLocal<v8::Object> V8NativeObjectBase::GetV8NativeObjectInternal(v8::Isolate *inIsolate, V8NativeObjectInfo *inInfo)
-            {
-                if (m_Object.IsEmpty() == false)
+                JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
+                if (jsContext == nullptr)
                 {
-                    return v8::MaybeLocal<v8::Object>(v8::Local<v8::Object>::New(inIsolate, m_Object));
+                    return V8LocalObject();
+                }
+                JSRuntimeSharedPtr runtime = jsContext->GetJSRuntime();
+                if(runtime == nullptr)
+                {
+                    return V8LocalObject();
                 }
 
-                if (m_Destrying)
+                V8LocalObjTpl objTpl = runtime->GetObjectTemplate(inInfo);
+                if (objTpl.IsEmpty())
                 {
-                    return v8::MaybeLocal<v8::Object>();
+                    return V8LocalObject();
                 }
-
-                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
-                if (runtime == nullptr)
+                V8LocalObject jsObject;
+                if (objTpl->NewInstance(inContext).ToLocal(&jsObject) == false)
                 {
-                    return v8::MaybeLocal<v8::Object>();
+                    return V8LocalObject();
                 }
+                int indexes[] = {(int)V8CppObjDataIntField::CppHeapID, (int)V8CppObjDataIntField::ObjInfo, (int)V8CppObjDataIntField::ObjInstance};
+                void *values[] = {runtime->GetCppHeapID(), inInfo, this};
 
-                v8::Local<v8::ObjectTemplate> objTemplate = runtime->GetObjectTemplate(inInfo);
-                if (objTemplate.IsEmpty())
-                {
-                    return v8::MaybeLocal<v8::Object>();
-                }
+                jsObject->SetAlignedPointerInInternalFields((int)V8CppObjDataIntField::MaxInternalFields, indexes, values);
+                m_Object.Reset(runtime->GetIsolate(), jsObject);
 
-                v8::Local<v8::Object> object;
-                if (objTemplate->NewInstance(inIsolate->GetCurrentContext()).ToLocal(&object) == false)
-                {
-                    delete this;
-                    return v8::MaybeLocal<v8::Object>(object);
-                }
-
-                int indexes[] = {kV8NativeObjectInfo, kV8NativeObjectInstance};
-                void *values[] = {inInfo, this};
-
-                object->SetAlignedPointerInInternalFields(2, indexes, values);
-                m_Object.Reset(inIsolate, object);
-                m_Object.SetWeak(this, FirstWeakCallback, v8::WeakCallbackType::kParameter);
-                return v8::MaybeLocal<v8::Object>(object);
-            }
-
-            void *FromV8NativeObjectInternal(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, V8NativeObjectInfo *inInfo)
-            {
-                if (inValue->IsObject() == false)
-                {
-                    return nullptr;
-                }
-                v8::Local<v8::Object> object = v8::Local<v8::Object>::Cast(inValue);
-                // we should at a min have kMaxReservedInternalFields fields
-                if (object->InternalFieldCount() < kMaxReservedInternalFields)
-                {
-                    return nullptr;
-                }
-                V8NativeObjectInfo *info = V8NativeObjectInfo::From(object);
-                if (info == nullptr)
-                {
-                    return nullptr;
-                }
-
-                if (info != inInfo)
-                {
-                    return nullptr;
-                }
-
-                return object->GetAlignedPointerFromInternalField(kV8NativeObjectInstance);
+                return jsObject;
             }
         }
     }

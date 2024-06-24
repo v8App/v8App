@@ -5,6 +5,8 @@
 #ifndef __V8_NATIVE_OBJECT_HANDLE_H__
 #define __V8_NATIVE_OBJECT_HANDLE_H__
 
+#include "v8/cppgc/member.h"
+
 #include "CppBridge/V8TypeConverter.h"
 
 namespace v8App
@@ -13,6 +15,10 @@ namespace v8App
     {
         namespace CppBridge
         {
+            /**
+             * Class that holds bot the cppObject and local jsObject.
+             * Should only be used on the stack and not saved to the heap
+             */
             template <typename T>
             class V8NativeObjectHandle
             {
@@ -34,9 +40,12 @@ namespace v8App
 
             private:
                 v8::Local<v8::Value> m_Wrapper;
-                T *m_Object;
+                cppgc::Member<T> m_Object;
             };
 
+            /**
+             * TypeCovneter for the handle
+             */
             template <typename T>
             struct V8TypeConverter<V8NativeObjectHandle<T>>
             {
@@ -56,17 +65,6 @@ namespace v8App
                     return true;
                 }
             };
-
-            template <typename T>
-            V8NativeObjectHandle<T> CreateV8NativeObjHandle(v8::Isolate*  inIsolate, T *inObject)
-            {
-                v8::Local<v8::Value> wrapper;
-                if (inObject->GetV8NativeObject(inIsolate).ToLocal(&wrapper) == false || wrapper.IsEmpty())
-                {
-                    return V8NativeObjectHandle<T>();
-                }
-                return V8NativeObjectHandle<T>(wrapper, inObject);
-            }
         }
     }
 }

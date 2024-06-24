@@ -6,44 +6,33 @@
 #define _JS_CONTEXT_H_
 
 #include <unordered_map>
+#include <filesystem>
 
-#include "v8/v8.h"
 
 #include "JSRuntime.h"
+#include "JSContextCreationHelper.h"
 #include "JSContextModules.h"
+#include "V8Types.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
         /**
-         * Enum for what type of data is stored in the data slot
-         */
-        enum class ContextDataSlot : int
-        {
-            kJSContextWeakPtr = 0
-        };
-
-        /**
-         * Implments the Context Creation hepler for JSContextes
-         */
-        class JSContextCreator : public JSContextCreationHelper
-        {
-        public:
-            virtual ~JSContextCreator() = default;
-            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName) override;
-            virtual void DisposeContext(JSContextSharedPtr inContext) override;
-            virtual void RegisterSnapshotCloser(JSContextSharedPtr inContext) override;
-            virtual void UnregisterSnapshotCloser(JSContextSharedPtr inContext) override;
-        };
-
-        /**
          * Class that wraps the v8 context
          */
         class JSContext : public std::enable_shared_from_this<JSContext>, public ISnapshotHandleCloser
         {
         public:
-            JSContext(JSRuntimeSharedPtr inRuntime, std::string inName);
+            /**
+             * Enum for what type of data is stored in the data slot
+             */
+            enum class DataSlot : int
+            {
+                kJSContextWeakPtr = 0
+            };
+
+            JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true, SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
             ~JSContext();
 
             // allow only move constrcutor and assignment
@@ -53,11 +42,17 @@ namespace v8App
             /**
              * Gets the Isolate associated with the context
              */
-            v8::Isolate *GetIsolate() { return m_Runtime == nullptr ? nullptr : m_Runtime->GetIsolate(); }
+            v8::Isolate *GetIsolate();
             /**
              * Gets the JSRuntime associated with this context
              */
             JSRuntimeSharedPtr GetJSRuntime() { return m_Runtime; }
+
+            /**
+             * Shortcut to get to the JSApp faster than chainging through the GetJSRuntime() above
+             */
+            JSAppSharedPtr GetJSApp();
+
             /**
              * Gets the JSContext from the v8 context
              */
@@ -72,6 +67,14 @@ namespace v8App
              * Gets the name of the context
              */
             std::string GetName() { return m_Name; }
+            /**
+             * Gets the contexts namespace. no namespace means a default v8 context
+             */
+            std::string GetNamespace() { return m_Namespace; }
+            /**
+             * Gets the snapshot index context created from
+             */
+            size_t GetSnapshotIndex() { return m_Index; }
 
             /**
              * Gets a local context for use
@@ -91,6 +94,21 @@ namespace v8App
              * Unregisters the contexts snapshot closer
              */
             void UnregisterSnapshotCloser();
+
+            /**
+             * Returns if the context supports being snapshotted
+             */
+            bool SupportsSnapshots() { return m_m_SupportsSnapshots; }
+
+            /**
+             * Gets the entry point script
+             */
+            std::filesystem::path GetEntrypoint() { return m_EntryPoint; }
+            /**
+             * Gets the snapshot entry point script. If one hasn't been set
+             * then it returns the main entry point script
+             */
+            std::filesystem::path GetSnapshotEntrypoint() { return (m_SnapEntryPoint.empty()) ? m_EntryPoint : m_SnapEntryPoint; }
 
         protected:
             /**
@@ -119,9 +137,11 @@ namespace v8App
             JSContextWeakPtr *GetContextWeakRef();
 
             /**
-             * Create the v8 context
+             * Create the v8 context from the given snapshot index.
+             * If the index doesn't exist it'll try using the namespace and
+             * the default v8 context at 0.
              */
-            void CreateContext();
+            bool CreateContext(size_t inSnapIndex);
             /**
              * Disposes the resources for the js context
              */
@@ -129,21 +149,64 @@ namespace v8App
 
             void MoveContext(JSContext &&inContext);
 
+            /**
+             * Teh runtime this context is associated with
+             */
             JSRuntimeSharedPtr m_Runtime;
+            /**
+             * The actual v8 context
+             */
             v8::Global<v8::Context> m_Context;
+            /**
+             * Has the context been initialized yet
+             */
             bool m_Initialized = false;
+            /**
+             * The modules associated with the context
+             */
             JSContextModulesSharedPtr m_Modules;
+            /**
+             * The name of the context
+             */
             std::string m_Name;
+            /**
+             * The snapshot index this context was created from 0 == default v8 context
+             */
+            size_t m_Index;
+            /**
+             * The namespace tha tthe context was created with.
+             * No namespace means it on;y has the default v8 builtins
+             */
+            std::string m_Namespace;
+
+            /**
+             * The entry point script for the context
+             */
+            std::filesystem::path m_EntryPoint;
+            /**
+             * The entrypoint if snapshotting. If you want to code a specific entrypoint
+             * for snapshotting then use this otherwise you can detect in the above
+             * script that the context is preparing to be snapshotted
+             */
+            std::filesystem::path m_SnapEntryPoint;
+
+            /**
+             * Indicates if this context is snapshottable. The app may not want all it's created
+             * contexts to be snapshooted
+             */
+            bool m_m_SupportsSnapshots;
+            /**
+             * The methof of snapshotting this context
+             */
+            SnapshotMethod m_SnapMethod;
 
             JSContext(const JSContext &) = delete;
             JSContext &operator=(const JSContext &) = delete;
 
-            friend JSContextCreator;
+            friend class JSContextCreator;
             friend JSRuntime;
         };
     }
 }
 
-// template <>
-// v8App::JSRuntime::JSContextSharedPtr &v8App::JSRuntime::JSContextSharedPtr::operator=(v8App::JSRuntime::JSContextSharedPtr &&rhs) noexcept;
 #endif

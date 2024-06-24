@@ -24,13 +24,13 @@ namespace v8App
             class CallbackHolder;
             template <typename Signature>
             struct CallbackDispatcher;
-            struct V8NativeObjectInfo;
+            struct V8CppObjInfo;
 
             /**
              * The sginature of the function to that can be regiseterd so functions and object templates can be
              * registered on the isolate
              */
-            using GlobalTemplateRegisterFunction = void (*)(JSRuntimeSharedPtr inRuntime, v8::Local<v8::ObjectTemplate> &inGlobal);
+            using GlobalTemplateRegisterFunction = void (*)(JSContextSharedPtr inContext, v8::Local<v8::Object> &inGlobal);
 
             /**
              * Singleton for handling all of the function registration used for looking up real function calls and passing the
@@ -48,12 +48,22 @@ namespace v8App
              * For snapshotting the external references are really the templated class for the function signature so
              * any function with the same signature will actually share the same callback so there will be far less
              * of them than in the callback holders map.
+             *
+             * GlobalRegisters
+             * These are functions that get run when we need to setup the global tamplate for a bare v8 context.
+             * You can segment them into nsamespaces to limit what context they may get registerd in
+             *
+             * Class ObjectInfo
+             * Holds all of the classes that back v8 Objects for when we deserialize the from a
+             * snapshot so we know how to deserialize the actual object data for the cpp side
              */
             class CallbackRegistry
             {
             public:
+                static inline const std::string GlobalNamespace{"global"};
+
                 /**
-                 * Gets the4 ensteral references that V8 will need for snapshotting
+                 * Gets the ensteral references that V8 will need for snapshotting
                  */
                 static const std::vector<intptr_t> &GetReferences();
 
@@ -102,23 +112,32 @@ namespace v8App
 
                 /**
                  * Adds a global template registration function that register functions/objects templates
-                 * These get called by JSRuntime when setting up the isolates global template
+                 * These get called by JSRuntime when setting up the isolates global template.
+                 * Pass a namespace or seriaes of namespaces that the function should be run in when a context with that
+                 * namespace is created. The namespace global will always be run on all the time.
+                 * If no namespaces are passed then the registration function is added to the global namespace
                  */
-                static void RegisterGlobalRegisterer(GlobalTemplateRegisterFunction inRegister);
+                static void AddNamespaceSetupFunction(GlobalTemplateRegisterFunction inRegister, std::vector<std::string> inNamespaces = {});
                 /**
-                 * Runs the registered callbacks on the provided isolate
+                 * Runs the registered callbacks on the provided isolate for the global and given namespace.
+                 * If no snapespace is passed then just the global ones are run
                  */
-                static void RunGlobalRegisterFunctions(JSRuntimeSharedPtr inRuntime, v8::Local<v8::ObjectTemplate> &inGlobal);
+                static void RunNamespaceSetupFunctions(JSContextSharedPtr inRuntime, v8::Local<v8::Object> &inGlobal, std::string inNamespace = "");
+                /**
+                 * Checks to see if the specified namespace exists in the registry
+                 */
+                static bool DoesNamespaceExistInRegistry(std::string inNamespace);
 
                 /**
                  * Registers a cpp class ObjectInfo. This is used with snapshot restoration to lookup the
                  * deserializer for the class data
                  */
-                static void RegisterObjectInfo(V8NativeObjectInfo *inInfo);
+                static void RegisterObjectInfo(V8CppObjInfo *inInfo);
                 /**
                  * Finds the specified class's object info
                  */
-                static V8NativeObjectInfo *GetNativeObjectInfoFromTypeName(std::string inTypeName);
+                static V8CppObjInfo *GetNativeObjectInfoFromTypeName(std::string inTypeName);
+
 
             protected:
                 static CallbackRegistry *GetInstance();
@@ -126,8 +145,8 @@ namespace v8App
 
                 std::vector<intptr_t> m_Registry;
                 std::map<size_t, CallbackHolderBase *> m_CallbackHolders;
-                std::vector<GlobalTemplateRegisterFunction> m_RegisterFunctions;
-                std::map<std::string, V8NativeObjectInfo *> m_ObjectInfos;
+                std::map<std::string, std::vector<GlobalTemplateRegisterFunction>> m_RegisterFunctions;
+                std::map<std::string, V8CppObjInfo *> m_ObjectInfos;
             };
         }
     }
@@ -165,26 +184,26 @@ namespace v8App
  * Class registration version of the above but call to a static
  * functi0on in the class to do the registration
  */
-#define REGISTER_CLASS_FUNCS(ClassName)                                                 \
-    namespace Registration                                                              \
-    {                                                                                   \
-        static void CONCAT_REG(register_funcs_, ClassName)();                           \
-        namespace                                                                       \
-        {                                                                               \
-            struct CONCAT_REG(register_struct_, ClassName)                              \
-            {                                                                           \
-                CONCAT_REG(register_struct_, ClassName)                                 \
-                ()                                                                      \
-                {                                                                       \
-                    CONCAT_REG(register_funcs_, ClassName)                              \
-                    ();                                                                 \
-                }                                                                       \
-            } CONCAT_REG(register_struct_instance_, ClassName);                         \
-        }                                                                               \
-    }                                                                                   \
-    void Registration::CONCAT_REG(register_funcs_, ClassName)()                         \
-    {                                                                                   \
-        ClassName::RegisterClassFunctions();                                            \
+#define REGISTER_CLASS_FUNCS(ClassName)                                                            \
+    namespace Registration                                                                         \
+    {                                                                                              \
+        static void CONCAT_REG(register_funcs_, ClassName)();                                      \
+        namespace                                                                                  \
+        {                                                                                          \
+            struct CONCAT_REG(register_struct_, ClassName)                                         \
+            {                                                                                      \
+                CONCAT_REG(register_struct_, ClassName)                                            \
+                ()                                                                                 \
+                {                                                                                  \
+                    CONCAT_REG(register_funcs_, ClassName)                                         \
+                    ();                                                                            \
+                }                                                                                  \
+            } CONCAT_REG(register_struct_instance_, ClassName);                                    \
+        }                                                                                          \
+    }                                                                                              \
+    void Registration::CONCAT_REG(register_funcs_, ClassName)()                                    \
+    {                                                                                              \
+        ClassName::RegisterClassFunctions();                                                       \
         CppBridge::CallbackRegistry::RegisterGlobalRegisterer(&ClassName::RegisterGlobalTemplate); \
     }
 

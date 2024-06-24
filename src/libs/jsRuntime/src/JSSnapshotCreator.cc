@@ -32,15 +32,24 @@ namespace v8App
                 return false;
             }
 
-            JSContextSharedPtr defaultContext = m_App->CreateJSContext("default");
+            V8Isolate * isolate = m_App->GetJSRuntime()->GetIsolate();
+
+            JSContextSharedPtr defaultContext = m_App->CreateContext("v8-default");
+            //save set teh default context which is the normal v8 one
             {
-                v8::HandleScope hScope(m_App->GetJSRuntime()->GetIsolate());
+                v8::Isolate::Scope iScope(isolate);
+                v8::HandleScope hScope(isolate);
 
                 V8LocalContext lContext = defaultContext->GetLocalContext();
+                v8::Context::Scope cScope(lContext);
 
-                creator->SetDefaultContext(lContext, v8::SerializeInternalFieldsCallback(&JSSnapshotCreator::SerializeInternalField),
-                v8::SerializeContextDataCallback(JSSnapshotCreator::SerializeContextInternalField));
+                creator->SetDefaultContext(lContext);
                 m_App->GetJSRuntime()->CloseOpenHandlesForSnapshot();
+            }
+
+            //now go through the contexts that have been created and add them
+            {
+
             }
 
             {
@@ -62,66 +71,6 @@ namespace v8App
                 snapFile.close();
             }
             return true;
-          }
-
-        v8::StartupData JSSnapshotCreator::SerializeInternalField(V8LocalObject inHolder, int inIndex, void *inData)
-        {
-            //Index 0 is hte object info but we can't do anythign with it without the actual cpp object
-            if(inIndex == 0)
-            {
-                return {nullptr, 0};
-            }
-            if(inIndex == 1)
-            {
-                CppBridge::V8NativeObjectInfo* info = CppBridge::V8NativeObjectInfo::From(inHolder);
-                CppBridge::V8NativeObjectBase* instance = static_cast<CppBridge::V8NativeObjectBase*>(inHolder->GetAlignedPointerFromInternalField(CppBridge::V8NativeObjectInternalFields::kV8NativeObjectInstance));
-                if(info->m_Serializer != nullptr)
-                {
-                    return info->m_Serializer(instance);
-                }
-            }
-            return {nullptr, 0};
-        }
-
-        v8::StartupData JSSnapshotCreator::SerializeContextInternalField(V8LocalContext inHolder, int inIndex, void *inData)
-        {
-            if (inIndex == int(ContextDataSlot::kJSContextWeakPtr))
-            {
-                JSContext *ptr = static_cast<JSContext*>(inHolder->GetAlignedPointerFromEmbedderData(inIndex));
-                //TODO: Serialize the JSContext
-            }
-            return {nullptr, 0};
-        }
-
-        void JSSnapshotCreator::DeserializeInternalField(V8LocalObject inHolder, int inIndex, v8::StartupData inPayload, void *inData)
-        {
-            if(inIndex == 0)
-            {
-                std::string typeName(inPayload.data, inPayload.raw_size);
-                if(typeName.empty())
-                {
-                    return;
-                }
-                CppBridge::V8NativeObjectInfo* info = CppBridge::CallbackRegistry::GetNativeObjectInfoFromTypeName(typeName);
-                if(info == nullptr)
-                {
-                    return;
-                }
-                inHolder->SetAlignedPointerInInternalField(inIndex, info);
-            }
-            if(inIndex == 1)
-            {
-                CppBridge::V8NativeObjectInfo * info = CppBridge::V8NativeObjectInfo::From(inHolder);
-                if(info->m_Deserializer != nullptr)
-                {
-                    CppBridge::V8NativeObjectBase *instance = info->m_Deserializer(inHolder->GetIsolate(), inHolder, inPayload);
-                    inHolder->SetAlignedPointerInInternalField(inIndex, instance);
-                }
-            }
-        }
-
-        void JSSnapshotCreator::DeserializeContextInternalField(V8LocalContext inHolder, int inINdex, v8::StartupData inPayload, void *inData)
-        {
         }
     }
 }

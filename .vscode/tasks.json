@@ -59,7 +59,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //src/testing/libs/core:testCore -c dbg --subcommands",
+			"command": "bazel build //src/testing/libs/core:testCore -c dbg",
 			"windows":{
 				"command": "bazel build //src/testing/libs/core:testCore --config=windows -c dbg"
 			},

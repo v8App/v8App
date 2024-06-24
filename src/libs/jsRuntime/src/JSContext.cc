@@ -16,29 +16,11 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        JSContextSharedPtr JSContextCreator::CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName)
-        {
-            JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, inName);
-            context->CreateContext();
-            return context;
-        }
-
-        void JSContextCreator::DisposeContext(JSContextSharedPtr inContext)
-        {
-            inContext->DisposeContext();
-        }
-
-        void JSContextCreator::RegisterSnapshotCloser(JSContextSharedPtr inContext)
-        {
-            inContext->RegisterSnapshotCloser();
-        }
-
-        void JSContextCreator::UnregisterSnapshotCloser(JSContextSharedPtr inContext)
-        {
-            inContext->UnregisterSnapshotCloser();
-        }
-
-        JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName) : m_Runtime(inRuntime), m_Name(inName)
+        JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
+                             std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
+                             SnapshotMethod inSnapMethod)
+            : m_Runtime(inRuntime), m_Name(inName), m_Namespace(inNamespace), m_EntryPoint(inEntryPoint),
+              m_SnapEntryPoint(inSnapEntryPoint), m_m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
         {
             CHECK_NE(m_Runtime.get(), nullptr);
             // We use the : a seperator for shadow names
@@ -62,9 +44,19 @@ namespace v8App
             return *this;
         }
 
+        v8::Isolate *JSContext::GetIsolate()
+        {
+            return (m_Runtime == nullptr) ? nullptr : m_Runtime->GetIsolate();
+        }
+
+        JSAppSharedPtr JSContext::GetJSApp()
+        {
+            return (m_Runtime == nullptr) ? nullptr : m_Runtime->GetApp();
+        }
+
         JSContextSharedPtr JSContext::GetJSContextFromV8Context(V8LocalContext inContext)
         {
-            JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(inContext->GetAlignedPointerFromEmbedderData(int(ContextDataSlot::kJSContextWeakPtr)));
+            JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(inContext->GetAlignedPointerFromEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr)));
             if (weakPtr == nullptr || weakPtr->expired())
             {
                 return JSContextSharedPtr();
@@ -106,11 +98,11 @@ namespace v8App
                     // for the JSContext directly
                     if (forSnapshot)
                     {
-                        context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), this);
+                        context->SetAlignedPointerInEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr), this);
                     }
                     else
                     {
-                        context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), nullptr);
+                        context->SetAlignedPointerInEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr), nullptr);
                     }
                 }
                 m_Context.Reset();
@@ -142,13 +134,14 @@ namespace v8App
 
         V8MaybeLocalContext JSContext::HostCreateShadowRealmContext(V8LocalContext inInitiator)
         {
+            //TODO: rework this to create the approriate shadow context
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inInitiator);
             if (jsContext == nullptr)
             {
                 return V8MaybeLocalContext();
             }
             std::string shadowName = jsContext->GenerateShadowName();
-            JSContextSharedPtr shadow = jsContext->m_Runtime->CreateContext(shadowName);
+            JSContextSharedPtr shadow = jsContext->m_Runtime->CreateContext(shadowName, "");
             V8LocalContext shadow_local = shadow->GetLocalContext();
             shadow_local->SetSecurityToken(inInitiator->GetSecurityToken());
 
@@ -173,38 +166,64 @@ namespace v8App
             inContext.m_Modules.reset();
         }
 
-        void JSContext::CreateContext()
+        bool JSContext::CreateContext(size_t inSnapIndex)
         {
+            V8SnapshotProviderSharedPtr provider = m_Runtime->GetApp()->GetSnapshotProvider();
+            if (provider == nullptr)
+            {
+                return false;
+            }
             v8::Isolate *isolate = m_Runtime->GetIsolate();
             if (isolate == nullptr)
             {
-                return;
+                return false;
             }
+
+            m_Index = inSnapIndex;
+
             v8::Isolate::Scope isolateScope(isolate);
             v8::TryCatch tryCatch(isolate);
             v8::HandleScope handleScope(isolate);
 
-            // TODO: Hook a setup for classes to register to the global
-            v8::Local<v8::ObjectTemplate> global_template = m_Runtime->GetGlobalTemplate();
+            V8LocalContext context;
 
-            V8LocalContext context = v8::Context::New(isolate, nullptr, global_template);
+            if (m_Index == 0)
+            {
+                context = v8::Context::New(isolate, nullptr, {});
+
+                if (context.IsEmpty())
+                {
+                    return false;
+                }
+
+                // Set the security token for shadow realms.
+                // TODO: figure out how to determine if context form a snapshot keeps or needs this reset
+                uuids::uuid uuid = uuids::uuid_system_generator{}();
+                V8LocalString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
+                context->SetSecurityToken(v8Uuid);
+            }
+            else
+            {
+                // Coming from a snapshot we don't have to create the global template
+                context = v8::Context::FromSnapshot(isolate,
+                                                    m_Index,
+                                                    provider->GetInternalDeserializerCallback(),
+                                                    nullptr,
+                                                    v8::MaybeLocal<v8::Value>(),
+                                                    nullptr,
+                                                    provider->GetContextDeserializerCallaback())
+                              .ToLocalChecked();
+            }
+
             DCHECK_FALSE(tryCatch.HasCaught());
 
-            if (context.IsEmpty())
-            {
-                return;
-            }
             JSContextWeakPtr *weakPtr = new JSContextWeakPtr(weak_from_this());
-            context->SetAlignedPointerInEmbedderData(int(ContextDataSlot::kJSContextWeakPtr), weakPtr);
+            context->SetAlignedPointerInEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr), weakPtr);
             m_Modules = std::make_shared<JSContextModules>(shared_from_this());
-
-            // Set the security token for shadow realms.
-            uuids::uuid uuid = uuids::uuid_system_generator{}();
-            V8LocalString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
-            context->SetSecurityToken(v8Uuid);
 
             m_Context.Reset(isolate, context);
             m_Initialized = true;
+            return true;
         }
 
         void JSContext::RegisterSnapshotCloser()
@@ -248,7 +267,7 @@ namespace v8App
                 return nullptr;
             }
             v8::Local<v8::Context> context = m_Context.Get(isolate);
-            JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(context->GetAlignedPointerFromEmbedderData(int(ContextDataSlot::kJSContextWeakPtr)));
+            JSContextWeakPtr *weakPtr = static_cast<JSContextWeakPtr *>(context->GetAlignedPointerFromEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr)));
             if (weakPtr == nullptr || weakPtr->expired())
             {
                 return nullptr;

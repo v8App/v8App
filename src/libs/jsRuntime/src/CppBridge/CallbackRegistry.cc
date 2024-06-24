@@ -6,13 +6,12 @@
 
 #include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8FunctionTemplate.h"
-#include "CppBridge/V8NativeObject.h"
+#include "CppBridge/V8CppObjInfo.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-
         namespace CppBridge
         {
             std::unique_ptr<CallbackRegistry> CallbackRegistry::s_Instance;
@@ -36,25 +35,44 @@ namespace v8App
                 return instance->m_Registry;
             }
 
-            void CallbackRegistry::RegisterGlobalRegisterer(GlobalTemplateRegisterFunction inRegister)
+            void CallbackRegistry::AddNamespaceSetupFunction(GlobalTemplateRegisterFunction inRegister, std::vector<std::string> inNamespaces)
             {
-                CallbackRegistry *instance = GetInstance();
-                if (std::find(instance->m_RegisterFunctions.begin(), instance->m_RegisterFunctions.end(), inRegister) == instance->m_RegisterFunctions.end())
+                if (inNamespaces.size() == 0)
                 {
-                    instance->m_RegisterFunctions.push_back(inRegister);
+                    inNamespaces.push_back(CallbackRegistry::GlobalNamespace);
+                }
+
+                CallbackRegistry *instance = GetInstance();
+                for (auto name : inNamespaces)
+                {
+                    instance->m_RegisterFunctions[name].push_back(inRegister);
                 }
             }
 
-            void CallbackRegistry::RunGlobalRegisterFunctions(JSRuntimeSharedPtr inRuntime, v8::Local<v8::ObjectTemplate> &inGlobal)
+            void CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr inContext, v8::Local<v8::Object> &inGlobal, std::string inNamespace)
             {
                 CallbackRegistry *instance = GetInstance();
-                for (auto func : instance->m_RegisterFunctions)
+                std::vector<std::string> namespaces{CallbackRegistry::GlobalNamespace, inNamespace};
+                for (auto &name : namespaces)
                 {
-                    func(inRuntime, inGlobal);
+                    if (instance->m_RegisterFunctions.count(name) == 0)
+                    {
+                        continue;
+                    }
+                    for (auto func : instance->m_RegisterFunctions[name])
+                    {
+                        func(inContext, inGlobal);
+                    }
                 }
             }
 
-            void CallbackRegistry::RegisterObjectInfo(V8NativeObjectInfo *inInfo)
+            bool CallbackRegistry::DoesNamespaceExistInRegistry(std::string inNamespace)
+            {
+                CallbackRegistry *instance = GetInstance();
+                return instance->m_RegisterFunctions.count(inNamespace) > 0;
+            }
+
+            void CallbackRegistry::RegisterObjectInfo(V8CppObjInfo *inInfo)
             {
                 CallbackRegistry *instance = GetInstance();
                 for (auto it : instance->m_ObjectInfos)
@@ -77,7 +95,7 @@ namespace v8App
                 instance->m_ObjectInfos[inInfo->m_TypeName] = inInfo;
             }
 
-            V8NativeObjectInfo *CallbackRegistry::GetNativeObjectInfoFromTypeName(std::string inTypeName)
+            V8CppObjInfo *CallbackRegistry::GetNativeObjectInfoFromTypeName(std::string inTypeName)
             {
                 CallbackRegistry *instance = GetInstance();
                 if (instance->m_ObjectInfos.contains(inTypeName))
@@ -86,7 +104,6 @@ namespace v8App
                 }
                 return nullptr;
             }
-
         }
-    } // namespace JSRuntime
-}
+    }
+} // namespace JSRuntime

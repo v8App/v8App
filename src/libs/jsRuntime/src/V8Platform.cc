@@ -188,6 +188,7 @@ namespace v8App
             Get()->SetIsolateHelper(std::move(inHelper));
             v8::V8::InitializePlatform(Get().get());
             v8::V8::Initialize();
+            cppgc::InitializeProcess(s_Platform->GetPageAllocator());
             s_PlatformInited = true;
         }
 
@@ -203,6 +204,7 @@ namespace v8App
             }
             if (s_PlatformInited)
             {
+                cppgc::ShutdownProcess();
                 v8::V8::Dispose();
                 v8::V8::DisposePlatform();
             }

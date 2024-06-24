@@ -83,6 +83,18 @@ namespace v8App
         using JSContextModulesSharedPtr = std::shared_ptr<JSContextModules>;
 
         using JSSnapshotCreatorUniquePtr = std::unique_ptr<class JSSnapshotCreator>;
+
+        /**
+         * The method to use when snapshotting the context.
+         * kNamespaceOnly will only setup the global object if needed
+         * kNamespaceAndEntrypoint with setup up the global object and run the appropriate entry point script
+         */
+        enum class SnapshotMethod : int
+        {
+            kNamespaceOnly,
+            kNamespaceAndEntrypoint
+        };
+
     }
 }
-#endif
+#endif //__V8_TYPES_H__

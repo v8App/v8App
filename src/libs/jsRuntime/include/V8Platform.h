@@ -8,6 +8,7 @@
 #include <map>
 
 #include "v8/v8-platform.h"
+#include "v8/cppgc/platform.h"
 
 #include "ForegroundTaskRunner.h"
 #include "WorkerTaskRunner.h"
@@ -18,18 +19,18 @@ namespace v8App
     {
         /**
          * A Helper class to remove a reference to the JSRuntime and isolate for testing.
-        */
+         */
         class PlatformIsolateHelper
         {
-            public:
+        public:
             virtual ~PlatformIsolateHelper() = default;
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) = 0;
             virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) = 0;
         };
 
         using PlatformIsolateHelperUniquePtr = std::unique_ptr<PlatformIsolateHelper>;
-        
-         class V8Platform : public v8::Platform
+
+        class V8Platform : public v8::Platform
         {
         public:
             V8Platform();

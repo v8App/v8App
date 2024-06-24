@@ -17,18 +17,19 @@ namespace v8App
     {
         namespace CppBridge
         {
-            // Used for when the converter's to may throw
-            // Create a specializtion for a type when the
-            // conversion to v8 returns a Maybe value
-            template <typename T, typename Enable = void>
-            struct ToReturnsMaybe
-            {
-                static const bool Value = false;
-            };
-
             template <typename T, typename Enable = void>
             struct V8TypeConverter
             {
+            };
+
+            // Used for when the converter's to may throw
+            // Create a specializtion for a type when the
+            // conversion to v8 returns a Maybe value
+            template <typename T>
+            concept ToReturnsMaybe = requires(v8::Isolate * inIsolate, T value) {
+                {
+                    V8TypeConverter<T>(inIsolate, value)
+                } -> std::same_as<v8::MaybeLocal<v8::Value>>;
             };
 
             template <>
@@ -151,15 +152,9 @@ namespace v8App
             };
 
             template <typename T>
-            struct ToReturnsMaybe<std::vector<T>>
-            {
-                static const bool Value = ToReturnsMaybe<T>::Value;
-            };
-
-            template <typename T>
             struct V8TypeConverter<std::vector<T>>
             {
-                static std::conditional_t<ToReturnsMaybe<T>::Value,
+                static std::conditional_t<ToReturnsMaybe<T>,
                                           v8::MaybeLocal<v8::Value>,
                                           v8::Local<v8::Value>>
                 To(v8::Isolate *inIsolate, std::vector<T> &inValue)
@@ -214,7 +209,67 @@ namespace v8App
             };
 
             template <typename T>
-            std::conditional_t<ToReturnsMaybe<T>::Value,
+            struct V8TypeConverter<v8::LocalVector<T>>
+            {
+                static std::conditional_t<ToReturnsMaybe<v8::Local<T>>,
+                                          v8::MaybeLocal<v8::Value>,
+                                          v8::Local<v8::Value>>
+                To(v8::Isolate *inIsolate, v8::LocalVector<T> &inValue)
+                {
+                    v8::Local<v8::Context> context = inIsolate->GetCurrentContext();
+                    v8::Local<v8::Array> array = v8::Array::New(inIsolate, static_cast<int>(inValue.size()));
+                    for (uint32_t x = 0; x < inValue.size(); x++)
+                    {
+                        v8::MaybeLocal<v8::Value> maybe = V8TypeConverter<v8::Local<T>>::To(inIsolate, inValue[x]);
+                        v8::Local<v8::Value> element;
+                        if (maybe.ToLocal(&element) == false)
+                        {
+                            return {};
+                        }
+                        bool created;
+                        if (array->CreateDataProperty(context, x, element).To(&created) == false || created == false)
+                        {
+                            DCHECK_TRUE(false);
+                        }
+                    }
+                    return array;
+                }
+                static bool From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::LocalVector<T> *outValue)
+                {
+                    if (inValue->IsArray() == false)
+                    {
+                        return false;
+                    }
+                    v8::LocalVector<T> vector(inIsolate);
+                    v8::Local<v8::Array> array(v8::Local<v8::Array>::Cast(inValue));
+                    uint32_t length = array->Length();
+                    v8::Local<v8::Context> context = inIsolate->GetCurrentContext();
+
+                    for (uint32_t x = 0; x < length; x++)
+                    {
+                        v8::Local<v8::Value> v8_element;
+                        if (array->Get(context, x).ToLocal(&v8_element) == false)
+                        {
+                            return false;
+                        }
+                        T element;
+                        if (V8TypeConverter<v8::Local<T>>::From(inIsolate, v8_element, &element) == false)
+                        {
+                            return false;
+                        }
+                        vector.push_back(element);
+                    }
+
+                    outValue->swap(vector);
+                    return true;
+                }
+            };
+
+            /**
+             * Conveince function to deduce T
+             */
+            template <typename T>
+            std::conditional_t<ToReturnsMaybe<T>,
                                v8::MaybeLocal<v8::Value>,
                                v8::Local<v8::Value>>
             ConvertToV8(v8::Isolate *inIsolate, const T &inValue)
@@ -223,18 +278,19 @@ namespace v8App
             }
 
             template <typename T>
-            std::enable_if_t<ToReturnsMaybe<T>::Value, bool>
-            TryConvertToV8(v8::Isolate *inIsolate, const T &inValue, v8::Local<v8::Value> *outValue)
+            bool TryConvertToV8(v8::Isolate *isolate,
+                                const T &input,
+                                v8::Local<v8::Value> *output)
             {
-                return ConvertToV8(inIsolate, inValue).ToLocal(outValue);
-            }
-
-            template <typename T>
-            std::enable_if_t<!ToReturnsMaybe<T>::Value, bool>
-            TryConvertToV8(v8::Isolate *inIsolate, const T &inValue, v8::Local<v8::Value> *outValue)
-            {
-                *outValue = ConvertToV8(inIsolate, inValue);
-                return true;
+                if constexpr (ToReturnsMaybe<T>)
+                {
+                    return ConvertToV8(isolate, input).ToLocal(output);
+                }
+                else
+                {
+                    *output = ConvertToV8(isolate, input);
+                    return true;
+                }
             }
 
             template <typename T>
