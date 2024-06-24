@@ -8,7 +8,7 @@
 #include <vector>
 #include <bit>
 
-namespace V8App
+namespace v8App
 {
     namespace Serialization
     {

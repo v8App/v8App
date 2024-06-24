@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 #include "Serialization/WriteBuffer.h"
 
-namespace V8App
+namespace v8App
 {
     namespace Serialization
     {

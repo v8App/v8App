@@ -4,7 +4,8 @@
 
 #include "Serialization/TypeSerializer.h"
 #include "Serialization/BaseBuffer.h"
-namespace V8App
+
+namespace v8App
 {
     namespace Serialization
     {
