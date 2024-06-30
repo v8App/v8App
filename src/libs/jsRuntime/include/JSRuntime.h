@@ -7,17 +7,16 @@
 
 #include <memory>
 #include <map>
-
-#include "v8/v8-cppgc.h"
+#include <filesystem>
 
 #include "Utils/Format.h"
 
 #include "ISnapshotHandleCloser.h"
-#include "JSApp.h"
+// 4#include "JSApp.h"
 #include "V8Types.h"
-#include "V8Platform.h"
-#include "JSSnapshotCreator.h"
-#include "CppBridge/CallbackHolderBase.h"
+#include "V8AppPlatform.h"
+// #include "JSSnapshotCreator.h"
+// #include "CppBridge/CallbackHolderBase.h"
 
 namespace v8App
 {
@@ -64,7 +63,7 @@ namespace v8App
             /**
              * The max number of contexes we support in a snapshot
              */
-            static const int kMaxContextNamespaces = 1024;
+            static inline const int kMaxContextNamespaces = 1024;
 
             explicit JSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName);
             virtual ~JSRuntime();
@@ -75,7 +74,7 @@ namespace v8App
              * Creates a JSRuntime and V8 isolate and inializes the isolate for use.
              */
             static JSRuntimeSharedPtr CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
-                                                      const v8::StartupData *inSnapshot = nullptr, const intptr_t *inExternalReferences = nullptr, bool inForSnapshot = false);
+                                                      JSContextCreationHelperSharedPtr inContextCreator, bool inForSnapshot = false);
 
             /**
              * Iniialies the runtime
@@ -94,7 +93,7 @@ namespace v8App
             /**
              * Gets the JSRuntime from the specified v8 isolate
              */
-            static JSRuntimeSharedPtr GetJSRuntimeFromV8Isolate(v8::Isolate *inIsloate);
+            static JSRuntimeSharedPtr GetJSRuntimeFromV8Isolate(V8Isolate *inIsloate);
             /**
              * Returns a shared pointer for the v8 isolate
              */
@@ -121,8 +120,6 @@ namespace v8App
              * Gets an object template for the isolate
              */
             v8::Local<v8::ObjectTemplate> GetObjectTemplate(void *inInfo);
-
-            void RegisterTemplatesOnGlobal(v8::Local<v8::ObjectTemplate> &inObject);
 
             /**
              * Sets the context creation helper
@@ -164,7 +161,7 @@ namespace v8App
             /**
              * Adds a snapshot index with the given name
              */
-            bool AddContextSnapIndexName(size_t inSnapIndex, std::string inNamespace);
+            bool AddSnapIndexNamespace(size_t inSnapIndex, std::string inNamespace);
 
             /**
              * Disposes of reousrces for the runtime
@@ -199,14 +196,9 @@ namespace v8App
             void UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser);
 
             /**
-             * Gets the global template to use for creating acontext
-             */
-            v8::Local<v8::ObjectTemplate> GetGlobalTemplate() { return m_GlobalTemplate.Get(m_Isolate.get()); }
-
-            /**
              * Gets the cppgc heap for the isolate
              */
-            v8::CppHeap *GetCppHeap();
+            V8CppHeap *GetCppHeap();
             /**
              * Gets hte id to use for the cppgc heap to mark whether they should be scanned
              */
@@ -216,7 +208,7 @@ namespace v8App
             /**
              * Creates the v8 isolate and if for a snapshot the v8 snapshot creator as well
              */
-            bool CreateIsolate(const intptr_t *inExternalReferences, bool inForSnapshot);
+            bool CreateIsolate(bool inForSnapshot);
 
             IdleTasksSupport m_IdleEnabled;
             JSAppSharedPtr m_App;
@@ -242,21 +234,17 @@ namespace v8App
              */
             std::shared_ptr<class ForegroundTaskRunner> m_TaskRunner;
 
+            /**
+             * The Context Creator
+             */
+            JSContextCreationHelperSharedPtr m_ContextCreation;
+
             using ObjectTemplateMap = std::map<void *, v8::Global<v8::ObjectTemplate>>;
 
             /**
              * The object templates for the isolate
              */
             ObjectTemplateMap m_ObjectTemplates;
-
-            /**
-             * The global template to use for contexts
-             */
-            V8PersistentObjTpl m_GlobalTemplate;
-            /**
-             * The Context Creator
-             */
-            JSContextCreationHelperSharedPtr m_ContextCreation;
 
             /**
              * The v8 SnapshotCreator
@@ -283,18 +271,8 @@ namespace v8App
         class JSRuntimeIsolateHelper : public PlatformIsolateHelper
         {
         public:
-            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority)
-            {
-                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
-                DCHECK_NOT_NULL(runtime);
-                return runtime->GetForegroundTaskRunner();
-            };
-            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate)
-            {
-                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inIsolate);
-                DCHECK_NOT_NULL(runtime.get());
-                return runtime->IdleTasksEnabled();
-            };
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override;
+            virtual bool IdleTasksEnabled(V8Isolate *inIsolate) override;
         };
     } // namespace JSRuntime
 } // namespace v8App

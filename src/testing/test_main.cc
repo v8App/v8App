@@ -13,7 +13,7 @@
 #include "Logging/LogJSONFile.h"
 
 #include "V8Types.h"
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "JSRuntime.h"
 #endif
 
@@ -23,7 +23,7 @@ std::unique_ptr<Runfiles> s_Runfiles;
 std::filesystem::path s_TestDir;
 
 #ifdef USE_JSRUNTIME
-v8::StartupData s_V8StartupData{nullptr, 0};
+v8App::JSRuntime::V8StartupData s_V8StartupData{nullptr, 0};
 #endif
 
 int main(int argc, char **argv)
@@ -44,8 +44,6 @@ int main(int argc, char **argv)
         if (arg.starts_with("--test-dir="))
         {
             setupDone = true;
-            size_t arg_sepe = arg.find("=");
-
             arg = arg.replace(0, 11, "");
             s_TestDir = std::filesystem::path(arg);
         }
@@ -176,12 +174,12 @@ int main(int argc, char **argv)
     sData.seekg(0, std::ios::beg);
     std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
     sData.read(buf.get(), dataLength);
-    s_V8StartupData = v8::StartupData{buf.release(), dataLength};
+    s_V8StartupData = v8App::JSRuntime::V8StartupData{buf.release(), dataLength};
 
     v8::V8::SetFlagsFromString("--expose_gc");
 
     v8App::JSRuntime::PlatformIsolateHelperUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
-    v8App::JSRuntime::V8Platform::InitializeV8(std::move(helper));
+    v8App::JSRuntime::V8AppPlatform::InitializeV8(std::move(helper));
 #endif
     std::cout << std::endl
               << std::endl;
@@ -189,7 +187,7 @@ int main(int argc, char **argv)
     int exitCode = RUN_ALL_TESTS();
 
 #ifdef USE_JSRUNTIME
-    v8App::JSRuntime::V8Platform::ShutdownV8();
+    v8App::JSRuntime::V8AppPlatform::ShutdownV8();
 #endif
 
     return exitCode;

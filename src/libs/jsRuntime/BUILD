@@ -24,7 +24,7 @@ v8App_library(
         "src/NestableQueue.cc",
         "src/V8AppSnapshotProvider.cc",
         "src/V8Jobs.cc",
-        "src/V8Platform.cc",
+        "src/V8AppPlatform.cc",
         "src/WorkerTaskRunner.cc",
     ],
     hdrs = [
@@ -53,7 +53,7 @@ v8App_library(
         "include/NestableQueue.h",
         "include/V8AppSnapshotProvider.h",
         "include/V8Jobs.h",
-        "include/V8Platform.h",
+        "include/V8AppPlatform.h",
         "include/V8Types.h",
         "include/WorkerTaskRunner.h",
     ],

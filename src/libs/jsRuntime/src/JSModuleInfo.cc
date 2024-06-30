@@ -47,32 +47,32 @@ namespace v8App
             return m_Version;
         }
 
-        void JSModuleInfo::SetV8Module(V8LocalModule &inModule)
+        void JSModuleInfo::SetV8Module(V8LModule &inModule)
         {
             m_Module.Reset(m_Context->GetIsolate(), inModule);
         }
 
-        V8LocalModule JSModuleInfo::GetLocalModule()
+        V8LModule JSModuleInfo::GetLocalModule()
         {
             return m_Module.Get(m_Context->GetIsolate());
         }
 
-        void JSModuleInfo::SetV8JSON(V8LocalValue &inValue)
+        void JSModuleInfo::SetV8JSON(V8LValue &inValue)
         {
             m_JSON.Reset(m_Context->GetIsolate(), inValue);
         }
 
-        V8LocalValue JSModuleInfo::GetLocalJSON()
+        V8LValue JSModuleInfo::GetLocalJSON()
         {
             return m_JSON.Get(m_Context->GetIsolate());
         }
 
-        void JSModuleInfo::SetUnboundScript(V8LocalUnboundModuleScript &inScript)
+        void JSModuleInfo::SetUnboundScript(V8LUnboundModScript &inScript)
         {
             m_UnboundScript.Reset(m_Context->GetIsolate(), inScript);
         }
 
-        V8LocalUnboundModuleScript JSModuleInfo::GetUnboundScript()
+        V8LUnboundModScript JSModuleInfo::GetUnboundScript()
         {
             return m_UnboundScript.Get(m_Context->GetIsolate());
         }

@@ -8,7 +8,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 
 namespace v8App
 {
@@ -17,9 +17,9 @@ namespace v8App
         class TestForegroundTaskRunner : public v8::TaskRunner
         {
         public:
-            virtual void PostTask(std::unique_ptr<v8::Task> task) override {}
+            virtual void PostTask(V8TaskUniquePtr task) override {}
 
-            virtual void PostDelayedTask(std::unique_ptr<v8::Task> task,
+            virtual void PostDelayedTask(V8TaskUniquePtr task,
                                          double delay_in_seconds) override {}
             virtual void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override {}
             virtual bool IdleTasksEnabled() override {return true;}
@@ -28,11 +28,11 @@ namespace v8App
         class TestIsolateHelper : public PlatformIsolateHelper
         {
         public:
-            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) override
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override
             {
                 return std::make_shared<TestForegroundTaskRunner>();
             };
-            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) override { return true; }
+            virtual bool IdleTasksEnabled(V8Isolate *inIsolate) override { return true; }
         };
 
         class TestPageAllocator : public v8::PageAllocator
@@ -59,7 +59,7 @@ namespace v8App
             TestThreadIsolatedAllocator() = default;
             void *Allocate(size_t size) override { return nullptr; }
             void Free(void *object) override {}
-            enum Type Type() const override { return v8::ThreadIsolatedAllocator::Type::kPkey; }
+            enum Type Type() const override { return V8ThreadIsolatedAllocator::Type::kPkey; }
         };
 
         int testPlatformInt1 = 0;
@@ -74,13 +74,13 @@ namespace v8App
             int value;
         };
 
-        class TestV8Platform : public V8Platform
+        class TestV8AppPlatform : public V8AppPlatform
         {
         public:
-            TestV8Platform() {}
+            TestV8AppPlatform() {}
 
             Threads::ThreadPriority TestIntToPriority(int inInt) { return IntToPriority(inInt); }
-            int TestPriorityToInt(v8::TaskPriority inPriority) { return PriorityToInt(inPriority); }
+            int TestPriorityToInt(V8TaskPriority inPriority) { return PriorityToInt(inPriority); }
             bool IsInited() { return s_PlatformInited; }
             void SetInited(bool inValue) { s_PlatformInited = inValue; }
         };
@@ -100,20 +100,20 @@ namespace v8App
             size_t m_Concurrency = 2;
         };
 
-        TEST(V8PlatformTest, ConstructorDestructor)
+        TEST(V8AppPlatformTest, ConstructorDestructor)
         {
             int cores = Threads::GetHardwareCores();
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             EXPECT_EQ(platform.NumberOfWorkerThreads(), cores);
             EXPECT_FALSE(platform.IsInited());
             EXPECT_EQ(platform.CreateBlockingScope(v8::BlockingType::kMayBlock), nullptr);
             EXPECT_EQ(platform.GetStackTracePrinter(), nullptr);
         }
 
-        TEST(V8PlatformTest, GetSetTracingController)
+        TEST(V8AppPlatformTest, GetSetTracingController)
         {
-            TestV8Platform platform;
-            v8::TracingController *constrcuted = platform.GetTracingController();
+            TestV8AppPlatform platform;
+            V8TracingController *constrcuted = platform.GetTracingController();
             EXPECT_NE(constrcuted, nullptr);
 
             platform.SetTracingController(nullptr);
@@ -123,7 +123,7 @@ namespace v8App
             platform.SetTracingController(nullptr);
             EXPECT_EQ(platform.GetTracingController(), constrcuted);
 
-            std::unique_ptr<v8::TracingController> controller = std::make_unique<v8::TracingController>();
+            V8TracingControllerUniquePtr controller = std::make_unique<V8TracingController>();
             platform.SetInited(false);
             platform.SetTracingController(controller.get());
             EXPECT_EQ(platform.GetTracingController(), constrcuted);
@@ -134,9 +134,9 @@ namespace v8App
             controller.release();
         }
 
-        TEST(V8PlatformTest, GetSetPageAllocator)
+        TEST(V8AppPlatformTest, GetSetPageAllocator)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             EXPECT_EQ(platform.GetPageAllocator(), nullptr);
 
             platform.SetInited(false);
@@ -155,9 +155,9 @@ namespace v8App
             allocator.release();
         }
 
-        TEST(V8PlatformTest, GetSetThreadIsolatedAllocator)
+        TEST(V8AppPlatformTest, GetSetThreadIsolatedAllocator)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             EXPECT_EQ(platform.GetPageAllocator(), nullptr);
 
             std::unique_ptr<TestThreadIsolatedAllocator> allocator = std::make_unique<TestThreadIsolatedAllocator>();
@@ -175,13 +175,13 @@ namespace v8App
             allocator.release();
         }
 
-        TEST(V8PlatformTest, GetSetZoneBackingAllocator)
+        TEST(V8AppPlatformTest, GetSetZoneBackingAllocator)
         {
-            TestV8Platform platform;
-            v8::ZoneBackingAllocator *constrcuted = platform.GetZoneBackingAllocator();
+            TestV8AppPlatform platform;
+            V8ZoneBackingAllocator *constrcuted = platform.GetZoneBackingAllocator();
             EXPECT_NE(constrcuted, nullptr);
 
-            std::unique_ptr<v8::ZoneBackingAllocator> allocator = std::make_unique<v8::ZoneBackingAllocator>();
+            V8ZoneBackingAllocatorUniquePtr allocator = std::make_unique<V8ZoneBackingAllocator>();
             platform.SetZoneBlockingAllocator(allocator.get());
             EXPECT_EQ(platform.GetZoneBackingAllocator(), constrcuted);
 
@@ -195,32 +195,32 @@ namespace v8App
             allocator.release();
         }
 
-        TEST(V8PlatformTest, MonotonicallyIncreasingTime)
+        TEST(V8AppPlatformTest, MonotonicallyIncreasingTime)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             // Make sure we're using the normal time function
             TestTime::TestTimeSeconds::Clear();
             double current = Time::MonotonicallyIncreasingTimeSeconds();
             EXPECT_DOUBLE_EQ(platform.MonotonicallyIncreasingTime(), current);
         }
 
-        TEST(V8PlatformTest, CurrentClockTimeMilliseconds)
+        TEST(V8AppPlatformTest, CurrentClockTimeMilliseconds)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             // Make sure we're using the normal time function
             TestTime::TestTimeMilliSeconds::Clear();
             double current = Time::MonotonicallyIncreasingTimeMilliSeconds();
             EXPECT_DOUBLE_EQ(platform.CurrentClockTimeMilliseconds(), current);
         }
 
-        TEST(V8PlatformTest, GetSetHighAllocationThroughputObserver)
+        TEST(V8AppPlatformTest, GetSetHighAllocationThroughputObserver)
         {
-            TestV8Platform platform;
-            v8::HighAllocationThroughputObserver *constrcuted = platform.GetHighAllocationThroughputObserver();
+            TestV8AppPlatform platform;
+            V8HighAllocationThroughputObserver *constrcuted = platform.GetHighAllocationThroughputObserver();
             EXPECT_NE(constrcuted, nullptr);
 
             platform.SetInited(false);
-            std::unique_ptr<v8::HighAllocationThroughputObserver> observer = std::make_unique<v8::HighAllocationThroughputObserver>();
+            V8HighAllocationThroughputObserverUniquePtr observer = std::make_unique<V8HighAllocationThroughputObserver>();
             platform.SetHighAllocatoionObserver(observer.get());
             EXPECT_EQ(platform.GetHighAllocationThroughputObserver(), constrcuted);
 
@@ -234,39 +234,39 @@ namespace v8App
             observer.release();
         }
 
-        TEST(V8PlatformTest, GetForegroundTaskRunner)
+        TEST(V8AppPlatformTest, GetForegroundTaskRunner)
         {
-            std::shared_ptr<V8Platform> platform = V8Platform::Get();
+            std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
             PlatformIsolateHelperUniquePtr helper = std::make_unique<TestIsolateHelper>();
             platform->SetIsolateHelper(std::move(helper));
-            EXPECT_NE(nullptr, platform->GetForegroundTaskRunner(nullptr, v8::TaskPriority::kBestEffort).get());
+            EXPECT_NE(nullptr, platform->GetForegroundTaskRunner(nullptr, V8TaskPriority::kBestEffort).get());
         }
 
-        TEST(V8PlatformTest, IdleTasksEnabled)
+        TEST(V8AppPlatformTest, IdleTasksEnabled)
         {
-            std::shared_ptr<V8Platform> platform = V8Platform::Get();
+            std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
             PlatformIsolateHelperUniquePtr helper = std::make_unique<TestIsolateHelper>();
             platform->SetIsolateHelper(std::move(helper));
             EXPECT_TRUE(platform->IdleTasksEnabled(nullptr));
         }
 
-        TEST(V8PlatformTest, Get)
+        TEST(V8AppPlatformTest, Get)
         {
-            std::shared_ptr<V8Platform> platform = V8Platform::Get();
+            std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
             EXPECT_NE(platform, nullptr);
-            EXPECT_EQ(platform, V8Platform::Get());
+            EXPECT_EQ(platform, V8AppPlatform::Get());
         }
 
-        TEST(V8PlatformTest, CreateJobImpl)
+        TEST(V8AppPlatformTest, CreateJobImpl)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             platform.SetInited(false);
 
-            std::unique_ptr<v8::JobHandle> handle;
+            V8JobHandleUniquePtr handle;
             std::unique_ptr<TestPlatformJobTask> task = std::make_unique<TestPlatformJobTask>();
 
             auto start = std::chrono::high_resolution_clock::now();
-            handle = platform.PostJob(v8::TaskPriority::kBestEffort, std::move(task));
+            handle = platform.PostJob(V8TaskPriority::kBestEffort, std::move(task));
             handle->Join();
             auto end = std::chrono::high_resolution_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
@@ -274,7 +274,7 @@ namespace v8App
 
             start = std::chrono::high_resolution_clock::now();
             task = std::make_unique<TestPlatformJobTask>();
-            handle = platform.CreateJob(v8::TaskPriority::kBestEffort, std::move(task));
+            handle = platform.CreateJob(V8TaskPriority::kBestEffort, std::move(task));
             end = std::chrono::high_resolution_clock::now();
             elapsed = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
             EXPECT_LE(elapsed, 1);
@@ -287,9 +287,9 @@ namespace v8App
             EXPECT_GE(elapsed, 4);
         }
 
-        TEST(V8PlatformTest, PostTaskOnWorkerThreadImpl)
+        TEST(V8AppPlatformTest, PostTaskOnWorkerThreadImpl)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             platform.SetInited(false);
 
             EXPECT_EQ(testPlatformInt1, 0);
@@ -306,9 +306,9 @@ namespace v8App
             EXPECT_EQ(testPlatformInt1, 6);
         }
 
-        TEST(V8PlatformTest, PostDelayedTaskOnWorkerThreadImpl)
+        TEST(V8AppPlatformTest, PostDelayedTaskOnWorkerThreadImpl)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             platform.SetInited(false);
 
             EXPECT_EQ(testPlatformInt2, 0);
@@ -319,9 +319,9 @@ namespace v8App
             EXPECT_EQ(testPlatformInt2, 2);
         }
 
-        TEST(V8PlatformTest, IntToPriority)
+        TEST(V8AppPlatformTest, IntToPriority)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             platform.SetInited(false);
 
             int max = static_cast<int>(Threads::ThreadPriority::kMaxPriority) + 1;
@@ -334,15 +334,15 @@ namespace v8App
             EXPECT_EQ(Threads::ThreadPriority::kBestEffort, platform.TestIntToPriority(max));
         }
 
-        TEST(V8PlatformTest, PriorityToInt)
+        TEST(V8AppPlatformTest, PriorityToInt)
         {
-            TestV8Platform platform;
+            TestV8AppPlatform platform;
             platform.SetInited(false);
 
-            EXPECT_EQ(1, platform.TestPriorityToInt(v8::TaskPriority::kBestEffort));
-            EXPECT_EQ(2, platform.TestPriorityToInt(v8::TaskPriority::kUserVisible));
-            EXPECT_EQ(3, platform.TestPriorityToInt(v8::TaskPriority::kUserBlocking));
-            EXPECT_EQ(3, platform.TestPriorityToInt(v8::TaskPriority::kMaxPriority));
+            EXPECT_EQ(1, platform.TestPriorityToInt(V8TaskPriority::kBestEffort));
+            EXPECT_EQ(2, platform.TestPriorityToInt(V8TaskPriority::kUserVisible));
+            EXPECT_EQ(3, platform.TestPriorityToInt(V8TaskPriority::kUserBlocking));
+            EXPECT_EQ(3, platform.TestPriorityToInt(V8TaskPriority::kMaxPriority));
         }
     } // namespace JSRuntime
 } // namespace v8App

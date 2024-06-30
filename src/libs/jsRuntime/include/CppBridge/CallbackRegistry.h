@@ -30,7 +30,7 @@ namespace v8App
              * The sginature of the function to that can be regiseterd so functions and object templates can be
              * registered on the isolate
              */
-            using GlobalTemplateRegisterFunction = void (*)(JSContextSharedPtr inContext, v8::Local<v8::Object> &inGlobal);
+            using GlobalTemplateRegisterFunction = void (*)(JSContextSharedPtr inContext, V8LObject &inGlobal);
 
             /**
              * Singleton for handling all of the function registration used for looking up real function calls and passing the
@@ -122,7 +122,7 @@ namespace v8App
                  * Runs the registered callbacks on the provided isolate for the global and given namespace.
                  * If no snapespace is passed then just the global ones are run
                  */
-                static void RunNamespaceSetupFunctions(JSContextSharedPtr inRuntime, v8::Local<v8::Object> &inGlobal, std::string inNamespace = "");
+                static void RunNamespaceSetupFunctions(JSContextSharedPtr inRuntime, V8LObject &inGlobal, std::string inNamespace = "");
                 /**
                  * Checks to see if the specified namespace exists in the registry
                  */
@@ -182,9 +182,10 @@ namespace v8App
 
 /**
  * Class registration version of the above but call to a static
- * functi0on in the class to do the registration
+ * function in the class to do the registration. Registers the 
+ * Class template setup in the specified namespaces.
  */
-#define REGISTER_CLASS_FUNCS(ClassName)                                                            \
+#define REGISTER_CLASS_FUNCS_IN_NAMESPACES(ClassName, FuncNamespaces)                                                            \
     namespace Registration                                                                         \
     {                                                                                              \
         static void CONCAT_REG(register_funcs_, ClassName)();                                      \
@@ -204,7 +205,14 @@ namespace v8App
     void Registration::CONCAT_REG(register_funcs_, ClassName)()                                    \
     {                                                                                              \
         ClassName::RegisterClassFunctions();                                                       \
-        CppBridge::CallbackRegistry::RegisterGlobalRegisterer(&ClassName::RegisterGlobalTemplate); \
+        CppBridge::CallbackRegistry::AddNamespaceSetupFunction(&ClassName::RegisterGlobalTemplate, FuncNamespaces); \
     }
+
+/**
+ * Class registration version of the above but call to a static
+ * function in the class to do the registration defaulting to the global namespace
+ */
+#define REGISTER_CLASS_FUNCS_GLOBAL(ClassName) REGISTER_CLASS_FUNCS_IN_NAMESPACES(ClassName, std::vector<std::string>())                                                        
+
 
 #endif //__CALLBACK_REGISTRY_H__

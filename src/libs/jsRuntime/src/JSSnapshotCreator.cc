@@ -34,14 +34,14 @@ namespace v8App
 
             V8Isolate * isolate = m_App->GetJSRuntime()->GetIsolate();
 
-            JSContextSharedPtr defaultContext = m_App->CreateContext("v8-default");
-            //save set teh default context which is the normal v8 one
+            JSContextSharedPtr defaultContext = m_App->CreateJSContext("v8-default", "");
+            //save set the default context which is the normal v8 one
             {
-                v8::Isolate::Scope iScope(isolate);
-                v8::HandleScope hScope(isolate);
+                V8IsolateScope iScope(isolate);
+                V8HandleScope hScope(isolate);
 
-                V8LocalContext lContext = defaultContext->GetLocalContext();
-                v8::Context::Scope cScope(lContext);
+                V8LContext lContext = defaultContext->GetLocalContext();
+                V8ContextScope cScope(lContext);
 
                 creator->SetDefaultContext(lContext);
                 m_App->GetJSRuntime()->CloseOpenHandlesForSnapshot();
@@ -53,14 +53,14 @@ namespace v8App
             }
 
             {
-                // V8Platform::Get()->SetWorkersPaused(true);
-                v8::StartupData data = creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kClear);
+                // V8AppPlatform::Get()->SetWorkersPaused(true);
+                V8StartupData data = creator->CreateBlob(V8SnapCreator::FunctionCodeHandling::kClear);
                 if (data.raw_size == 0)
                 {
-                    V8Platform::Get()->SetWorkersPaused(false);
+                    V8AppPlatform::Get()->SetWorkersPaused(false);
                     return false;
                 }
-                // V8Platform::Get()->SetWorkersPaused(false);
+                // V8AppPlatform::Get()->SetWorkersPaused(false);
 
                 std::ofstream snapFile(inSnapshotFile, std::ios::out | std::ios::binary);
                 if (snapFile.is_open() == false || snapFile.fail())

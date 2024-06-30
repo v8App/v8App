@@ -27,30 +27,30 @@ namespace v8App
 
         namespace CodeCacheTestInternal
         {
-            V8MaybeLocalModule UnresovledCallback(
-                V8LocalContext inContet, V8LocalString inSpecifier,
-                V8LocalFixedArray inImportAttributes, V8LocalModule inReferrer)
+            V8MBLModule UnresovledCallback(
+                V8LContext inContet, V8LString inSpecifier,
+                V8LFixedArray inImportAttributes, V8LModule inReferrer)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("Unresloved callback called"));
                 LOG_ERROR(msg);
-                return V8MaybeLocalModule();
+                return V8MBLModule();
             }
 
             int32_t ExecuteScript(V8Isolate *isolate, V8ScriptSource *source, bool useCache)
             {
                 V8Isolate::Scope iScope(isolate);
-                v8::HandleScope hScope(isolate);
-                V8LocalContext context = v8::Context::New(isolate);
-                v8::Context::Scope cScope(context);
-                v8::ScriptCompiler::CompileOptions option = v8::ScriptCompiler::kNoCompileOptions;
+                V8HandleScope hScope(isolate);
+                V8LContext context = V8Context::New(isolate);
+                V8ContextScope cScope(context);
+                V8ScriptCompiler::CompileOptions option = V8ScriptCompiler::kNoCompileOptions;
                 if (useCache)
                 {
-                    option = v8::ScriptCompiler::kConsumeCodeCache;
+                    option = V8ScriptCompiler::kConsumeCodeCache;
                 }
-                v8::TryCatch tryCatch(isolate);
-                V8LocalModule module;
-                EXPECT_TRUE(v8::ScriptCompiler::CompileModule(isolate, source, option).ToLocal(&module));
+                V8TryCatch tryCatch(isolate);
+                V8LModule module;
+                EXPECT_TRUE(V8ScriptCompiler::CompileModule(isolate, source, option).ToLocal(&module));
                 if (tryCatch.HasCaught())
                 {
                     std::string stack = JSUtilities::GetStackTrace(context, tryCatch);
@@ -68,10 +68,10 @@ namespace v8App
                 {
                     EXPECT_FALSE(source->GetCachedData()->rejected);
                 }
-                V8LocalValue value = module->Evaluate(context)
+                V8LValue value = module->Evaluate(context)
                                          .ToLocalChecked();
-                V8LocalPromise promise(V8LocalPromise::Cast(value));
-                EXPECT_EQ(promise->State(), v8::Promise::kFulfilled);
+                V8LPromise promise(V8LPromise::Cast(value));
+                EXPECT_EQ(promise->State(), V8Promise::kFulfilled);
                 if (tryCatch.HasCaught())
                 {
                     std::string stack = JSUtilities::GetStackTrace(context, tryCatch);
@@ -82,18 +82,18 @@ namespace v8App
                 return context->Global()->Get(context, JSUtilities::StringToV8(isolate, "Result")).ToLocalChecked()->Int32Value(context).FromJust();
             }
 
-            V8ScriptCachedData *GenerateCodeCache(V8Isolate *inIsolate, V8LocalContext inContet, V8ScriptSource *inSource)
+            V8ScriptCachedData *GenerateCodeCache(V8Isolate *inIsolate, V8LContext inContet, V8ScriptSource *inSource)
             {
-                V8LocalModule module = v8::ScriptCompiler::CompileModule(inIsolate, inSource).ToLocalChecked();
+                V8LModule module = V8ScriptCompiler::CompileModule(inIsolate, inSource).ToLocalChecked();
                 module->InstantiateModule(inContet, UnresovledCallback);
 
-                V8LocalUnboundModuleScript unbound = module->GetUnboundModuleScript();
+                V8LUnboundModScript unbound = module->GetUnboundModuleScript();
 
-                V8LocalValue result = module->Evaluate(inContet).ToLocalChecked();
-                V8LocalPromise promise(V8LocalPromise::Cast(result));
-                CHECK_EQ(promise->State(), v8::Promise::kFulfilled);
+                V8LValue result = module->Evaluate(inContet).ToLocalChecked();
+                V8LPromise promise(V8LPromise::Cast(result));
+                CHECK_EQ(promise->State(), V8Promise::kFulfilled);
 
-                return v8::ScriptCompiler::CreateCodeCache(unbound);
+                return V8ScriptCompiler::CreateCodeCache(unbound);
             }
         }
 
@@ -156,9 +156,9 @@ namespace v8App
             ASSERT_TRUE(srcFile.WriteAsset());
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             V8ScriptSourceUniquePtr source = codeCache.LoadScriptFile(testPath, m_Isolate);
             ASSERT_NE(nullptr, source);

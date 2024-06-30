@@ -13,7 +13,7 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        bool JSContextCreationHelper::SetContextNamespaces(v8::StartupData *inData)
+        bool JSContextCreationHelper::SetContextNamespaces(V8StartupData *inData)
         {
             Serialization::ReadBuffer rBuffer(inData->data, inData->raw_size);
 
@@ -43,14 +43,16 @@ namespace v8App
             return true;
         }
 
-        v8::StartupData JSContextCreationHelper::SerializeContextNamespaces()
+        V8StartupData JSContextCreationHelper::SerializeContextNamespaces()
         {
-            v8::StartupData v8Data;
+            V8StartupData v8Data;
             Serialization::WriteBuffer wBuffer;
 
             wBuffer << m_NamespacesSnapIndexes.size();
-            for (auto [index, name] : m_NamespacesSnapIndexes)
+            for (auto it : m_NamespacesSnapIndexes)
             {
+                size_t index = it.first;
+                std::string name = it.second;
                 wBuffer << index;
                 wBuffer << name;
             }

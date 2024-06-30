@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <filesystem>
 
-
 #include "JSRuntime.h"
 #include "JSContextCreationHelper.h"
 #include "JSContextModules.h"
@@ -32,7 +31,9 @@ namespace v8App
                 kJSContextWeakPtr = 0
             };
 
-            JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true, SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
+            JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
+                      std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                      SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
             ~JSContext();
 
             // allow only move constrcutor and assignment
@@ -42,7 +43,7 @@ namespace v8App
             /**
              * Gets the Isolate associated with the context
              */
-            v8::Isolate *GetIsolate();
+            V8Isolate *GetIsolate();
             /**
              * Gets the JSRuntime associated with this context
              */
@@ -56,7 +57,7 @@ namespace v8App
             /**
              * Gets the JSContext from the v8 context
              */
-            static JSContextSharedPtr GetJSContextFromV8Context(V8LocalContext inContext);
+            static JSContextSharedPtr GetJSContextFromV8Context(V8LContext inContext);
 
             /**
              * Gets the JSModules for this context
@@ -79,7 +80,7 @@ namespace v8App
             /**
              * Gets a local context for use
              */
-            V8LocalContext GetLocalContext();
+            V8LContext GetLocalContext();
 
             /**
              * Sets up teh callback to create shadow realsm
@@ -99,6 +100,11 @@ namespace v8App
              * Returns if the context supports being snapshotted
              */
             bool SupportsSnapshots() { return m_m_SupportsSnapshots; }
+
+            /**
+             * Gets the method fo snapshotting the context
+             */
+            SnapshotMethod GetSnapshotMethod() { return m_SnapMethod; }
 
             /**
              * Gets the entry point script
@@ -129,7 +135,7 @@ namespace v8App
             /**
              * Callback V8 calls to create the shadow realm
              */
-            static V8MaybeLocalContext HostCreateShadowRealmContext(V8LocalContext inInitiator);
+            static V8MBLContext HostCreateShadowRealmContext(V8LContext inInitiator);
 
             /**
              * Gets the weakref from the v8 context
@@ -156,11 +162,11 @@ namespace v8App
             /**
              * The actual v8 context
              */
-            v8::Global<v8::Context> m_Context;
+            V8GContext m_Context;
             /**
              * Has the context been initialized yet
              */
-            bool m_Initialized = false;
+            bool m_Initialized{false};
             /**
              * The modules associated with the context
              */
@@ -172,7 +178,7 @@ namespace v8App
             /**
              * The snapshot index this context was created from 0 == default v8 context
              */
-            size_t m_Index;
+            size_t m_Index{0};
             /**
              * The namespace tha tthe context was created with.
              * No namespace means it on;y has the default v8 builtins

@@ -36,7 +36,7 @@ namespace v8App
             /**
              * Gets the v8 startup data that the isolate needs
              */
-            virtual const v8::StartupData *GetSnapshotData() { return &m_StartupData; };
+            virtual const V8StartupData *GetSnapshotData() { return &m_StartupData; };
             /**
              * Gets the file path that the data was loaded from
              */
@@ -55,14 +55,14 @@ namespace v8App
             /**
              * Serializers for the snapshot
              */
-            virtual v8::StartupData SerializeInternalField(V8LocalObject inHolder, int inIndex) { return {nullptr, 0}; };
-            virtual v8::StartupData SerializeContextInternalField(V8LocalContext inHolder, int inIndex) { return {nullptr, 0}; };
+            virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) { return {nullptr, 0}; };
+            virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) { return {nullptr, 0}; };
 
             /**
              * Deserializers for the snapshot
              */
-            virtual void DeserializeInternalField(V8LocalObject inHolder, int inIndex, v8::StartupData inPayload) {};
-            virtual void DeserializeContextInternalField(V8LocalContext inHolder, int inIndex, v8::StartupData inPayload) {};
+            virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) {};
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload) {};
 
             /**
              * Returns the callback to pass to the context setup so
@@ -76,11 +76,11 @@ namespace v8App
             /**
              * Internal serializers that get the provider and call the real serializer for it
              */
-            static v8::StartupData SerializeInternalField_Internal(V8LocalObject inHolder, int inIndex, void *inData);
-            static v8::StartupData SerializeContextInternalField_Internal(V8LocalContext inHolder, int inIndex, void *inData);
+            static V8StartupData SerializeInternalField_Internal(V8LObject inHolder, int inIndex, void *inData);
+            static V8StartupData SerializeContextInternalField_Internal(V8LContext inHolder, int inIndex, void *inData);
 
-            static void DeserializeInternalField_Internal(V8LocalObject inHolder, int inIndex, v8::StartupData inPayload, void *inData);
-            static void DeserializeContextInternalField_Internal(V8LocalContext inHolder, int inIndex, v8::StartupData inPayload, void *inData);
+            static void DeserializeInternalField_Internal(V8LObject inHolder, int inIndex, V8StartupData inPayload, void *inData);
+            static void DeserializeContextInternalField_Internal(V8LContext inHolder, int inIndex, V8StartupData inPayload, void *inData);
 
         protected:
             bool LoadDataFile(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath);
@@ -91,14 +91,12 @@ namespace v8App
             /**
              * Snapshot data
              */
-            v8::StartupData m_StartupData{nullptr, 0};
+            V8StartupData m_StartupData{nullptr, 0};
             /**
              * Path of teh file the data was loaded from
              */
             std::filesystem::path m_SnapshotPath;
         };
-
-        using V8SnapshotProviderSharedPtr = std::shared_ptr<V8SnapshotProvider>;
     }
 }
 

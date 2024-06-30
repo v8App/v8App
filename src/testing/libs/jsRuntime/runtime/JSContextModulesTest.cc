@@ -13,6 +13,7 @@
 
 #include "Assets/TextAsset.h"
 
+#include "JSApp.h"
 #include "JSUtilities.h"
 #include "JSContextModules.h"
 
@@ -38,7 +39,7 @@ namespace v8App
             JSModuleInfoSharedPtr TestLoadModuleTree(JSContextSharedPtr inContext, JSModuleInfoSharedPtr inModInfo) { return LoadModuleTree(inContext, inModInfo); }
 
             bool TestAddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType) { return AddModule(inModule, inFileName, inModuleType); }
-            JSModuleInfoSharedPtr TestGetModuleInfoByModule(V8LocalModule inModule, JSModuleInfo::ModuleType inType) { return GetModuleInfoByModule(inModule, inType); }
+            JSModuleInfoSharedPtr TestGetModuleInfoByModule(V8LModule inModule, JSModuleInfo::ModuleType inType) { return GetModuleInfoByModule(inModule, inType); }
         };
 
         TEST_F(JSContextModulesTest, ConstrcutorGetIsolate)
@@ -57,9 +58,9 @@ namespace v8App
             std::filesystem::path rootPath = m_App->GetAppRoots()->GetAppRoot();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            v8::Context::Scope cScope(m_Context->GetLocalContext());
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8ContextScope cScope(m_Context->GetLocalContext());
 
             std::filesystem::path testPath("testModule.js");
             // test no module for attribute
@@ -235,10 +236,10 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
@@ -307,10 +308,10 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
@@ -381,10 +382,10 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
@@ -408,10 +409,10 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
@@ -434,10 +435,10 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
@@ -510,12 +511,12 @@ namespace v8App
             std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
-            V8MaybeLocalModule maybeModule;
+            V8MBLModule maybeModule;
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/compileError.js");
 
@@ -524,7 +525,7 @@ namespace v8App
 
             srcPath = root / std::filesystem::path("js/loadModule.js");
             moduleInfo = jsModules->LoadModule(srcPath);
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             ASSERT_FALSE(module.IsEmpty());
             EXPECT_NE(nullptr, jsModules->GetModuleBySpecifier(srcPath.generic_string()));
         }
@@ -535,19 +536,19 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
 
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
             ASSERT_NE(moduleInfo, nullptr);
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             ASSERT_NE(nullptr, info);
-            V8LocalValue jsonValue = info->GetLocalJSON();
+            V8LValue jsonValue = info->GetLocalJSON();
             EXPECT_FALSE(jsonValue.IsEmpty());
             EXPECT_TRUE(jsonValue->IsObject());
         }
@@ -561,10 +562,10 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             // passed nullptr
             JSModuleInfoSharedPtr info;
@@ -595,10 +596,10 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/importModuleDynamic.js");
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
@@ -612,10 +613,10 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
@@ -632,10 +633,10 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             // passed nullptr
             JSModuleInfoSharedPtr info;
@@ -666,14 +667,14 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/importModuleDynamic.js");
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
@@ -686,10 +687,10 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
@@ -704,15 +705,15 @@ namespace v8App
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/loadModuleImport.mjs");
             CodeCacheSharedPtr codeCache = m_App->GetCodeCache();
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));

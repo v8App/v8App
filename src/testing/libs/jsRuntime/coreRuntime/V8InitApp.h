@@ -15,9 +15,10 @@
 
 #include "Utils/Environment.h"
 
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "JSRuntime.h"
 #include "JSContext.h"
+#include "JSContextCreator.h"
 
 using bazel::tools::cpp::runfiles::Runfiles;
 

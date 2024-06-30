@@ -19,7 +19,7 @@ namespace v8App
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
                 JSRuntimeSharedPtr runtime = nullptr;
-                JSContext context(runtime, "test");
+                JSContext context(runtime, "test", "", "", "", "");
                 std::exit(0);
             },
                          "");

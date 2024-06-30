@@ -49,7 +49,7 @@ namespace v8App
             return m_JoingThread;
         }
 
-        V8JobState::V8JobState(v8::Platform *inPlatfor, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers)
+        V8JobState::V8JobState(V8Platform *inPlatfor, V8JobTaskUniquePtr inTask, V8TaskPriority inPriority, size_t inNumWorkers)
             : m_Platform(inPlatfor), m_Task(std::move(inTask)), m_Priority(inPriority), m_NumWorkersAvailable(inNumWorkers)
         {
         }
@@ -65,7 +65,7 @@ namespace v8App
             {
                 return;
             }
-            v8::TaskPriority priority;
+            V8TaskPriority priority;
             {
                 std::unique_lock<std::mutex> lock(m_Lock);
                 priority = m_Priority;
@@ -121,7 +121,7 @@ namespace v8App
 
             {
                 std::unique_lock<std::mutex> lock(m_Lock);
-                m_Priority = v8::TaskPriority::kUserBlocking;
+                m_Priority = V8TaskPriority::kUserBlocking;
                 m_ActiveTasks++;
                 m_NumWorkersAvailable++;
             }
@@ -181,7 +181,7 @@ namespace v8App
 
         bool V8JobState::DidRunFirstTask()
         {
-            v8::TaskPriority prioirty;
+            V8TaskPriority prioirty;
             {
                 std::unique_lock<std::mutex> lock(m_Lock);
                 prioirty = m_Priority;
@@ -197,7 +197,7 @@ namespace v8App
             return true;
         }
 
-        void V8JobState::UpdatePriority(v8::TaskPriority inPriority)
+        void V8JobState::UpdatePriority(V8TaskPriority inPriority)
         {
             std::unique_lock<std::mutex> lock(m_Lock);
             m_Priority = inPriority;
@@ -215,20 +215,20 @@ namespace v8App
             return 0;
         }
 
-        void V8JobState::PostonWorkerThread(size_t inNumToPost, v8::TaskPriority inPriority)
+        void V8JobState::PostonWorkerThread(size_t inNumToPost, V8TaskPriority inPriority)
         {
             for (int i = 0; i < inNumToPost; i++)
             {
                 std::unique_ptr<V8JobTaskWorker> worker = std::make_unique<V8JobTaskWorker>(shared_from_this(), m_Task.get());
                 switch (inPriority)
                 {
-                case v8::TaskPriority::kBestEffort:
+                case V8TaskPriority::kBestEffort:
                     m_Platform->CallLowPriorityTaskOnWorkerThread(std::move(worker));
                     break;
-                case v8::TaskPriority::kUserVisible:
+                case V8TaskPriority::kUserVisible:
                     m_Platform->CallOnWorkerThread(std::move(worker));
                     break;
-                case v8::TaskPriority::kUserBlocking:
+                case V8TaskPriority::kUserBlocking:
                     m_Platform->CallBlockingTaskOnWorkerThread(std::move(worker));
                     break;
                 }
@@ -295,12 +295,12 @@ namespace v8App
             return true;
         }
 
-        void V8JobHandle::UpdatePriority(v8::TaskPriority inPrioirty)
+        void V8JobHandle::UpdatePriority(V8TaskPriority inPrioirty)
         {
             m_State->UpdatePriority(inPrioirty);
         }
 
-        V8JobTaskWorker::V8JobTaskWorker(std::weak_ptr<V8JobState> inState, v8::JobTask *inTask) : m_State(inState), m_Task(inTask)
+        V8JobTaskWorker::V8JobTaskWorker(std::weak_ptr<V8JobState> inState, V8JobTask *inTask) : m_State(inState), m_Task(inTask)
         {
         }
 

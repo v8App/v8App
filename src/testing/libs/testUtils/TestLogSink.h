@@ -25,9 +25,9 @@ namespace v8App
 
             static TestLogSink *GetGlobalSink();
 
-            virtual void SinkMessage(Log::LogMessage &inMessage);
+            virtual void SinkMessage(Log::LogMessage &inMessage) override;
 
-            virtual bool WantsLogMessage(Log::LogLevel inLevel);
+            virtual bool WantsLogMessage(Log::LogLevel inLevel) override;
 
             virtual void Close() override {};
             void SetWantsLogLevels(const WantsLogLevelsVector &inLevels);

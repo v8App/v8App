@@ -49,10 +49,14 @@ namespace v8App
                 }
             }
 
-            void CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr inContext, v8::Local<v8::Object> &inGlobal, std::string inNamespace)
+            void CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr inContext, V8LObject &inGlobal, std::string inNamespace)
             {
                 CallbackRegistry *instance = GetInstance();
-                std::vector<std::string> namespaces{CallbackRegistry::GlobalNamespace, inNamespace};
+                std::vector<std::string> namespaces{CallbackRegistry::GlobalNamespace};
+                if(inNamespace != "")
+                {
+                    namespaces.push_back(inNamespace);
+                }
                 for (auto &name : namespaces)
                 {
                     if (instance->m_RegisterFunctions.count(name) == 0)

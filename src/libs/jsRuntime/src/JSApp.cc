@@ -176,7 +176,7 @@ namespace v8App
 
         bool JSApp::CreateJSRuntime(std::string inName, JSContextCreationHelperSharedPtr inContextCreator, bool setupForSnapshot)
         {
-            const v8::StartupData *data = m_SnapshotProvider->GetSnapshotData();
+            const V8StartupData *data = m_SnapshotProvider->GetSnapshotData();
             if (data->raw_size == 0)
             {
                 Log::LogMessage msg = {
@@ -184,7 +184,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, data, nullptr, setupForSnapshot);
+            m_JSRuntime = JSRuntime::CreateJSRuntime(shared_from_this(), IdleTasksSupport::kIdleTasksEnabled, inName, inContextCreator, setupForSnapshot);
             if (m_JSRuntime == nullptr)
             {
                 return false;

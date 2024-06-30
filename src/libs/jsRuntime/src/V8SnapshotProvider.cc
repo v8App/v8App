@@ -78,7 +78,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            m_StartupData = v8::StartupData{buf.release(), dataLength};
+            m_StartupData = V8StartupData{buf.release(), dataLength};
             return true;
         }
 
@@ -102,7 +102,7 @@ namespace v8App
             return v8::DeserializeContextDataCallback(V8SnapshotProvider::DeserializeContextInternalField_Internal, this);
         }
 
-        v8::StartupData V8SnapshotProvider::SerializeInternalField_Internal(V8LocalObject inHolder, int inIndex, void *inData)
+        V8StartupData V8SnapshotProvider::SerializeInternalField_Internal(V8LObject inHolder, int inIndex, void *inData)
         {
             V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
             if (provider != nullptr)
@@ -112,7 +112,7 @@ namespace v8App
             return {nullptr, 0};
         }
 
-        v8::StartupData V8SnapshotProvider::SerializeContextInternalField_Internal(V8LocalContext inHolder, int inIndex, void *inData)
+        V8StartupData V8SnapshotProvider::SerializeContextInternalField_Internal(V8LContext inHolder, int inIndex, void *inData)
         {
             V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
             if (provider != nullptr)
@@ -122,7 +122,7 @@ namespace v8App
             return {nullptr, 0};
         }
 
-        void V8SnapshotProvider::DeserializeInternalField_Internal(V8LocalObject inHolder, int inIndex, v8::StartupData inPayload, void *inData)
+        void V8SnapshotProvider::DeserializeInternalField_Internal(V8LObject inHolder, int inIndex, V8StartupData inPayload, void *inData)
         {
             V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
             if (provider != nullptr)
@@ -131,7 +131,7 @@ namespace v8App
             }
         }
 
-        void V8SnapshotProvider::DeserializeContextInternalField_Internal(V8LocalContext inHolder, int inIndex, v8::StartupData inPayload, void *inData)
+        void V8SnapshotProvider::DeserializeContextInternalField_Internal(V8LContext inHolder, int inIndex, V8StartupData inPayload, void *inData)
         {
             V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
             if (provider != nullptr)

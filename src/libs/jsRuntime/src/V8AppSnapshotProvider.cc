@@ -33,7 +33,7 @@ namespace v8App
             return m_Loaded;
         }
 
-        v8::StartupData V8AppSnapshotProvider::SerializeInternalField(V8LocalObject inHolder, int inIndex)
+        V8StartupData V8AppSnapshotProvider::SerializeInternalField(V8LObject inHolder, int inIndex)
         {
             Serialization::WriteBuffer wBuffer;
 
@@ -72,7 +72,7 @@ namespace v8App
             return {nullptr, 0};
         }
 
-        v8::StartupData V8AppSnapshotProvider::SerializeContextInternalField(V8LocalContext inHolder, int inIndex)
+        V8StartupData V8AppSnapshotProvider::SerializeContextInternalField(V8LContext inHolder, int inIndex)
         {
             if (inIndex == (int)JSContext::DataSlot::kJSContextWeakPtr)
             {
@@ -82,7 +82,7 @@ namespace v8App
             return {nullptr, 0};
         }
 
-        void V8AppSnapshotProvider::DeserializeInternalField(V8LocalObject inHolder, int inIndex, v8::StartupData inPayload)
+        void V8AppSnapshotProvider::DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload)
         {
             Serialization::ReadBuffer rBuffer(inPayload.data, inPayload.raw_size);
 
@@ -122,7 +122,7 @@ namespace v8App
             }
         }
 
-        void V8AppSnapshotProvider::DeserializeContextInternalField(V8LocalContext inHolder, int inIndex, v8::StartupData inPayload)
+        void V8AppSnapshotProvider::DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload)
         {
             // todo deserialize the context
         }

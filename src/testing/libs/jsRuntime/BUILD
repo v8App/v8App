@@ -4,9 +4,9 @@ v8App_test(
     name = "testJSRuntimePlatform",
     size = "small",
     srcs = [
-        "platform/V8PlatformDeathTest.cc",
-        "platform/V8PlatformInitDeathTest.cc",
-        "platform/V8PlatformTest.cc",
+        "platform/V8AppPlatformDeathTest.cc",
+        "platform/V8AppPlatformInitDeathTest.cc",
+        "platform/V8AppPlatformTest.cc",
     ],
     copts = [
         "-Isrc/libs/core/include",
@@ -34,6 +34,7 @@ v8App_test(
     size = "small",
     srcs = [
         "coreRuntime/JSAppTest.cc",
+        "coreRuntime/JSContextCreationHelperTest.cc",
         "coreRuntime/JSContextDeathTest.cc",
         "coreRuntime/JSContextTest.cc",
         "coreRuntime/JSRuntimeDeathTest.cc",
@@ -41,7 +42,7 @@ v8App_test(
         "coreRuntime/V8InitApp.h",
         "coreRuntime/V8JobsDeathTest.cc",
         "coreRuntime/V8JobsTest.cc",
-        "coreRuntime/PlaygroundTest.cc",
+        "coreRuntime/V8SnapshotProviderTest.cc",
         "//src/testing:testMainV8",
     ],
     copts = [

@@ -7,6 +7,7 @@
 
 #include "V8Fixture.h"
 
+#include "JSApp.h"
 #include "JSModuleInfo.h"
 #include "JSUtilities.h"
 
@@ -18,21 +19,21 @@ namespace v8App
 
         namespace JSModuleInfoInternal
         {
-            V8MaybeLocalModule UnresovledCallback(
-                V8LocalContext inContet, V8LocalString inSpecifier,
-                V8LocalFixedArray inImportAttributes, V8LocalModule inReferrer)
+            V8MBLModule UnresovledCallback(
+                V8LContext inContet, V8LString inSpecifier,
+                V8LFixedArray inImportAttributes, V8LModule inReferrer)
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, Utils::format("Unresloved callback called"));
                 LOG_ERROR(msg);
-                return V8MaybeLocalModule();
+                return V8MBLModule();
             }
         }
 
         TEST_F(JSModuleInfoTest, Constructor)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
             EXPECT_EQ("", info.GetName());
@@ -48,8 +49,8 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetPath)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
             std::filesystem::path path("test/path");
@@ -59,8 +60,8 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetName)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
             std::string name("testath");
@@ -70,8 +71,8 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetVersion)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
             std::string version("1.3");
@@ -81,14 +82,14 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetModule)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
-            V8LocalString moduleName = JSUtilities::StringToV8(m_Isolate, "test");
-            auto exportNames = v8::to_array<V8LocalString>(
-                {v8::String::NewFromUtf8(m_Isolate, "default").ToLocalChecked()});
-            V8LocalModule module = v8::Module::CreateSyntheticModule(m_Isolate, moduleName, exportNames, v8::Module::SyntheticModuleEvaluationSteps());
+            V8LString moduleName = JSUtilities::StringToV8(m_Isolate, "test");
+            auto exportNames = v8::to_array<V8LString>(
+                {V8String::NewFromUtf8(m_Isolate, "default").ToLocalChecked()});
+            V8LModule module = V8Module::CreateSyntheticModule(m_Isolate, moduleName, exportNames, V8Module::SyntheticModuleEvaluationSteps());
             EXPECT_FALSE(module.IsEmpty());
             EXPECT_TRUE(info.GetLocalModule().IsEmpty());
             info.SetV8Module(module);
@@ -97,12 +98,12 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetV8JSON)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
-            v8::Context::Scope cScope(m_Context->GetLocalContext());
+            V8ContextScope cScope(m_Context->GetLocalContext());
 
-            V8LocalValue jsonStr = JSUtilities::StringToV8(m_Isolate, "test");
+            V8LValue jsonStr = JSUtilities::StringToV8(m_Isolate, "test");
             EXPECT_FALSE(jsonStr.IsEmpty());
             EXPECT_TRUE(info.GetLocalJSON().IsEmpty());
             info.SetV8JSON(jsonStr);
@@ -111,17 +112,17 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetClearUnboundScript)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
-            v8::Context::Scope cScope(m_Context->GetLocalContext());
+            V8ContextScope cScope(m_Context->GetLocalContext());
 
             std::filesystem::path filePath = m_App->GetAppRoots()->GetAppRoot() / std::filesystem::path("js/UnboundScript.js");
             V8ScriptSourceUniquePtr source = m_App->GetCodeCache()->LoadScriptFile(filePath, m_Isolate);
-            V8LocalModule module = v8::ScriptCompiler::CompileModule(m_Isolate, source.get()).ToLocalChecked();
+            V8LModule module = V8ScriptCompiler::CompileModule(m_Isolate, source.get()).ToLocalChecked();
             module->InstantiateModule(m_Context->GetLocalContext(), JSModuleInfoInternal::UnresovledCallback);
 
-            V8LocalUnboundModuleScript unbound = module->GetUnboundModuleScript();
+            V8LUnboundModScript unbound = module->GetUnboundModuleScript();
             EXPECT_TRUE(info.GetUnboundScript().IsEmpty());
             info.SetUnboundScript(unbound);
             EXPECT_FALSE(info.GetUnboundScript().IsEmpty());
@@ -131,8 +132,8 @@ namespace v8App
 
         TEST_F(JSModuleInfoTest, GetSetAttributesInfo)
         {
-            v8::Isolate::Scope isolateScope(m_Isolate);
-            v8::HandleScope scope(m_Isolate);
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
             JSModuleInfo::AttributesInfo attributesInfo;

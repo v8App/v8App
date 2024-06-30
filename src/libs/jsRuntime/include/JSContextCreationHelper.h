@@ -20,6 +20,7 @@ namespace v8App
         class JSContextCreationHelper
         {
         public:
+            JSContextCreationHelper() = default;
             virtual ~JSContextCreationHelper() = default;
             /**
              * Override to create a v8 context
@@ -48,11 +49,11 @@ namespace v8App
             /**
              * Serializes the snapshot namespace info for a snapshot
              */
-            bool SetContextNamespaces(v8::StartupData *inData);
+            bool SetContextNamespaces(V8StartupData *inData);
             /**
              * Desrializes the snapshot namespaces from a snapshot
              */
-            v8::StartupData SerializeContextNamespaces();
+            V8StartupData SerializeContextNamespaces();
             /**
              * Addes the snapshot index for the namespace
              */

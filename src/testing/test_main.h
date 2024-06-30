@@ -8,7 +8,7 @@
 #include <filesystem>
 
 #ifdef USE_JSRUNTIME
-#include "v8/v8-snapshot.h"
+#include "V8Types.h"
 #endif
 
 #include "tools/cpp/runfiles/runfiles.h"
@@ -19,7 +19,7 @@ extern std::unique_ptr<Runfiles> s_Runfiles;
 extern std::filesystem::path s_TestDir;
 
 #ifdef USE_JSRUNTIME
-extern v8::StartupData s_V8StartupData;
+extern v8App::JSRuntime::V8StartupData s_V8StartupData;
 #endif
 
 #endif

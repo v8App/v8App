@@ -70,10 +70,10 @@ namespace v8App
             V8TaskUniquePtr task3 = std::make_unique<RunnerTestTask>();
             V8TaskUniquePtr task4 = std::make_unique<RunnerTestTask>();
 
-            v8::Task *ptask1 = task1.get();
-            v8::Task *ptask2 = task2.get();
-            v8::Task *ptask3 = task3.get();
-            v8::Task *ptask4 = task4.get();
+            V8Task *ptask1 = task1.get();
+            V8Task *ptask2 = task2.get();
+            V8Task *ptask3 = task3.get();
+            V8Task *ptask4 = task4.get();
 
             TestTime::TestTimeSeconds::Enable();
             TestTime::TestTimeSeconds::Set(0);

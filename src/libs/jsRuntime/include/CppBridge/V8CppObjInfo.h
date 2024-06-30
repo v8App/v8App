@@ -24,7 +24,7 @@ namespace v8App
             /**
              * Serialize/Deserialize function pointers for snapshots
              */
-            using DeserializeCppObject = V8NativeObjectBase *(*)(V8Isolate *inIsolate, V8LocalObject inObject, Serialization::ReadBuffer& inBuffer);
+            using DeserializeCppObject = V8NativeObjectBase *(*)(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer& inBuffer);
             using SerializeCppObject = void (*)(Serialization::WriteBuffer& inBuffer, V8NativeObjectBase *inCppObject);
 
             /**
@@ -38,7 +38,7 @@ namespace v8App
                 /**
                  * Gets the Object info form the Object
                  */
-                static V8CppObjInfo *From(v8::Local<v8::Object> inObject);
+                static V8CppObjInfo *From(V8LObject inObject);
 
                 /**
                  * The type name of the native obj usually the class name

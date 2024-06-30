@@ -12,7 +12,7 @@ namespace v8App
         namespace CppBridge
         {
 
-            V8CppObjInfo *V8CppObjInfo::From(v8::Local<v8::Object> inObject)
+            V8CppObjInfo *V8CppObjInfo::From(V8LObject inObject)
             {
                 if (inObject->InternalFieldCount() != (int)V8CppObjDataIntField::MaxInternalFields)
                 {
@@ -42,28 +42,29 @@ namespace v8App
                 baseObject->m_Object.Reset();
             }
 
-            V8LocalObject V8NativeObjectBase::CreateAndSetupJSObject(V8LocalContext inContext, V8CppObjInfo *inInfo)
+            V8LObject V8NativeObjectBase::CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo)
             {
                 JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
                 if (jsContext == nullptr)
                 {
-                    return V8LocalObject();
+                    return V8LObject();
                 }
                 JSRuntimeSharedPtr runtime = jsContext->GetJSRuntime();
                 if(runtime == nullptr)
                 {
-                    return V8LocalObject();
+                    return V8LObject();
                 }
 
-                V8LocalObjTpl objTpl = runtime->GetObjectTemplate(inInfo);
+                //TODO: Look at removing this as we may be able to us ethe object passed in FunctionCallbackInfo.This()
+                V8LObjTpl objTpl = runtime->GetObjectTemplate(inInfo);
                 if (objTpl.IsEmpty())
                 {
-                    return V8LocalObject();
+                    return V8LObject();
                 }
-                V8LocalObject jsObject;
+                V8LObject jsObject;
                 if (objTpl->NewInstance(inContext).ToLocal(&jsObject) == false)
                 {
-                    return V8LocalObject();
+                    return V8LObject();
                 }
                 int indexes[] = {(int)V8CppObjDataIntField::CppHeapID, (int)V8CppObjDataIntField::ObjInfo, (int)V8CppObjDataIntField::ObjInstance};
                 void *values[] = {runtime->GetCppHeapID(), inInfo, this};

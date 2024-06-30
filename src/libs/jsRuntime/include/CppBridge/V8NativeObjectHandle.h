@@ -24,11 +24,11 @@ namespace v8App
             {
             public:
                 V8NativeObjectHandle() : m_Object(nullptr) {}
-                V8NativeObjectHandle(v8::Local<v8::Value> inWrapper, T *inObject)
+                V8NativeObjectHandle(V8LValue inWrapper, T *inObject)
                     : m_Wrapper(inWrapper), m_Object(inObject) {}
 
                 T *operator->() const { return m_Object; }
-                v8::Local<v8::Value> ToV8() const { return m_Wrapper; }
+                V8LValue ToV8() const { return m_Wrapper; }
                 T *Get() const { return m_Object; }
 
                 bool IsEmpty() { return m_Object == nullptr; }
@@ -39,7 +39,7 @@ namespace v8App
                 }
 
             private:
-                v8::Local<v8::Value> m_Wrapper;
+                V8LValue m_Wrapper;
                 cppgc::Member<T> m_Object;
             };
 
@@ -49,12 +49,12 @@ namespace v8App
             template <typename T>
             struct V8TypeConverter<V8NativeObjectHandle<T>>
             {
-                static v8::Local<v8::Value> To(v8::Isolate *inIsolate, const V8NativeObjectHandle<T> &inValue)
+                static V8LValue To(V8Isolate *inIsolate, const V8NativeObjectHandle<T> &inValue)
                 {
                     return inValue.ToV8();
                 }
 
-                static bool From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, V8NativeObjectHandle<T> *outValue)
+                static bool From(V8Isolate *inIsolate, V8LValue inValue, V8NativeObjectHandle<T> *outValue)
                 {
                     T *object = nullptr;
                     if (V8TypeConverter<T *>::From(inIsolate, inValue, &object) == false)

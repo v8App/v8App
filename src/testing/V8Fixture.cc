@@ -10,6 +10,7 @@
 
 #include "Utils/Environment.h"
 #include "JSContext.h"
+#include "JSContextCreator.h"
 
 namespace v8App 
 {
@@ -32,15 +33,15 @@ namespace v8App
 
             m_Isolate = m_Runtime->GetIsolate();
             ASSERT_NE(m_Isolate, nullptr);
-            m_Context = m_Runtime->CreateContext(suiteName);
+            m_Context = m_Runtime->CreateContext(suiteName, "");
         }
 
         void V8Fixture::TearDown()
         {
             if (m_Runtime != nullptr)
             {
-                v8::Isolate::Scope isolateScope(m_Runtime->GetIsolate());
-                v8::HandleScope scope(m_Runtime->GetIsolate());
+                V8IsolateScope isolateScope(m_Runtime->GetIsolate());
+                V8HandleScope scope(m_Runtime->GetIsolate());
                 m_Runtime->DisposeContext(m_Context);
             }
             m_Isolate = nullptr;

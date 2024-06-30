@@ -9,7 +9,7 @@
 #include "Time/Time.h"
 #include "Logging/LogMacros.h"
 #include "Logging/Log.h"
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "V8Jobs.h"
 #include "v8/v8.h"
 #include "JSRuntime.h"
@@ -18,13 +18,13 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        std::shared_ptr<V8Platform> V8Platform::s_Platform;
-        bool V8Platform::s_PlatformDestoryed = false;
-        bool V8Platform::s_PlatformInited = false;
+        std::shared_ptr<V8AppPlatform> V8AppPlatform::s_Platform;
+        bool V8AppPlatform::s_PlatformDestoryed = false;
+        bool V8AppPlatform::s_PlatformInited = false;
 
-        V8Platform::V8Platform()
+        V8AppPlatform::V8AppPlatform()
         {
-            m_TracingController = std::make_unique<v8::TracingController>();
+            m_TracingController = std::make_unique<V8TracingController>();
             int cores = Threads::GetHardwareCores();
             m_NumberOfWorkers = std::max(1, cores);
             for (int idx = 0; idx <= static_cast<int>(Threads::ThreadPriority::kMaxPriority); idx++)
@@ -33,99 +33,98 @@ namespace v8App
             }
         }
 
-        V8Platform::~V8Platform()
+        V8AppPlatform::~V8AppPlatform()
         {
-            ShutdownV8();
         }
 
         // v8::platform interface
-        v8::PageAllocator *V8Platform::GetPageAllocator()
+        V8PageAllocator *V8AppPlatform::GetPageAllocator()
         {
             return m_PageAllocator.get();
         }
 
-        v8::ThreadIsolatedAllocator *V8Platform::GetThreadIsolatedAllocator()
+        V8ThreadIsolatedAllocator *V8AppPlatform::GetThreadIsolatedAllocator()
         {
             return m_ThreadIsolatedAllocator.get();
         }
 
-        v8::ZoneBackingAllocator *V8Platform::GetZoneBackingAllocator()
+        V8ZoneBackingAllocator *V8AppPlatform::GetZoneBackingAllocator()
         {
             if (m_ZoneBlockingAllocator == nullptr)
             {
-                return v8::Platform::GetZoneBackingAllocator();
+                return V8Platform::GetZoneBackingAllocator();
             }
             return m_ZoneBlockingAllocator.get();
         }
 
-        void V8Platform::OnCriticalMemoryPressure()
+        void V8AppPlatform::OnCriticalMemoryPressure()
         {
             // for now we do nothing
         }
 
-        int V8Platform::NumberOfWorkerThreads()
+        int V8AppPlatform::NumberOfWorkerThreads()
         {
             return m_NumberOfWorkers;
         }
 
-        std::shared_ptr<v8::TaskRunner> V8Platform::GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority inPriority)
+        V8TaskRunnerSharedPtr V8AppPlatform::GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority inPriority)
         {
             // make sure it's not null in debug
             DCHECK_NE(m_IsolateHelper, nullptr);
             return m_IsolateHelper->GetForegroundTaskRunner(inIsolate, inPriority);
         }
 
-        bool V8Platform::IdleTasksEnabled(v8::Isolate *inIsolate)
+        bool V8AppPlatform::IdleTasksEnabled(V8Isolate *inIsolate)
         {
             // make sure it's not null in debug
             DCHECK_NE(m_IsolateHelper, nullptr);
             return m_IsolateHelper->IdleTasksEnabled(inIsolate);
         }
 
-        std::unique_ptr<v8::ScopedBlockingCall> V8Platform::CreateBlockingScope(v8::BlockingType blocking_type)
+        std::unique_ptr<v8::ScopedBlockingCall> V8AppPlatform::CreateBlockingScope(V8BlockingType blocking_type)
         {
             // For now return nullptr
             return nullptr;
         }
 
-        double V8Platform::MonotonicallyIncreasingTime()
+        double V8AppPlatform::MonotonicallyIncreasingTime()
         {
             return Time::MonotonicallyIncreasingTimeSeconds();
         }
 
-        double V8Platform::CurrentClockTimeMillis()
+        double V8AppPlatform::CurrentClockTimeMillis()
         {
             return Time::MonotonicallyIncreasingTimeMilliSeconds();
         }
 
-        V8Platform::StackTracePrinter V8Platform::GetStackTracePrinter()
+        V8Platform::StackTracePrinter V8AppPlatform::GetStackTracePrinter()
         {
             // for now just return nullptr
             return nullptr;
         }
 
-        v8::TracingController *V8Platform::GetTracingController()
+        V8TracingController *V8AppPlatform::GetTracingController()
         {
             DCHECK_NOT_NULL(m_TracingController);
             return m_TracingController.get();
         }
 
-        void V8Platform::DumpWithoutCrashing()
+        void V8AppPlatform::DumpWithoutCrashing()
         {
             // For now do nothing
         }
 
-        v8::HighAllocationThroughputObserver *V8Platform::GetHighAllocationThroughputObserver()
+        V8HighAllocationThroughputObserver *V8AppPlatform::GetHighAllocationThroughputObserver()
         {
             // for now call the base
             if (m_HighAllocObserver == nullptr)
             {
-                return v8::Platform::GetHighAllocationThroughputObserver();
+                return V8Platform::GetHighAllocationThroughputObserver();
             }
             return m_HighAllocObserver.get();
         }
 
-        void V8Platform::SetTracingController(v8::TracingController *inController)
+        void V8AppPlatform::SetTracingController(V8TracingController *inController)
         {
             if (s_PlatformInited != false && inController != nullptr)
             {
@@ -133,7 +132,7 @@ namespace v8App
             }
         }
 
-        void V8Platform::SetPageAllocator(v8::PageAllocator *inAllocator)
+        void V8AppPlatform::SetPageAllocator(V8PageAllocator *inAllocator)
         {
             if (s_PlatformInited != false && inAllocator != nullptr)
             {
@@ -141,7 +140,7 @@ namespace v8App
             }
         }
 
-        void V8Platform::SetThreadIsolatatedAllocator(v8::ThreadIsolatedAllocator *inAllocator)
+        void V8AppPlatform::SetThreadIsolatatedAllocator(V8ThreadIsolatedAllocator *inAllocator)
         {
             if (s_PlatformInited != false && inAllocator != nullptr)
             {
@@ -149,7 +148,7 @@ namespace v8App
             }
         }
 
-        void V8Platform::SetHighAllocatoionObserver(v8::HighAllocationThroughputObserver *inObserver)
+        void V8AppPlatform::SetHighAllocatoionObserver(V8HighAllocationThroughputObserver *inObserver)
         {
             if (s_PlatformInited != false && inObserver != nullptr)
             {
@@ -157,7 +156,7 @@ namespace v8App
             }
         }
 
-        void V8Platform::SetZoneBlockingAllocator(v8::ZoneBackingAllocator *inZoneAllocator)
+        void V8AppPlatform::SetZoneBlockingAllocator(V8ZoneBackingAllocator *inZoneAllocator)
         {
             if (s_PlatformInited != false && inZoneAllocator != nullptr)
             {
@@ -165,12 +164,12 @@ namespace v8App
             }
         }
 
-        void V8Platform::SetIsolateHelper(PlatformIsolateHelperUniquePtr inHelper)
+        void V8AppPlatform::SetIsolateHelper(PlatformIsolateHelperUniquePtr inHelper)
         {
             m_IsolateHelper = std::move(inHelper);
         }
 
-        void V8Platform::InitializeV8(PlatformIsolateHelperUniquePtr inHelper)
+        void V8AppPlatform::InitializeV8(PlatformIsolateHelperUniquePtr inHelper)
         {
             if (s_Platform != nullptr && s_PlatformInited)
             {
@@ -192,7 +191,7 @@ namespace v8App
             s_PlatformInited = true;
         }
 
-        void V8Platform::ShutdownV8()
+        void V8AppPlatform::ShutdownV8()
         {
             if (s_PlatformDestoryed || s_Platform == nullptr)
             {
@@ -209,18 +208,19 @@ namespace v8App
                 v8::V8::DisposePlatform();
             }
             s_PlatformDestoryed = true;
+            s_Platform.reset();
         }
 
-        std::shared_ptr<V8Platform> V8Platform::Get()
+        std::shared_ptr<V8AppPlatform> V8AppPlatform::Get()
         {
             if (s_Platform == nullptr)
             {
-                s_Platform = std::make_shared<V8Platform>();
+                s_Platform = std::make_shared<V8AppPlatform>();
             }
             return s_Platform;
         }
 
-        bool V8Platform::SetWorkersPaused(bool inPaused)
+        bool V8AppPlatform::SetWorkersPaused(bool inPaused)
         {
             for(int idx = 0; idx < static_cast<int>(Threads::ThreadPriority::kMaxPriority) + 1; idx++)
             {
@@ -229,28 +229,28 @@ namespace v8App
             return true;
         }
 
-        std::unique_ptr<v8::JobHandle> V8Platform::CreateJobImpl(
-            v8::TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
-            const v8::SourceLocation &location)
+        V8JobHandleUniquePtr V8AppPlatform::CreateJobImpl(
+            V8TaskPriority priority, std::unique_ptr<v8::JobTask> job_task,
+            const V8SourceLocation &location)
         {
             size_t numWorkers = NumberOfWorkerThreads();
-            if (priority == v8::TaskPriority::kBestEffort || numWorkers > 2)
+            if (priority == V8TaskPriority::kBestEffort || numWorkers > 2)
             {
                 numWorkers = 2;
             }
             return std::make_unique<V8JobHandle>(std::make_shared<V8JobState>(this, std::move(job_task), priority, numWorkers));
         }
 
-        void V8Platform::PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
-                                                    std::unique_ptr<v8::Task> task,
-                                                    const v8::SourceLocation &location)
+        void V8AppPlatform::PostTaskOnWorkerThreadImpl(V8TaskPriority priority,
+                                                    V8TaskUniquePtr task,
+                                                    const V8SourceLocation &location)
         {
             int idx = PriorityToInt(priority);
             m_WorkerRunners[idx]->PostTask(std::move(task));
         }
-        void V8Platform::PostDelayedTaskOnWorkerThreadImpl(
-            v8::TaskPriority priority, std::unique_ptr<v8::Task> task,
-            double delay_in_seconds, const v8::SourceLocation &location)
+        void V8AppPlatform::PostDelayedTaskOnWorkerThreadImpl(
+            V8TaskPriority priority, V8TaskUniquePtr task,
+            double delay_in_seconds, const V8SourceLocation &location)
         {
             int idx = PriorityToInt(priority);
             m_WorkerRunners[idx]->PostDelayedTask(std::move(task), delay_in_seconds);

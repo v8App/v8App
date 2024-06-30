@@ -9,7 +9,7 @@
 
 #include "TestLogSink.h"
 
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "JSContext.h"
 
 namespace v8App
@@ -24,7 +24,7 @@ namespace v8App
 
             void SetUp() override;
             void TearDown() override;
-            v8::Local<v8::Context> GetContextAndEnter();
+            V8LContext GetContextAndEnter();
 
         protected:
             JSRuntimeSharedPtr m_Runtime;

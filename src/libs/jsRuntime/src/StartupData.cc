@@ -10,7 +10,7 @@ namespace v8App
     namespace JSRuntime
     {
         //TODO: Replace with a genrule to generate this file.
-        v8::StartupData *ScriptStartupDataManager::GetStartupData()
+        V8StartupData *ScriptStartupDataManager::GetStartupData()
         {
             return nullptr;
         }

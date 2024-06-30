@@ -78,14 +78,14 @@ namespace v8App
             void SetVersion(std::string inVersion);
             Utils::VersionString GetVersion() const;
             
-            void SetV8Module(V8LocalModule &inModule);
-            V8LocalModule GetLocalModule();
+            void SetV8Module(V8LModule &inModule);
+            V8LModule GetLocalModule();
             
-            void SetV8JSON(V8LocalValue &inValue);
-            V8LocalValue GetLocalJSON();
+            void SetV8JSON(V8LValue &inValue);
+            V8LValue GetLocalJSON();
 
-            void SetUnboundScript(V8LocalUnboundModuleScript &inScript);
-            V8LocalUnboundModuleScript GetUnboundScript();
+            void SetUnboundScript(V8LUnboundModScript &inScript);
+            V8LUnboundModScript GetUnboundScript();
             void ClearUnboundScript();
 
             void SetAttributesInfo(AttributesInfo &inInfo);
@@ -99,13 +99,13 @@ namespace v8App
             // modules version
             Utils::VersionString m_Version;
             // the loaded module
-            V8GlobalModule m_Module;
+            V8GModule m_Module;
             // the parsed json if it's a json module
-            V8GlobalValue m_JSON;
+            V8GValue m_JSON;
             // attributes info the module was loaded with
             AttributesInfo m_AttributesInfo;
             //holds the unbound module script to generate code cache
-            V8GlobalUnboundModuleScript m_UnboundScript;
+            V8GUnboundModScript m_UnboundScript;
             
             JSContextSharedPtr m_Context;
 

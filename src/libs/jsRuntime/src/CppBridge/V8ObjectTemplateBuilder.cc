@@ -17,7 +17,7 @@ namespace v8App
     {
         namespace CppBridge
         {
-            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(v8::Isolate *inIsolate, v8::Local<v8::Object> inGlobal, const char *inTypeName)
+            V8ObjectTemplateBuilder::V8ObjectTemplateBuilder(V8Isolate *inIsolate, V8LObject inGlobal, const char *inTypeName)
                 : m_Isolate(inIsolate), m_Global(inGlobal), m_TypeName(inTypeName)
             {
             }
@@ -26,15 +26,15 @@ namespace v8App
 
             V8ObjectTemplateBuilder::~V8ObjectTemplateBuilder() = default;
 
-            v8::Local<v8::ObjectTemplate> V8ObjectTemplateBuilder::Build()
+            V8LObjTpl V8ObjectTemplateBuilder::Build()
             {
-                v8::Local<v8::ObjectTemplate> templ = m_Template;
+                V8LObjTpl templ = m_Template;
                 m_Template.Clear();
                 m_Global.Clear();
                 return templ;
             }
 
-            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetConstructorInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inConstructor, v8::Local<v8::Context> inContext)
+            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetConstructorInternal(const std::string &inName, V8LFuncTpl inConstructor, V8LContext inContext)
             {
                 // assert if the template was passed in externally since we don't know what was setup before it was passed
                 CHECK_FALSE(m_ConstructorAllowed);
@@ -50,7 +50,7 @@ namespace v8App
                 return *this;
             }
 
-            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetValueMethodInternal(const std::string &inName, v8::Local<v8::Data> inValue)
+            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetValueMethodInternal(const std::string &inName, V8LData inValue)
             {
                 // once we start set stuff don't allow the constrcutor to be added
                 m_ConstructorAllowed = false;
@@ -58,8 +58,8 @@ namespace v8App
                 return *this;
             }
 
-            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetPropertyInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inGetter,
-                                                                                  v8::Local<v8::FunctionTemplate> inSetter)
+            V8ObjectTemplateBuilder &V8ObjectTemplateBuilder::SetPropertyInternal(const std::string &inName, V8LFuncTpl inGetter,
+                                                                                  V8LFuncTpl inSetter)
             {
                 // once we start set stuff don't allow the constrcutor to be added
                 m_ConstructorAllowed = false;

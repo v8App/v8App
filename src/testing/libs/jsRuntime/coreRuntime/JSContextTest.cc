@@ -23,17 +23,21 @@ namespace v8App
         class TestJSContext : public JSContext
         {
         public:
-            TestJSContext(JSRuntimeSharedPtr inRuntime, std::string inName) : JSContext(inRuntime, inName) {}
-            ~TestJSContext() = default;
+            TestJSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
+                          std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                          SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly)
+                : JSContext(inRuntime, inName, inNamespace, inEntryPoint, inSnapEntryPoint, inSupportsSnapshot, inSnapMethod) {}
+            virtual ~TestJSContext() = default;
 
             bool Initialized() { return m_Initialized; }
             void SetInit(bool inValue) { m_Initialized = inValue; }
             bool ContextEmpty() { return m_Context.IsEmpty(); }
             void ClearIsolate() { m_Runtime.reset(); }
 
-            void TestCreateContext() { CreateContext(); }
+            void TestCreateContext(size_t inSnapIndex) { CreateContext(inSnapIndex); }
             void TestDisposeContext() { DisposeContext(); }
             void SetJSRuntime(JSRuntimeSharedPtr inRUntime) { m_Runtime = inRUntime; }
+            void ClearSnapEntry() { m_SnapEntryPoint = ""; }
 
             JSContextWeakPtr *TestGetContextWeakRef() { return GetContextWeakRef(); }
 
@@ -46,11 +50,11 @@ namespace v8App
         {
             JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate();
-            v8::Isolate::Scope isolateScope(isolate);
-            v8::HandleScope handleScope(isolate);
+            V8Isolate *isolate = runtime->GetIsolate();
+            V8IsolateScope isolateScope(isolate);
+            V8HandleScope handleScope(isolate);
 
-            TestJSContext context(runtime, "test:test");
+            TestJSContext context(runtime, "test:test", "test", "testEntry", "testSnapEntry");
 
             EXPECT_EQ(runtime, context.GetJSRuntime());
             EXPECT_EQ(runtime->GetSharedIsolate().get(), context.GetIsolate());
@@ -58,23 +62,30 @@ namespace v8App
             EXPECT_FALSE(context.Initialized());
             EXPECT_TRUE(context.ContextEmpty());
             EXPECT_EQ("testtest", context.GetName());
+            EXPECT_EQ(m_App, context.GetJSApp());
+            EXPECT_EQ("test", context.GetNamespace());
+            EXPECT_EQ("testEntry", context.GetEntrypoint());
+            EXPECT_EQ("testSnapEntry", context.GetSnapshotEntrypoint());
+            EXPECT_EQ(0, context.GetSnapshotIndex());
+            EXPECT_EQ(SnapshotMethod::kNamespaceOnly, context.GetSnapshotMethod());
+            EXPECT_TRUE(context.SupportsSnapshots());
 
             context.ClearIsolate();
+            context.ClearSnapEntry();
             EXPECT_EQ(nullptr, context.GetIsolate());
-            
-
+            EXPECT_EQ("testEntry", context.GetSnapshotEntrypoint());
         }
 
         TEST_F(JSContextTest, CreateDisposeContext)
         {
             JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate();
-            v8::Isolate::Scope isolateScope(isolate);
-            v8::HandleScope handleScopr(isolate);
+            V8Isolate *isolate = runtime->GetIsolate();
+            V8IsolateScope isolateScope(isolate);
+            V8HandleScope handleScopr(isolate);
 
-            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test");
-            context->TestCreateContext();
+            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test", "", "");
+            context->TestCreateContext(0);
             EXPECT_FALSE(context->ContextEmpty());
             EXPECT_FALSE(context->TestGetContextWeakRef()->expired());
             EXPECT_EQ(context->TestGetContextWeakRef()->lock().get(), context.get());
@@ -87,8 +98,8 @@ namespace v8App
 
             context.reset();
 
-            context = std::make_shared<TestJSContext>(runtime, "test");
-            context->TestCreateContext();
+            context = std::make_shared<TestJSContext>(runtime, "test", "", "");
+            context->TestCreateContext(0);
             EXPECT_FALSE(context->ContextEmpty());
             context->ClearIsolate();
             context->TestDisposeContext();
@@ -102,13 +113,13 @@ namespace v8App
         {
             JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate();
-            v8::Isolate::Scope isolateScope(isolate);
-            v8::HandleScope handleScope(isolate);
+            V8Isolate *isolate = runtime->GetIsolate();
+            V8IsolateScope isolateScope(isolate);
+            V8HandleScope handleScope(isolate);
 
-            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test");
-            context->TestCreateContext();
-            std::shared_ptr<TestJSContext> context2 = std::make_shared<TestJSContext>(runtime, "");
+            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test", "test", "test", "testSnap", false, SnapshotMethod::kNamespaceAndEntrypoint);
+            context->TestCreateContext(0);
+            std::shared_ptr<TestJSContext> context2 = std::make_shared<TestJSContext>(runtime, "", "", "");
 
             context2->TestMoveContext(std::move(*context.get()));
 
@@ -121,8 +132,14 @@ namespace v8App
             EXPECT_FALSE(context2->ContextEmpty());
             EXPECT_TRUE(context2->Initialized());
             EXPECT_EQ(context2.get(), context2->TestGetContextWeakRef()->lock().get());
+            EXPECT_EQ("test", context2->GetName());
+            EXPECT_EQ("test", context2->GetNamespace());
+            EXPECT_EQ("test", context2->GetEntrypoint());
+            EXPECT_EQ("testSnap", context2->GetSnapshotEntrypoint());
+            EXPECT_FALSE(context2->SupportsSnapshots());
+            EXPECT_EQ(SnapshotMethod::kNamespaceAndEntrypoint, context2->GetSnapshotMethod());
 
-            std::shared_ptr<TestJSContext> context3 = std::make_shared<TestJSContext>(runtime, "");
+            std::shared_ptr<TestJSContext> context3 = std::make_shared<TestJSContext>(runtime, "", "", "");
 
             context3 = std::move(context2);
             EXPECT_EQ(context2, nullptr);
@@ -138,14 +155,14 @@ namespace v8App
         {
             JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate();
-            v8::Isolate::Scope isolateScope(isolate);
-            v8::HandleScope handleScopr(isolate);
+            V8Isolate *isolate = runtime->GetIsolate();
+            V8IsolateScope isolateScope(isolate);
+            V8HandleScope handleScopr(isolate);
 
-            JSContextSharedPtr context = runtime->CreateContext("test");
+            JSContextSharedPtr context = runtime->CreateContext("test", "", "");
             EXPECT_NE(context, nullptr);
 
-            V8LocalContext local = context->GetLocalContext();
+            V8LContext local = context->GetLocalContext();
             EXPECT_FALSE(local.IsEmpty());
         }
 
@@ -153,12 +170,12 @@ namespace v8App
         {
             JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
             ASSERT_NE(nullptr, runtime);
-            v8::Isolate *isolate = runtime->GetIsolate();
-            v8::Isolate::Scope isolateScope(isolate);
-            v8::HandleScope handleScope(isolate);
+            V8Isolate *isolate = runtime->GetIsolate();
+            V8IsolateScope isolateScope(isolate);
+            V8HandleScope handleScope(isolate);
 
-            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test");
-            context->TestCreateContext();
+            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test", "", "");
+            context->TestCreateContext(0);
 
             EXPECT_EQ("test:shadow:1", context->TestGenerateShadowName());
             context->SetName("test:test:1");

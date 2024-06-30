@@ -25,11 +25,11 @@ namespace v8App
             struct ModuleCallbackData
             {
                 JSContextSharedPtr m_Context;
-                V8GlobalPromiseResolver m_Resolver;
+                V8GPromiseResolver m_Resolver;
                 JSModuleInfoSharedPtr m_ModuleInfo;
 
                 ModuleCallbackData(JSContextSharedPtr inContext, JSModuleInfoSharedPtr inModuleInfo,
-                                   V8LocalPromiseResolver &inResolver)
+                                   V8LPromiseResolver &inResolver)
                 {
                     V8Isolate *isolate = inContext->GetIsolate();
                     m_Context = inContext;
@@ -39,11 +39,11 @@ namespace v8App
             };
             struct ModuleResolutionData
             {
-                V8GlobalPromiseResolver m_Resolver;
-                V8GlobalValue m_Namespace;
+                V8GPromiseResolver m_Resolver;
+                V8GValue m_Namespace;
                 JSContextSharedPtr m_Context;
 
-                ModuleResolutionData(JSContextSharedPtr inContext, V8LocalPromiseResolver inResolver, V8LocalValue inNamespace)
+                ModuleResolutionData(JSContextSharedPtr inContext, V8LPromiseResolver inResolver, V8LValue inNamespace)
                 {
                     V8Isolate *isolate = inContext->GetIsolate();
                     m_Context = inContext;
@@ -83,8 +83,8 @@ namespace v8App
 
             V8Isolate::Scope iScope(isolate);
             v8::EscapableHandleScope handleScope(isolate);
-            v8::TryCatch tryCatch(isolate);
-            v8::Context::Scope contextScope(m_Context->GetLocalContext());
+            V8TryCatch tryCatch(isolate);
+            V8ContextScope contextScope(m_Context->GetLocalContext());
 
             JSModuleInfo::AttributesInfo attributesInfo;
             if (".json" == inModulePath.extension().string())
@@ -119,7 +119,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            V8LocalModule module = inModule->GetLocalModule();
+            V8LModule module = inModule->GetLocalModule();
             if (module.IsEmpty())
             {
                 Log::LogMessage msg = {
@@ -130,7 +130,7 @@ namespace v8App
             }
             V8Isolate *isolate = m_Context->GetIsolate();
 
-            v8::TryCatch tryCatch(isolate);
+            V8TryCatch tryCatch(isolate);
             if (module->InstantiateModule(m_Context->GetLocalContext(), ResolveModuleCallback).FromMaybe(false) == false)
             {
                 Log::LogMessage msg = {
@@ -157,7 +157,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            V8LocalModule module = inModule->GetLocalModule();
+            V8LModule module = inModule->GetLocalModule();
             if (module.IsEmpty())
             {
                 Log::LogMessage msg = {
@@ -167,7 +167,7 @@ namespace v8App
                 return false;
             }
             V8Isolate *isolate = m_Context->GetIsolate();
-            v8::TryCatch tryCatch(m_Context->GetIsolate());
+            V8TryCatch tryCatch(m_Context->GetIsolate());
 
             // TODO: handle the returned value
             module->Evaluate(m_Context->GetLocalContext());
@@ -200,7 +200,7 @@ namespace v8App
             return nullptr;
         }
 
-        std::string JSContextModules::GetSpecifierByModule(V8LocalModule inModule)
+        std::string JSContextModules::GetSpecifierByModule(V8LModule inModule)
         {
             JSModuleInfoSharedPtr info = GetModuleInfoByModule(inModule, JSModuleInfo::ModuleType::kInvalid);
             if (info == nullptr)
@@ -210,12 +210,12 @@ namespace v8App
             return info->GetModulePath().generic_string();
         }
 
-        V8LocalValue JSContextModules::GetJSONByModule(V8LocalModule inModule)
+        V8LValue JSContextModules::GetJSONByModule(V8LModule inModule)
         {
             JSModuleInfoSharedPtr info = GetModuleInfoByModule(inModule, JSModuleInfo::ModuleType::kJSON);
             if (info == nullptr)
             {
-                return V8LocalValue();
+                return V8LValue();
             }
             return info->GetLocalJSON();
         }
@@ -246,18 +246,18 @@ namespace v8App
                 {
                     continue;
                 }
-                V8LocalModule module = it.second->GetLocalModule();
+                V8LModule module = it.second->GetLocalModule();
                 if (module.IsEmpty())
                 {
                     continue;
                 }
-                if (module->GetStatus() != v8::Module::Status::kInstantiated)
+                if (module->GetStatus() != V8Module::Status::kInstantiated)
                 {
                     continue;
                     ;
                 }
-                V8LocalUnboundModuleScript unbound = module->GetUnboundModuleScript();
-                V8ScriptCachedData *data = v8::ScriptCompiler::CreateCodeCache(unbound);
+                V8LUnboundModScript unbound = module->GetUnboundModuleScript();
+                V8ScriptCachedData *data = V8ScriptCompiler::CreateCodeCache(unbound);
                 if (data->rejected || data->length == 0)
                 {
                     continue;
@@ -280,9 +280,9 @@ namespace v8App
             return true;
         }
 
-        JSModuleInfoSharedPtr JSContextModules::GetModuleInfoByModule(V8LocalModule inModule, JSModuleInfo::ModuleType inType)
+        JSModuleInfoSharedPtr JSContextModules::GetModuleInfoByModule(V8LModule inModule, JSModuleInfo::ModuleType inType)
         {
-            V8GlobalModule globMod(m_Context->GetIsolate(), inModule);
+            V8GModule globMod(m_Context->GetIsolate(), inModule);
             for (auto it : m_ModuleMap)
             {
                 if (it.second->GetLocalModule()->GetIdentityHash() == globMod.Get(m_Context->GetIsolate())->GetIdentityHash())
@@ -300,13 +300,13 @@ namespace v8App
             return nullptr;
         }
 
-        JSModuleInfo::AttributesInfo JSContextModules::GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LocalFixedArray inAttributes)
+        JSModuleInfo::AttributesInfo JSContextModules::GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LFixedArray inAttributes)
         {
             V8Isolate *isolate = inContext->GetIsolate();
             JSModuleInfo::AttributesInfo returnInfo;
             returnInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
             returnInfo.m_TypeString = "js";
-            V8LocalContext context = inContext->GetLocalContext();
+            V8LContext context = inContext->GetLocalContext();
 
             if (isolate == nullptr)
             {
@@ -321,7 +321,7 @@ namespace v8App
 
             for (int i = 0; i < arrayLen; i += kEntrySize)
             {
-                v8::Local<v8::String> v8Key = inAttributes->Get(context, i).As<v8::String>();
+                V8LString v8Key = inAttributes->Get(context, i).As<V8String>();
                 std::string key = JSUtilities::V8ToString(isolate, v8Key);
                 // for some reason we can end up with a blank key
                 if (key == "")
@@ -331,7 +331,7 @@ namespace v8App
                 }
                 if (key == "type" || key == "module")
                 {
-                    v8::Local<v8::String> v8Value = inAttributes->Get(context, i + 1).As<v8::String>();
+                    V8LString v8Value = inAttributes->Get(context, i + 1).As<V8String>();
                     std::string value = JSUtilities::V8ToString(isolate, v8Value);
                     if (key == "type")
                     {
@@ -532,31 +532,31 @@ namespace v8App
             return nullptr;
         }
 
-        V8MaybeLocalPromise JSContextModules::HostImportModuleDynamically(V8LocalContext inContext,
-                                                                          V8LocalData inDefinedOptions,
-                                                                          V8LocalValue inResourceName,
-                                                                          V8LocalString inSpecifier,
-                                                                          V8LocalFixedArray importoAttributes)
+        V8MBLPromise JSContextModules::HostImportModuleDynamically(V8LContext inContext,
+                                                                          V8LData inDefinedOptions,
+                                                                          V8LValue inResourceName,
+                                                                          V8LString inSpecifier,
+                                                                          V8LFixedArray importoAttributes)
         {
             V8Isolate *isolate = inContext->GetIsolate();
-            v8::MaybeLocal<v8::Promise::Resolver> maybeResolver = v8::Promise::Resolver::New(inContext);
-            v8::Local<v8::Promise::Resolver> resolver;
+            V8MBLPromiseResolver maybeResolver = V8PromiseResolver::New(inContext);
+            V8LPromiseResolver resolver;
 
             if (maybeResolver.ToLocal(&resolver) == false)
             {
-                return V8MaybeLocalPromise();
+                return V8MBLPromise();
             }
 
             if (inResourceName->IsNull())
             {
-                resolver->Reject(inContext, v8::Exception::TypeError(v8::String::NewFromUtf8Literal(isolate, "Resource name is null"))).ToChecked();
+                resolver->Reject(inContext, V8Exception::TypeError(V8String::NewFromUtf8Literal(isolate, "Resource name is null"))).ToChecked();
                 return resolver->GetPromise();
             }
 
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
             if (jsContext == nullptr)
             {
-                resolver->Reject(inContext, v8::Exception::TypeError(JSUtilities::StringToV8(isolate, "Failed to get the JSContext from the v8Context"))).ToChecked();
+                resolver->Reject(inContext, V8Exception::TypeError(JSUtilities::StringToV8(isolate, "Failed to get the JSContext from the v8Context"))).ToChecked();
                 return resolver->GetPromise();
             }
             JSContextModulesSharedPtr jsModules = jsContext->GetJSModules();
@@ -604,14 +604,14 @@ namespace v8App
                 return;
             }
 
-            V8LocalPromiseResolver resolver = importData->m_Resolver.Get(isolate);
+            V8LPromiseResolver resolver = importData->m_Resolver.Get(isolate);
             JSModuleInfoSharedPtr importInfo = importData->m_ModuleInfo;
             JSContextModulesSharedPtr jsModules = jsContext->GetJSModules();
 
-            v8::HandleScope iScope(isolate);
-            V8LocalContext context = jsContext->GetLocalContext();
-            v8::Context::Scope cScope(context);
-            v8::TryCatch tryCatch(isolate);
+            V8HandleScope iScope(isolate);
+            V8LContext context = jsContext->GetLocalContext();
+            V8ContextScope cScope(context);
+            V8TryCatch tryCatch(isolate);
 
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(importInfo->GetModulePath().generic_string());
             if (info == nullptr)
@@ -623,8 +623,8 @@ namespace v8App
                     return;
                 }
             }
-            V8LocalModule module = info->GetLocalModule();
-            v8::MaybeLocal<v8::Value> maybeResult;
+            V8LModule module = info->GetLocalModule();
+            V8MBLValue maybeResult;
             if (module->InstantiateModule(context, JSContextModules::ResolveModuleCallback).FromMaybe(false) == false)
             {
                 CHECK(tryCatch.HasCaught());
@@ -638,7 +638,7 @@ namespace v8App
                 v8::MicrotasksScope::PerformCheckpoint(isolate);
             }
 
-            V8LocalValue result;
+            V8LValue result;
             if (maybeResult.ToLocal(&result) == false)
             {
                 DCHECK_TRUE(tryCatch.HasCaught());
@@ -646,7 +646,7 @@ namespace v8App
                 return;
             }
 
-            V8LocalValue moduleNamespace = module->GetModuleNamespace();
+            V8LValue moduleNamespace = module->GetModuleNamespace();
             if (result->IsPromise() == false)
             {
                 if (tryCatch.HasCaught())
@@ -659,22 +659,22 @@ namespace v8App
                 }
                 return;
             }
-            v8::Local<v8::Promise> resultPromise(result.As<v8::Promise>());
-            if (resultPromise->State() == v8::Promise::kRejected)
+            V8LPromise resultPromise(result.As<V8Promise>());
+            if (resultPromise->State() == V8Promise::kRejected)
             {
                 resolver->Reject(context, resultPromise->Result()).ToChecked();
                 return;
             }
             internal::ModuleResolutionData *data = new internal::ModuleResolutionData(jsContext, resolver, moduleNamespace);
-            v8::Local<v8::External> eData = v8::External::New(isolate, data);
-            v8::Local<v8::Function> callbackResolve;
-            if (v8::Function::New(context, JSContextModules::ResolvePromiseCallback, eData).ToLocal(&callbackResolve) == false)
+            V8LExternal eData = V8External::New(isolate, data);
+            V8LFunction callbackResolve;
+            if (V8Function::New(context, JSContextModules::ResolvePromiseCallback, eData).ToLocal(&callbackResolve) == false)
             {
                 resolver->Reject(context, JSUtilities::StringToV8(isolate, "Failed to create the module resolver resolve callback function")).ToChecked();
                 return;
             }
-            v8::Local<v8::Function> callbackReject;
-            if (v8::Function::New(context, JSContextModules::RejectPromiseCallback, eData).ToLocal(&callbackReject) == false)
+            V8LFunction callbackReject;
+            if (V8Function::New(context, JSContextModules::RejectPromiseCallback, eData).ToLocal(&callbackReject) == false)
             {
                 resolver->Reject(context, JSUtilities::StringToV8(isolate, "Failed to create the module resolver reject callback function")).ToChecked();
                 return;
@@ -682,10 +682,10 @@ namespace v8App
             resultPromise->Then(context, callbackResolve, callbackReject).ToLocalChecked();
         }
 
-        void JSContextModules::InitializeImportMetaObject(V8LocalContext inContext, V8LocalModule inModule, V8LocalObject inMeta)
+        void JSContextModules::InitializeImportMetaObject(V8LContext inContext, V8LModule inModule, V8LObject inMeta)
         {
             V8Isolate *isolate = inContext->GetIsolate();
-            v8::HandleScope handleScope(isolate);
+            V8HandleScope handleScope(isolate);
 
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
             CHECK_NOT_NULL(jsContext);
@@ -695,14 +695,14 @@ namespace v8App
             JSModuleInfoSharedPtr info = jsModules->GetModuleInfoByModule(inModule);
             CHECK_NOT_NULL(info);
 
-            V8LocalString urlKey = JSUtilities::StringToV8(isolate, "url");
-            V8LocalString url = JSUtilities::StringToV8(isolate, info->GetModulePath().generic_string());
+            V8LString urlKey = JSUtilities::StringToV8(isolate, "url");
+            V8LString url = JSUtilities::StringToV8(isolate, info->GetModulePath().generic_string());
             inMeta->CreateDataProperty(inContext, urlKey, url);
         }
 
-        V8MaybeLocalValue JSContextModules::JSONEvalutionSteps(V8LocalContext inContext, V8LocalModule inModule)
+        V8MBLValue JSContextModules::JSONEvalutionSteps(V8LContext inContext, V8LModule inModule)
         {
-            V8LocalPromiseResolver resolver = v8::Promise::Resolver::New(inContext).ToLocalChecked();
+            V8LPromiseResolver resolver = V8PromiseResolver::New(inContext).ToLocalChecked();
             V8Isolate *isolate = inContext->GetIsolate();
 
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
@@ -724,7 +724,7 @@ namespace v8App
                 return resolver->GetPromise();
             }
 
-            V8LocalValue parsedJSON = jsModule->GetJSONByModule(inModule);
+            V8LValue parsedJSON = jsModule->GetJSONByModule(inModule);
             if (parsedJSON.IsEmpty())
             {
                 Log::LogMessage msg;
@@ -734,7 +734,7 @@ namespace v8App
                 return resolver->GetPromise();
             }
 
-            v8::TryCatch tryCatch(isolate);
+            V8TryCatch tryCatch(isolate);
             v8::Maybe<bool> result = inModule->SetSyntheticModuleExport(isolate,
                                                                         JSUtilities::StringToV8(isolate,
                                                                                                 "default",
@@ -762,35 +762,35 @@ namespace v8App
             return resolver->GetPromise();
         }
 
-        void JSContextModules::ResolvePromiseCallback(const v8::FunctionCallbackInfo<v8::Value> &inInfo)
+        void JSContextModules::ResolvePromiseCallback(const V8FuncCallInfoValue &inInfo)
         {
-            std::unique_ptr<internal::ModuleResolutionData> importData(static_cast<internal::ModuleResolutionData *>(inInfo.Data().As<v8::External>()->Value()));
+            std::unique_ptr<internal::ModuleResolutionData> importData(static_cast<internal::ModuleResolutionData *>(inInfo.Data().As<V8External>()->Value()));
             V8Isolate *isolate = importData->m_Context->GetIsolate();
-            v8::Local<v8::Context> context = importData->m_Context->GetLocalContext();
-            v8::HandleScope hScope(isolate);
+            V8LContext context = importData->m_Context->GetLocalContext();
+            V8HandleScope hScope(isolate);
 
-            v8::Local<v8::Promise::Resolver> resolver(importData->m_Resolver.Get(isolate));
-            V8LocalValue moduleNamespace = importData->m_Namespace.Get(isolate);
-            v8::Context::Scope cScope(context);
+            V8LPromiseResolver resolver(importData->m_Resolver.Get(isolate));
+            V8LValue moduleNamespace = importData->m_Namespace.Get(isolate);
+            V8ContextScope cScope(context);
 
             resolver->Resolve(context, moduleNamespace).ToChecked();
         }
 
-        void JSContextModules::RejectPromiseCallback(const v8::FunctionCallbackInfo<v8::Value> &inInfo)
+        void JSContextModules::RejectPromiseCallback(const V8FuncCallInfoValue &inInfo)
         {
-            std::unique_ptr<internal::ModuleCallbackData> importData(static_cast<internal::ModuleCallbackData *>(inInfo.Data().As<v8::External>()->Value()));
+            std::unique_ptr<internal::ModuleCallbackData> importData(static_cast<internal::ModuleCallbackData *>(inInfo.Data().As<V8External>()->Value()));
             V8Isolate *isolate = importData->m_Context->GetIsolate();
-            v8::Local<v8::Context> context = importData->m_Context->GetLocalContext();
-            v8::HandleScope hScope(isolate);
+            V8LContext context = importData->m_Context->GetLocalContext();
+            V8HandleScope hScope(isolate);
 
-            v8::Local<v8::Promise::Resolver> resolver(importData->m_Resolver.Get(isolate));
-            v8::Context::Scope cScope(context);
+            V8LPromiseResolver resolver(importData->m_Resolver.Get(isolate));
+            V8ContextScope cScope(context);
 
             DCHECK_EQ(inInfo.Length(), 1);
             resolver->Reject(context, inInfo[0]).ToChecked();
         }
 
-        V8MaybeLocalModule JSContextModules::ResolveModuleCallback(v8::Local<v8::Context> inContext, v8::Local<v8::String> inSpecifier, v8::Local<v8::FixedArray> inAttributes, V8LocalModule inReferrer)
+        V8MBLModule JSContextModules::ResolveModuleCallback(V8LContext inContext, V8LString inSpecifier, V8LFixedArray inAttributes, V8LModule inReferrer)
         {
             V8Isolate *isolate = inContext->GetIsolate();
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
@@ -803,20 +803,20 @@ namespace v8App
             JSModuleInfo::AttributesInfo attributesInfo = jsModule->GetModuleAttributesInfo(jsContext, inAttributes);
             if (attributesInfo.m_Type == JSModuleInfo::ModuleType::kInvalid)
             {
-                return V8MaybeLocalModule();
+                return V8MBLModule();
             }
 
             specifier.remove_filename();
             JSModuleInfoSharedPtr moduleInfo = jsModule->BuildModuleInfo(attributesInfo, filePath, specifier);
             if (moduleInfo == nullptr)
             {
-                return V8MaybeLocalModule();
+                return V8MBLModule();
             }
 
             moduleInfo = jsModule->GetModuleBySpecifier(moduleInfo->GetModulePath().generic_string());
             if (moduleInfo == nullptr)
             {
-                return V8MaybeLocalModule();
+                return V8MBLModule();
             }
             return moduleInfo->GetLocalModule();
         }
@@ -824,14 +824,14 @@ namespace v8App
         JSModuleInfoSharedPtr JSContextModules::LoadModuleTree(JSContextSharedPtr inContext, const JSModuleInfoSharedPtr inModuleInfo)
         {
             V8Isolate *isolate = inContext->GetIsolate();
-            V8LocalContext context = inContext->GetLocalContext();
+            V8LContext context = inContext->GetLocalContext();
             JSAppSharedPtr app = inContext->GetJSRuntime()->GetApp();
             Assets::AppAssetRootsSharedPtr appRoot = inContext->GetJSRuntime()->GetApp()->GetAppRoots();
             JSContextModulesSharedPtr jsModule = inContext->GetJSModules();
 
             JSModuleInfo::ModuleType moduleType = inModuleInfo->GetAttributesInfo().m_Type;
             std::filesystem::path importPath = inModuleInfo->GetModulePath();
-            V8LocalModule module;
+            V8LModule module;
 
             if (moduleType == JSModuleInfo::ModuleType::kJavascript)
             {
@@ -844,13 +844,13 @@ namespace v8App
                     LOG_ERROR(msg);
                     return nullptr;
                 }
-                v8::TryCatch tryCatch(isolate);
-                v8::ScriptCompiler::CompileOptions options = v8::ScriptCompiler::kNoCompileOptions;
+                V8TryCatch tryCatch(isolate);
+                V8ScriptCompiler::CompileOptions options = V8ScriptCompiler::kNoCompileOptions;
                 if (source->GetCachedData() != nullptr)
                 {
-                    options = v8::ScriptCompiler::kConsumeCodeCache;
+                    options = V8ScriptCompiler::kConsumeCodeCache;
                 }
-                V8MaybeLocalModule maybeModule = v8::ScriptCompiler::CompileModule(isolate, source.get(), options);
+                V8MBLModule maybeModule = V8ScriptCompiler::CompileModule(isolate, source.get(), options);
                 if (tryCatch.HasCaught())
                 {
                     tryCatch.ReThrow();
@@ -864,7 +864,7 @@ namespace v8App
             }
             else if (moduleType == JSModuleInfo::ModuleType::kJSON)
             {
-                V8LocalString jsonStr;
+                V8LString jsonStr;
                 {
                     // TODO:: Create an asset cache for non script files
                     Assets::TextAsset file(importPath);
@@ -878,8 +878,8 @@ namespace v8App
                     }
                     jsonStr = JSUtilities::StringToV8(isolate, file.GetContent());
                 }
-                V8LocalValue parsedJSON;
-                v8::TryCatch tryCatch(isolate);
+                V8LValue parsedJSON;
+                V8TryCatch tryCatch(isolate);
                 if (v8::JSON::Parse(context, jsonStr).ToLocal(&parsedJSON) == false)
                 {
                     tryCatch.ReThrow();
@@ -888,8 +888,8 @@ namespace v8App
                     LOG_ERROR(msg);
                     return nullptr;
                 }
-                auto exportNames = v8::to_array<V8LocalString>({JSUtilities::StringToV8(isolate, "default")});
-                module = v8::Module::CreateSyntheticModule(isolate, JSUtilities::StringToV8(isolate, importPath.generic_string()), exportNames, JSContextModules::JSONEvalutionSteps);
+                auto exportNames = v8::to_array<V8LString>({JSUtilities::StringToV8(isolate, "default")});
+                module = V8Module::CreateSyntheticModule(isolate, JSUtilities::StringToV8(isolate, importPath.generic_string()), exportNames, JSContextModules::JSONEvalutionSteps);
                 inModuleInfo->SetV8Module(module);
                 inModuleInfo->SetV8JSON(parsedJSON);
             }
@@ -910,12 +910,12 @@ namespace v8App
                 return nullptr;
             }
 
-            V8LocalFixedArray requests = module->GetModuleRequests();
+            V8LFixedArray requests = module->GetModuleRequests();
             for (int x = 0, length = requests->Length(); x < length; x++)
             {
-                V8LocalModuleRequst request = requests->Get(context, x).As<v8::ModuleRequest>();
-                V8LocalString moduleName = request->GetSpecifier();
-                V8LocalFixedArray v8Attributes = request->GetImportAttributes();
+                V8LModRequest request = requests->Get(context, x).As<V8ModRequest>();
+                V8LString moduleName = request->GetSpecifier();
+                V8LFixedArray v8Attributes = request->GetImportAttributes();
 
                 JSModuleInfo::AttributesInfo attributesInfo = jsModule->GetModuleAttributesInfo(inContext, v8Attributes);
                 if (attributesInfo.m_Type == JSModuleInfo::ModuleType::kInvalid)

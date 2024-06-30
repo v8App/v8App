@@ -6,7 +6,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 
 namespace v8App
 {
@@ -15,50 +15,50 @@ namespace v8App
         class TestDeathIsolateHelper : public PlatformIsolateHelper
         {
         public:
-            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(v8::Isolate *inIsolate, v8::TaskPriority priority) override
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override
             {
-                return std::shared_ptr<v8::TaskRunner>();
+                return V8TaskRunnerSharedPtr();
             };
-            virtual bool IdleTasksEnabled(v8::Isolate *inIsolate) override { return true; }
+            virtual bool IdleTasksEnabled(V8Isolate *inIsolate) override { return true; }
         };
 
-        TEST(V8PlatformDeathTest, GetForgroundTaskRunnerHelperNull)
+        TEST(V8AppPlatformDeathTest, GetForgroundTaskRunnerHelperNull)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::shared_ptr<V8Platform> platform = V8Platform::Get();
-                V8TaskRunnerSharedPtr runner = platform->GetForegroundTaskRunner(nullptr, v8::TaskPriority::kBestEffort);
+                std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
+                V8TaskRunnerSharedPtr runner = platform->GetForegroundTaskRunner(nullptr, V8TaskPriority::kBestEffort);
                 std::exit(0);
             },
                          "");
         }
 
-        TEST(V8PlatformDeathTest, IdleTaskEnabledHelperNull)
+        TEST(V8AppPlatformDeathTest, IdleTaskEnabledHelperNull)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::shared_ptr<V8Platform> platform = V8Platform::Get();
+                std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
                 platform->IdleTasksEnabled(nullptr);
                 std::exit(0);
             },
                          "");
         }
 
-        TEST(V8PlatformDeathTest, InitAfterDestory)
+        TEST(V8AppPlatformDeathTest, InitAfterDestory)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_EXIT({
                 PlatformIsolateHelperUniquePtr helper = std::make_unique<TestDeathIsolateHelper>();
-                V8Platform::InitializeV8(std::move(helper));
-                std::shared_ptr<V8Platform> platform = V8Platform::Get();
+                V8AppPlatform::InitializeV8(std::move(helper));
+                std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
 
-                std::unique_ptr<v8::HighAllocationThroughputObserver> observer = std::make_unique<v8::HighAllocationThroughputObserver>();
+                V8HighAllocationThroughputObserverUniquePtr observer = std::make_unique<V8HighAllocationThroughputObserver>();
                 platform->SetHighAllocatoionObserver(observer.get());
                 EXPECT_EQ(observer.get(), platform->GetHighAllocationThroughputObserver());
                 observer.release();
-                V8Platform::ShutdownV8();
-                V8Platform::InitializeV8(std::move(helper));
+                V8AppPlatform::ShutdownV8();
+                V8AppPlatform::InitializeV8(std::move(helper));
 
                 std::exit(0);
             },

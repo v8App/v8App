@@ -11,17 +11,18 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        class TestSnapshotProvider : public JSSnapshotProvider
+        class TestSnapshotProvider : public V8SnapshotProvider
         {
         public:
-            TestSnapshotProvider(std::filesystem::path inSnapshotPath = std::filesystem::path()) : JSSnapshotProvider(inSnapshotPath) { m_Loaded = true; }
+            TestSnapshotProvider(std::filesystem::path inSnapshotPath = std::filesystem::path()) : V8SnapshotProvider(inSnapshotPath) { m_Loaded = true; }
             virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath = std::filesystem::path()) override;
-            virtual const v8::StartupData *GetSnapshotData() override;
+            virtual const V8StartupData *GetSnapshotData() override;
             void SetLoaded(bool inLoaded) { m_Loaded = inLoaded; }
             void SetReturnEmpty(bool inLoaded) { m_ReturnEmpty = inLoaded; }
-            protected:
+
+        protected:
             bool m_ReturnEmpty = false;
-            v8::StartupData m_TestStartup{nullptr, 0};
+            V8StartupData m_TestStartup{nullptr, 0};
         };
     }
 }

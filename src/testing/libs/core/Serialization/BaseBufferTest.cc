@@ -65,9 +65,15 @@ namespace v8App
             {
                 EXPECT_FALSE(buffer->IsByteSwapping());
             }
+
+            buffer = std::make_unique<TestBuffer>(nullptr, 10);
+            EXPECT_EQ(10, buffer->BufferCapacity());
+            EXPECT_EQ(0, buffer->BufferSize());
+
             const char *testData = "Hello";
             //we want the null terminator as well so we can do comaprisions below
             size_t len = strlen(testData)+1;
+
 
             buffer = std::make_unique<TestBuffer>(testData, len);
             //we set teh state so we can see that copies or moves below

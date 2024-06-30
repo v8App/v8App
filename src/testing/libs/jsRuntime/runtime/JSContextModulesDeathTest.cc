@@ -10,6 +10,7 @@
 
 #include "V8Fixture.h"
 
+#include "JSApp.h"
 #include "JSContext.h"
 
 namespace v8App

@@ -22,6 +22,7 @@ namespace v8App
         class JSContextCreator : public JSContextCreationHelper
         {
         public:
+            JSContextCreator() = default;
             virtual ~JSContextCreator() = default;
             virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
             std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, 

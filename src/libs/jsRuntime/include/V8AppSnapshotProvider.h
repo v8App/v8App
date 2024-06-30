@@ -35,14 +35,14 @@ namespace v8App
             /**
              * Serializers for the snapshot
              */
-            virtual v8::StartupData SerializeInternalField(V8LocalObject inHolder, int inIndex) override;
-            virtual v8::StartupData SerializeContextInternalField(V8LocalContext inHolder, int inIndex) override;
+            virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) override;
+            virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) override;
 
             /**
              * Deserializers for the snapshot
              */
-            virtual void DeserializeInternalField(V8LocalObject inHolder, int inIndex, v8::StartupData inPayload) override;            
-            virtual void DeserializeContextInternalField(V8LocalContext inHolder, int inIndex, v8::StartupData inPayload) override;            
+            virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override;            
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload) override;            
 
         protected:
             /**
@@ -52,7 +52,7 @@ namespace v8App
             /**
              * Snapshot data
              */
-            v8::StartupData m_StartupData{nullptr, 0};
+            V8StartupData m_StartupData{nullptr, 0};
             /**
              * Path of teh file the data was loaded from
              */

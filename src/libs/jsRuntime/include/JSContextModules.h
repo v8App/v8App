@@ -71,11 +71,11 @@ namespace v8App
             /**
              * Gets the module specifier by the module
              */
-            std::string GetSpecifierByModule(V8LocalModule inModule);
+            std::string GetSpecifierByModule(V8LModule inModule);
             /**
              * Gets the parsed json by the module
              */
-            V8LocalValue GetJSONByModule(V8LocalModule inModule);
+            V8LValue GetJSONByModule(V8LModule inModule);
             /**
              * Resets all the maps
              */
@@ -98,23 +98,23 @@ namespace v8App
              * Adds a module to the map tracking that it's been loaded
              */
             bool AddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType);
-            JSModuleInfoSharedPtr GetModuleInfoByModule(V8LocalModule inModule, JSModuleInfo::ModuleType inType = JSModuleInfo::ModuleType::kInvalid);
+            JSModuleInfoSharedPtr GetModuleInfoByModule(V8LModule inModule, JSModuleInfo::ModuleType inType = JSModuleInfo::ModuleType::kInvalid);
 
             /**
              * Parses the import Attributes and returns the info attributed
              */
-            JSModuleInfo::AttributesInfo GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LocalFixedArray inAttributes);
+            JSModuleInfo::AttributesInfo GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LFixedArray inAttributes);
 
             JSModuleInfoSharedPtr BuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath);
 
             /**
              * Callback for V8 to dynamically load imports
              */
-            static V8MaybeLocalPromise HostImportModuleDynamically(V8LocalContext inContext,
-                                                                   V8LocalData inDefinedOptions,
-                                                                   V8LocalValue inResourceName,
-                                                                   V8LocalString inSpecifier,
-                                                                   V8LocalFixedArray import_attributes);
+            static V8MBLPromise HostImportModuleDynamically(V8LContext inContext,
+                                                                   V8LData inDefinedOptions,
+                                                                   V8LValue inResourceName,
+                                                                   V8LString inSpecifier,
+                                                                   V8LFixedArray import_attributes);
 
             /**
              * A Microtask run by V8 that handles the actual importing
@@ -124,12 +124,12 @@ namespace v8App
             /**
              * Callabck for V8 to initialized the import meta object
              */
-            static void InitializeImportMetaObject(V8LocalContext inContext, V8LocalModule inModule, V8LocalObject inMeta);
+            static void InitializeImportMetaObject(V8LContext inContext, V8LModule inModule, V8LObject inMeta);
 
             /**
              * Callback to handle parsing JSON
              */
-            static V8MaybeLocalValue JSONEvalutionSteps(V8LocalContext inContext, V8LocalModule inModule);
+            static V8MBLValue JSONEvalutionSteps(V8LContext inContext, V8LModule inModule);
 
             /**
              * Resolve the modules promise
@@ -144,7 +144,7 @@ namespace v8App
             /**
              *
              */
-            static V8MaybeLocalModule ResolveModuleCallback(V8LocalContext inContext, V8LocalString inSpecifier, V8LocalFixedArray inAttributes, V8LocalModule inReferrer);
+            static V8MBLModule ResolveModuleCallback(V8LContext inContext, V8LString inSpecifier, V8LFixedArray inAttributes, V8LModule inReferrer);
 
             /**
              * Handles loading additional imports from the imported module

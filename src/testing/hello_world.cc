@@ -52,14 +52,14 @@ int main(int argc, char *argv[])
       v8::HandleScope handle_scope(isolate);
 
       // Create a new context.
-      v8::Local<v8::Context> context = v8::Context::New(isolate);
+      V8LContext context = v8::Context::New(isolate);
 
       // Enter the context for compiling and running the hello world script.
       v8::Context::Scope context_scope(context);
 
       {
         // Create a string containing the JavaScript source code.
-        v8::Local<v8::String> source =
+        V8LString source =
             v8::String::NewFromUtf8Literal(isolate, "'Hello' + ', World!'");
 
         // Compile the source code.
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
       )";
 
         // Create a string containing the JavaScript source code.
-        v8::Local<v8::String> source =
+        V8LString source =
             v8::String::NewFromUtf8Literal(isolate, csource);
 
         // Compile the source code.

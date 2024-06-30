@@ -10,6 +10,7 @@
 
 #include "V8Fixture.h"
 
+#include "JSApp.h"
 #include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8NativeObject.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
@@ -35,21 +36,24 @@ namespace v8App
                 const char *GetTypeName() override { return "TestOverride"; }
             };
 
-            class TestV8NativeObj : public V8NativeObject<TestV8NativeObj>
+            class TestV8NativeObj final : public V8NativeObject<TestV8NativeObj>
             {
             public:
-                TestV8NativeObj() {}
-                virtual ~TestV8NativeObj()
+                virtual ~TestV8NativeObj() override 
                 {
-                    objInstance = nullptr;
-                    secondCallback = true;
-                };
+                    TestV8NativeObj::objInstance = nullptr;
+                    TestV8NativeObj::secondCallback = true;
+                }
+
                 DEF_V8NATIVE_FUNCTIONS(TestV8NativeObj);
 
-                static V8LocalObject Constructor(V8Isolate *isolate)
+                static V8LObject Constructor(V8Isolate *isolate)
                 {
-                    objInstance = new TestV8NativeObj();
-                    return objInstance->GetV8NativeObjectInternal(isolate, &TestV8NativeObj::s_V8NativeObjectInfo).ToLocalChecked();
+                    JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
+                    V8LContext context = isolate->GetCurrentContext();
+                    V8NativeObjectHandle<TestV8NativeObj> instance = TestV8NativeObj::NewObj(runtime, context);
+                    objInstance = instance.Get();
+                    return instance.ToV8().As<v8::Object>();
                 }
 
                 void SetValue(int inValue) { m_Value = inValue; }
@@ -79,52 +83,48 @@ namespace v8App
 
             IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(TestV8NativeObj)
             {
-                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), inGlobal, "TestV8NativeObj");
-                v8::Local<v8::ObjectTemplate> tpl =
-                    builder.SetConstuctor(&TestV8NativeObj::Constructor)
+                V8ObjectTemplateBuilder builder(inContext->GetIsolate(), inGlobal, "TestV8NativeObj");
+                V8LObjTpl tpl =
+                    builder.SetConstuctor(&TestV8NativeObj::Constructor, inContext->GetLocalContext())
                         .SetProperty("value", &TestV8NativeObj::GetValue, &TestV8NativeObj::SetValue)
                         .Build();
-                inRuntime->SetObjectTemplate(&TestV8NativeObj::s_V8NativeObjectInfo, tpl);
+                inContext->GetJSRuntime()->SetObjectTemplate(&TestV8NativeObj::s_V8CppObjInfo, tpl);
             }
 
-            REGISTER_CLASS_FUNCS(TestV8NativeObj);
+            REGISTER_CLASS_FUNCS_GLOBAL(TestV8NativeObj);
 
             TEST_F(V8NativeObjectTest, TestObjectInfo)
             {
-                std::unique_ptr<TestV8NativeObj> test = std::make_unique<TestV8NativeObj>();
-                EXPECT_EQ(std::string("TestV8NativeObj"), test->GetTypeName());
-
-                EXPECT_EQ(std::string("TestV8NativeObj"), TestV8NativeObj::s_V8NativeObjectInfo.m_TypeName);
-                EXPECT_EQ(&TestV8NativeObj::DeserializeNativeObject, TestV8NativeObj::s_V8NativeObjectInfo.m_Deserializer);
-                EXPECT_EQ(&TestV8NativeObj::SerializeNativeObject, TestV8NativeObj::s_V8NativeObjectInfo.m_Serializer);
+                EXPECT_EQ(std::string("TestV8NativeObj"), TestV8NativeObj::s_V8CppObjInfo.m_TypeName);
+                EXPECT_EQ(&TestV8NativeObj::DeserializeCppObject, TestV8NativeObj::s_V8CppObjInfo.m_Deserializer);
+                EXPECT_EQ(&TestV8NativeObj::SerializeCppObject, TestV8NativeObj::s_V8CppObjInfo.m_Serializer);
             }
 
             TEST_F(V8NativeObjectTest, TestObjectConstructionDestructionInV8)
             {
                 JSRuntimeSharedPtr runtime = m_App->GetJSRuntime();
-                runtime->CreateGlobalTemplate(true);
 
                 {
-                    v8::Isolate *isolate = runtime->GetIsolate();
-                    v8::Isolate::Scope iScope(isolate);
-                    v8::HandleScope hScope(isolate);
+                    V8Isolate *isolate = runtime->GetIsolate();
+                    V8IsolateScope iScope(isolate);
+                    V8HandleScope hScope(isolate);
 
-                    JSContextSharedPtr jsContext = m_App->CreateJSContext("default");
-                    V8LocalContext context = jsContext->GetLocalContext();
-                    v8::Context::Scope cScope(context);
+                    JSContextSharedPtr jsContext = m_App->CreateJSContext("default", "");
+                    V8LContext context = jsContext->GetLocalContext();
+                    V8ContextScope cScope(context);
 
                     const char csource1[] = R"(
                     let testV8NativeObj = new TestV8NativeObj();
                     testV8NativeObj.value = 100;
                 )";
 
-                    v8::TryCatch try_catch(isolate);
+                    V8TryCatch try_catch(isolate);
 
-                    v8::Local<v8::String> source1 = JSUtilities::StringToV8(isolate, csource1);
+                    V8LString source1 = JSUtilities::StringToV8(isolate, csource1);
 
-                    v8::Local<v8::Script> script1 = v8::Script::Compile(context, source1).ToLocalChecked();
+                    V8LScript script1 = v8::Script::Compile(context, source1).ToLocalChecked();
 
-                    v8::Local<v8::Value> result;
+                    V8LValue result;
                     if (script1->Run(context).ToLocal(&result) == false)
                     {
                         std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
@@ -133,22 +133,7 @@ namespace v8App
 
                     EXPECT_EQ(100, TestV8NativeObj::objInstance->GetValue());
 
-                    const char csource2[] = R"(
-                    testV8NativeObj = undefined;
-                )";
-
-                    try_catch.Reset();
-                    v8::Local<v8::String> source2 = JSUtilities::StringToV8(isolate, csource2);
-
-                    v8::Local<v8::Script> script2 = v8::Script::Compile(context, source2).ToLocalChecked();
-
-                    if (script2->Run(context).ToLocal(&result) == false)
-                    {
-                        std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
-                        EXPECT_TRUE(false);
-                    }
-
-                    isolate->RequestGarbageCollectionForTesting(v8::Isolate::GarbageCollectionType::kFullGarbageCollection);
+                    isolate->RequestGarbageCollectionForTesting(V8Isolate::GarbageCollectionType::kFullGarbageCollection);
                     EXPECT_EQ(nullptr, TestV8NativeObj::objInstance);
                     EXPECT_TRUE(TestV8NativeObj::secondCallback);
                 }

@@ -29,7 +29,7 @@ namespace v8App
             // TODO: need to move the bridge out of the ccontext
             if (inNamespace != "" && CppBridge::CallbackRegistry::DoesNamespaceExistInRegistry(inNamespace) == false)
             {
-                return false;
+                return nullptr;
             }
 
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, inName, inNamespace, inEntryPoint, inSnapEntryPoint, inSupportsSnapshot, inSnapMethod);
@@ -38,14 +38,15 @@ namespace v8App
                 context->DisposeContext();
                 return nullptr;
             }
-            if (m_Namespace != "")
-            {
-                v8::Isolate::Scope(inRuntome->GetIsolate();
-                v8::HandleScope hScope(inRuntime->GetIsolate());
-                V8LocalContext v8Context = context->GetLocalContext();
-                v8::Context::Scope(v8Context);
-                CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(context, v8COntext->Global(), m_Namespace);
-            }
+
+            V8IsolateScope iScope(inRuntime->GetIsolate());
+            V8HandleScope hScope(inRuntime->GetIsolate());
+            V8LContext v8Context = context->GetLocalContext();
+            V8ContextScope cScope(v8Context);
+            
+            V8LObject globalObj = v8Context->Global();
+            CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(context, globalObj, inNamespace);
+
             return context;
         }
 

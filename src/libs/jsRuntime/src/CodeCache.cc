@@ -109,14 +109,14 @@ namespace v8App
                 }
             }
 
-            V8LocalString sourceStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_SourceStr);
-            V8LocalString fileStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_FilePath.generic_string());
+            V8LString sourceStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_SourceStr);
+            V8LString fileStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_FilePath.generic_string());
             V8ScriptCachedData *cache = nullptr;
             if (cacheInfo->m_Compiled != nullptr)
             {
                 cache = new V8ScriptCachedData(cacheInfo->m_Compiled, cacheInfo->m_CompiledLength, V8ScriptCachedData::BufferNotOwned);
             }
-            v8::ScriptOrigin origin(inIsolate, fileStr, 0, 0, false, -1, V8LocalValue(), false, false, true);
+            V8ScriptOrigin origin(inIsolate, fileStr, 0, 0, false, -1, V8LValue(), false, false, true);
             return std::make_unique<V8ScriptSource>(sourceStr, origin, cache);
         }
 

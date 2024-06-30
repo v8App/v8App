@@ -44,14 +44,10 @@ namespace v8App
                 static inline CallbackRegistry *s_Original = nullptr;
             };
 
-            class TestCallbackRegisterObj : public CppBridge::V8NativeObject<TestCallbackRegisterObj>
+            class TestCallbackRegisterObj final : public CppBridge::V8NativeObject<TestCallbackRegisterObj>
             {
             public:
                 DEF_V8NATIVE_FUNCTIONS(TestCallbackRegisterObj);
-
-            protected:
-                TestCallbackRegisterObj() {}
-                virtual ~TestCallbackRegisterObj() = default;
             };
 
             IMPL_DESERIALIZER(TestCallbackRegisterObj)
@@ -72,7 +68,7 @@ namespace v8App
 
             static int TestGlobalRegisterValue = 0;
 
-            void TestGlobalFunctionRegistration(JSRuntimeSharedPtr inRuntime, v8::Local<v8::ObjectTemplate> &inGlobal)
+            void TestNamespaceFunctionRegistration(JSContextSharedPtr inContext, V8LObject &inGlobal)
             {
                 TestGlobalRegisterValue = 5;
             }
@@ -101,15 +97,22 @@ namespace v8App
                 EXPECT_NE(nullptr, CallbackRegistry::GetCallbackHolder(callback.GetFuncAddress()));
             }
 
-            TEST(CallbackRegistryTest, TestGlobalRegistrationFunction)
+            TEST(CallbackRegistryTest, TestNamespaceRegistrationFunction)
             {
                 std::unique_ptr<TestCallbackRegistry> registry(TestCallbackRegistry::CreateTestInstance());
 
-                CallbackRegistry::RegisterGlobalRegisterer(TestGlobalFunctionRegistration);
+                CallbackRegistry::AddNamespaceSetupFunction(TestNamespaceFunctionRegistration, {"test", "test2"});
                 EXPECT_EQ(0, TestGlobalRegisterValue);
-                v8::Local<v8::ObjectTemplate> tpl;
-                CallbackRegistry::RunGlobalRegisterFunctions(JSRuntimeSharedPtr(), tpl);
+                V8LObject global;
 
+                CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr(), global, "test");
+                EXPECT_EQ(5, TestGlobalRegisterValue);
+
+                TestGlobalRegisterValue = 0;
+                CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr(), global);
+                EXPECT_EQ(0, TestGlobalRegisterValue);
+
+                CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr(), global, "test2");
                 EXPECT_EQ(5, TestGlobalRegisterValue);
             }
 
@@ -117,9 +120,9 @@ namespace v8App
             {
                 std::unique_ptr<TestCallbackRegistry> registry(TestCallbackRegistry::CreateTestInstance());
 
-                EXPECT_EQ(nullptr, CallbackRegistry::GetNativeObjectInfoFromTypeName(TestCallbackRegisterObj::s_V8NativeObjectInfo.m_TypeName));
-                CallbackRegistry::RegisterObjectInfo(&TestCallbackRegisterObj::s_V8NativeObjectInfo);
-                EXPECT_EQ(&TestCallbackRegisterObj::s_V8NativeObjectInfo, CallbackRegistry::GetNativeObjectInfoFromTypeName(TestCallbackRegisterObj::s_V8NativeObjectInfo.m_TypeName));
+                EXPECT_EQ(nullptr, CallbackRegistry::GetNativeObjectInfoFromTypeName(TestCallbackRegisterObj::s_V8CppObjInfo.m_TypeName));
+                CallbackRegistry::RegisterObjectInfo(&TestCallbackRegisterObj::s_V8CppObjInfo);
+                EXPECT_EQ(&TestCallbackRegisterObj::s_V8CppObjInfo, CallbackRegistry::GetNativeObjectInfoFromTypeName(TestCallbackRegisterObj::s_V8CppObjInfo.m_TypeName));
             }
         }
     }

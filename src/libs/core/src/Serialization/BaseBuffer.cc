@@ -19,7 +19,10 @@ namespace v8App
         BaseBuffer::BaseBuffer(const char *inBuffer, size_t inSize)
         {
             m_Buffer.reserve(inSize);
-            std::copy(inBuffer, inBuffer + inSize, std::back_inserter(m_Buffer));
+            if (inBuffer != nullptr)
+            {
+                std::copy(inBuffer, inBuffer + inSize, std::back_inserter(m_Buffer));
+            }
         }
 
         BaseBuffer::~BaseBuffer()
