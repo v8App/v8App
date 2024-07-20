@@ -2,15 +2,10 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#ifndef _JS_CONTEXT_CREATION_H_
-#define _JS_CONTEXT_CREATION_H_
+#ifndef __V8CONTEXT_PROVIDER_H__
+#define __V8CONTEXT_PROVIDER_H__
 
-#include <unordered_map>
-
-#include "JSRuntime.h"
-#include "JSContext.h"
-#include "JSContextCreationHelper.h"
-#include "V8Types.h"
+#include "IJSContextProvider.h"
 
 namespace v8App
 {
@@ -19,19 +14,18 @@ namespace v8App
         /**
          * Implments the Context Creation hepler for JSContextes
          */
-        class JSContextCreator : public JSContextCreationHelper
+        class V8ContextProvider : public IJSContextProvider
         {
         public:
-            JSContextCreator() = default;
-            virtual ~JSContextCreator() = default;
+            V8ContextProvider() = default;
+            virtual ~V8ContextProvider() = default;
+
             virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
             std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, 
-                      SnapshotMethod inSnapMethod) override;
+                      SnapshotMethod inSnapMethod, size_t inContextIndex) override;
             virtual void DisposeContext(JSContextSharedPtr inContext) override;
-            virtual void RegisterSnapshotCloser(JSContextSharedPtr inContext) override;
-            virtual void UnregisterSnapshotCloser(JSContextSharedPtr inContext) override;
         };
     }
 }
 
-#endif //_JS_CONTEXT_CREATION_H_
+#endif //__V8CONTEXT_PROVIDER_H__

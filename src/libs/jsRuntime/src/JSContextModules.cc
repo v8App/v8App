@@ -79,7 +79,7 @@ namespace v8App
                 return nullptr;
             }
 
-            Assets::AppAssetRootsSharedPtr appRoot = m_Context->GetJSRuntime()->GetApp()->GetAppRoots();
+            Assets::AppAssetRootsSharedPtr appRoot = m_Context->GetJSRuntime()->GetApp()->GetAppRoot();
 
             V8Isolate::Scope iScope(isolate);
             v8::EscapableHandleScope handleScope(isolate);
@@ -380,7 +380,7 @@ namespace v8App
         {
             // TODO:Review this for changes to use generic_string() of path for a consistent path separator
             std::filesystem::path absImportPath = inImportPath;
-            Assets::AppAssetRootsSharedPtr appRoots = m_Context->GetJSRuntime()->GetApp()->GetAppRoots();
+            Assets::AppAssetRootsSharedPtr appRoots = m_Context->GetJSRuntime()->GetApp()->GetAppRoot();
             V8Isolate *ioslate = m_Context->GetIsolate();
             JSModuleInfoSharedPtr moduleInfo = std::make_shared<JSModuleInfo>(m_Context);
             moduleInfo->SetAttributesInfo(inAttributesInfo);
@@ -583,7 +583,7 @@ namespace v8App
             if (importData == nullptr)
             {
                 Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "Failed to get teh import data for importing module"}};
+                    {Log::MsgKey::Msg, "Failed to get the import data for importing module"}};
                 LOG_ERROR(msg);
                 return;
             }
@@ -826,7 +826,7 @@ namespace v8App
             V8Isolate *isolate = inContext->GetIsolate();
             V8LContext context = inContext->GetLocalContext();
             JSAppSharedPtr app = inContext->GetJSRuntime()->GetApp();
-            Assets::AppAssetRootsSharedPtr appRoot = inContext->GetJSRuntime()->GetApp()->GetAppRoots();
+            Assets::AppAssetRootsSharedPtr appRoot = inContext->GetJSRuntime()->GetApp()->GetAppRoot();
             JSContextModulesSharedPtr jsModule = inContext->GetJSModules();
 
             JSModuleInfo::ModuleType moduleType = inModuleInfo->GetAttributesInfo().m_Type;

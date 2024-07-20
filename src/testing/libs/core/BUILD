@@ -8,6 +8,7 @@ v8App_test(
         "Assets/BaseAssettest.cc",
         "Assets/BinaryAssetTest.cc",
         "Assets/TextAssetTest.cc",
+        "Containers/NamedIndexesTest.cc",
         "Logging/LogDeathTest.cc",
         "Logging/LogJSONFileTest.cc",
         "Logging/LogTest.cc",

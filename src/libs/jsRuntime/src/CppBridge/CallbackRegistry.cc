@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include "Utils/Format.h"
+
 #include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8FunctionTemplate.h"
 #include "CppBridge/V8CppObjInfo.h"

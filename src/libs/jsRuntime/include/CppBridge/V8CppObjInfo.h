@@ -19,13 +19,13 @@ namespace v8App
     {
         namespace CppBridge
         {
-            class V8NativeObjectBase;
+            class V8CppObjectBase;
 
             /**
              * Serialize/Deserialize function pointers for snapshots
              */
-            using DeserializeCppObject = V8NativeObjectBase *(*)(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer& inBuffer);
-            using SerializeCppObject = void (*)(Serialization::WriteBuffer& inBuffer, V8NativeObjectBase *inCppObject);
+            using DeserializeCppObject = V8CppObjectBase *(*)(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer);
+            using SerializeCppObject = void (*)(Serialization::WriteBuffer &inBuffer, V8CppObjectBase *inCppObject);
 
             /**
              * Provides a static type name for the NativeObject to be used to look up
@@ -38,7 +38,16 @@ namespace v8App
                 /**
                  * Gets the Object info form the Object
                  */
-                static V8CppObjInfo *From(V8LObject inObject);
+                static V8CppObjInfo *From(V8LObject inObject)
+                {
+                    if (inObject->InternalFieldCount() != (int)V8CppObjDataIntField::MaxInternalFields)
+                    {
+                        return nullptr;
+                    }
+                    V8CppObjInfo *info = static_cast<V8CppObjInfo *>(
+                        inObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInfo));
+                    return info;
+                }
 
                 /**
                  * The type name of the native obj usually the class name

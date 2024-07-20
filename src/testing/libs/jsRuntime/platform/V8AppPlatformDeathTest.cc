@@ -6,13 +6,15 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+
 #include "V8AppPlatform.h"
+#include "IJSPlatformRuntimeProvider.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        class TestDeathIsolateHelper : public PlatformIsolateHelper
+        class TestDeathIsolateHelper : public IJSPlatformRuntimeProvider
         {
         public:
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override
@@ -48,8 +50,8 @@ namespace v8App
         TEST(V8AppPlatformDeathTest, InitAfterDestory)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
-            ASSERT_EXIT({
-                PlatformIsolateHelperUniquePtr helper = std::make_unique<TestDeathIsolateHelper>();
+            ASSERT_DEATH({
+                PlatformRuntimeProviderUniquePtr helper = std::make_unique<TestDeathIsolateHelper>();
                 V8AppPlatform::InitializeV8(std::move(helper));
                 std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
 
@@ -61,8 +63,7 @@ namespace v8App
                 V8AppPlatform::InitializeV8(std::move(helper));
 
                 std::exit(0);
-            },
-                        testing::ExitedWithCode(0), "");
+            }, "");
         }
     } // namespace JSRuntime
 } // namespace v8App

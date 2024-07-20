@@ -164,12 +164,12 @@ namespace v8App
             }
         }
 
-        void V8AppPlatform::SetIsolateHelper(PlatformIsolateHelperUniquePtr inHelper)
+        void V8AppPlatform::SetIsolateHelper(PlatformRuntimeProviderUniquePtr inHelper)
         {
             m_IsolateHelper = std::move(inHelper);
         }
 
-        void V8AppPlatform::InitializeV8(PlatformIsolateHelperUniquePtr inHelper)
+        void V8AppPlatform::InitializeV8(PlatformRuntimeProviderUniquePtr inHelper)
         {
             if (s_Platform != nullptr && s_PlatformInited)
             {
@@ -208,6 +208,7 @@ namespace v8App
                 v8::V8::DisposePlatform();
             }
             s_PlatformDestoryed = true;
+            s_PlatformInited = false;
             s_Platform.reset();
         }
 

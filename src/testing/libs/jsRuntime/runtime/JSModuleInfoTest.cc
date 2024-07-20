@@ -117,7 +117,7 @@ namespace v8App
             JSModuleInfo info(m_Context);
             V8ContextScope cScope(m_Context->GetLocalContext());
 
-            std::filesystem::path filePath = m_App->GetAppRoots()->GetAppRoot() / std::filesystem::path("js/UnboundScript.js");
+            std::filesystem::path filePath = m_App->GetAppRoot()->GetAppRoot() / std::filesystem::path("js/UnboundScript.js");
             V8ScriptSourceUniquePtr source = m_App->GetCodeCache()->LoadScriptFile(filePath, m_Isolate);
             V8LModule module = V8ScriptCompiler::CompileModule(m_Isolate, source.get()).ToLocalChecked();
             module->InstantiateModule(m_Context->GetLocalContext(), JSModuleInfoInternal::UnresovledCallback);

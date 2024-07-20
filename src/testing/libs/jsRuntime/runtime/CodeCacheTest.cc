@@ -139,7 +139,7 @@ namespace v8App
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
-            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoot()->GetAppRoot();
             std::filesystem::path testPath = appRoot / std::filesystem::path("resources/empty.js");
 
             EXPECT_EQ(nullptr, codeCache.LoadScriptFile(std::filesystem::path(testPath), m_Isolate));
@@ -236,7 +236,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
             // file doesn't exist
-            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoot()->GetAppRoot();
             std::filesystem::path testPath = appRoot / std::filesystem::path("js/cacheTests.js");
             EXPECT_EQ(nullptr, codeCache.TestCreateCacheInfo(testPath.generic_string()));
             expected = {
@@ -277,7 +277,7 @@ namespace v8App
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
             TestCodeCache codeCache(m_App);
-            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoot()->GetAppRoot();
 
             std::filesystem::path testPath = appRoot / std::filesystem::path("test/test.js");
             EXPECT_TRUE(codeCache.TestGenerateCachePath(testPath).empty());
@@ -300,7 +300,7 @@ namespace v8App
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
             TestCodeCache codeCache(m_App);
-            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoot()->GetAppRoot();
 
             std::filesystem::path testPath = appRoot / std::filesystem::path("js/cacheTest.js");
 
@@ -346,7 +346,7 @@ namespace v8App
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
-            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_Runtime->GetApp()->GetAppRoot()->GetAppRoot();
             std::filesystem::path testPath = appRoot / std::filesystem::path("js/readWriteTest.js");
             std::filesystem::path testCachePath = codeCache.TestGenerateCachePath(testPath);
 

@@ -17,31 +17,20 @@ namespace v8App
     {
         bool V8SnapshotProvider::LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
         {
-            if (m_Loaded == false)
+            if(m_Loaded && inSnapshotPath == m_SnapshotPath)
             {
-                if (LoadDataFile(inApp, inSnapshotPath))
-                {
-                    m_Loaded = true;
-                }
+                return true;
             }
-
-            return m_Loaded;
-        }
-
-        bool V8SnapshotProvider::LoadDataFile(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
-        {
-            if (inSnapshotPath.empty() == false)
-            {
-                m_SnapshotPath = inSnapshotPath;
-            }
-            if (m_SnapshotPath.empty())
+            m_Loaded = false;
+            if (inSnapshotPath.empty())
             {
                 Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "A path needs to be specified at construction or passed to LoadSnapshotData"}};
+                    {Log::MsgKey::Msg, "A path needs to be passed to LoadSnapshotData"}};
                 LOG_ERROR(msg);
                 return false;
             }
-            std::filesystem::path absPath = inApp->GetAppRoots()->MakeAbsolutePathToAppRoot(m_SnapshotPath);
+            m_SnapshotPath = inSnapshotPath;
+            std::filesystem::path absPath = inApp->GetAppRoot()->MakeAbsolutePathToAppRoot(m_SnapshotPath);
             if (absPath.empty())
             {
                 Log::LogMessage msg = {
@@ -58,86 +47,23 @@ namespace v8App
             }
 
             m_SnapshotPath = absPath;
+            m_AssetFile.SetPath(absPath);
 
             std::ifstream snapData(absPath, std::ios_base::binary | std::ios_base::ate);
-            if (snapData.is_open() == false || snapData.fail())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to open the snapshot file {}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            int dataLength = snapData.tellg();
-            snapData.seekg(0, std::ios::beg);
-            std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
-            snapData.read(buf.get(), dataLength);
-            if (snapData.fail())
+            if (m_AssetFile.ReadAsset() == false)
             {
                 Log::LogMessage msg = {
                     {Log::MsgKey::Msg, Utils::format("Failed to read the snapshot file {}", m_SnapshotPath)}};
                 LOG_ERROR(msg);
                 return false;
             }
-            m_StartupData = V8StartupData{buf.release(), dataLength};
-            return true;
-        }
 
-        v8::SerializeInternalFieldsCallback V8SnapshotProvider::GetInternalSerializerCallaback()
-        {
-            return v8::SerializeInternalFieldsCallback(&V8SnapshotProvider::SerializeInternalField_Internal, this);
-        }
+            const Assets::BinaryByteVector& data = m_AssetFile.GetContent();
 
-        v8::SerializeContextDataCallback V8SnapshotProvider::GetContextSerializerCallback()
-        {
-            return v8::SerializeContextDataCallback(&V8SnapshotProvider::SerializeContextInternalField_Internal, this);
-        }
+            m_StartupData = V8StartupData{reinterpret_cast<const char*>(data.data()), (int)data.size()};
+            m_Loaded = true;
 
-        v8::DeserializeInternalFieldsCallback V8SnapshotProvider::GetInternalDeserializerCallback()
-        {
-            return v8::DeserializeInternalFieldsCallback(V8SnapshotProvider::DeserializeInternalField_Internal, this);
-        }
-
-        v8::DeserializeContextDataCallback V8SnapshotProvider::GetContextDeserializerCallaback()
-        {
-            return v8::DeserializeContextDataCallback(V8SnapshotProvider::DeserializeContextInternalField_Internal, this);
-        }
-
-        V8StartupData V8SnapshotProvider::SerializeInternalField_Internal(V8LObject inHolder, int inIndex, void *inData)
-        {
-            V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
-            if (provider != nullptr)
-            {
-                provider->SerializeInternalField(inHolder, inIndex);
-            }
-            return {nullptr, 0};
-        }
-
-        V8StartupData V8SnapshotProvider::SerializeContextInternalField_Internal(V8LContext inHolder, int inIndex, void *inData)
-        {
-            V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
-            if (provider != nullptr)
-            {
-                provider->SerializeContextInternalField(inHolder, inIndex);
-            }
-            return {nullptr, 0};
-        }
-
-        void V8SnapshotProvider::DeserializeInternalField_Internal(V8LObject inHolder, int inIndex, V8StartupData inPayload, void *inData)
-        {
-            V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
-            if (provider != nullptr)
-            {
-                provider->DeserializeInternalField(inHolder, inIndex, inPayload);
-            }
-        }
-
-        void V8SnapshotProvider::DeserializeContextInternalField_Internal(V8LContext inHolder, int inIndex, V8StartupData inPayload, void *inData)
-        {
-            V8SnapshotProvider *provider = static_cast<V8SnapshotProvider *>(inData);
-            if (provider != nullptr)
-            {
-                provider->DeserializeContextInternalField(inHolder, inIndex, inPayload);
-            }
+            return m_Loaded;
         }
     }
 }

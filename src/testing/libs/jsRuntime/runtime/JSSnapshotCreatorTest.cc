@@ -12,9 +12,9 @@
 #include "CppBridge/CallbackRegistry.h"
 #include "JSUtilities.h"
 #include "CppBridge/V8FunctionTemplate.h"
-#include "CppBridge/V8NativeObject.h"
+#include "CppBridge/V8CppObject.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
-#include "CppBridge/V8NativeObjectHandle.h"
+#include "CppBridge/V8CppObjHandle.h"
 
 namespace v8App
 {
@@ -50,7 +50,7 @@ namespace v8App
             CppBridge::CallbackRegistry::RegisterGlobalRegisterer(&RegisterFuncTemplate);
         }
 
-        class TestSnapObject final : public CppBridge::V8NativeObject<TestSnapObject>
+        class TestSnapObject final : public CppBridge::V8CppObject<TestSnapObject>
         {
         public:
             virtual ~TestSnapObject()
@@ -60,13 +60,13 @@ namespace v8App
         
             static inline TestSnapObject *snapObjInstance = nullptr;
 
-            DEF_V8NATIVE_FUNCTIONS(TestSnapObject);
+            DEF_V8CPP_OBJ_FUNCTIONS(TestSnapObject);
 
             static V8LValue Constructor(V8Isolate *isolate)
             {
                 JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
                 V8LContext context = isolate->GetCurrentContext();
-                CppBridge::V8NativeObjectHandle<TestSnapObject> handle = TestSnapObject::NewObj(runtime, context);
+                CppBridge::V8CppObjHandle<TestSnapObject> handle = TestSnapObject::NewObj(runtime, context);
                 snapObjInstance = handle.Get();
                 return handle.ToV8();
             }
@@ -78,7 +78,7 @@ namespace v8App
             int m_Value = 5;
         };
 
-        IMPL_DESERIALIZER(TestSnapObject)
+        IMPL_V8CPPOBJ_DESERIALIZER(TestSnapObject)
         {
             // TestSnapObject::snapObjInstance = new TestSnapObject();
             // int *value = (int *)inSerialized.data;
@@ -86,7 +86,7 @@ namespace v8App
             // return TestSnapObject::snapObjInstance;
         }
 
-        IMPL_SERIALIZER(TestSnapObject)
+        IMPL_V8CPPOBJ_SERIALIZER(TestSnapObject)
         {
             TestSnapObject *instance = reinterpret_cast<TestSnapObject *>(inNativeObject);
             V8StartupData data;
@@ -96,14 +96,14 @@ namespace v8App
             return data;
         }
 
-        IMPL_REGISTER_CLASS_FUNCS(TestSnapObject)
+        IMPL_V8CPPOBJ_REGISTER_CLASS_FUNCS(TestSnapObject)
         {
             CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestSnapObject::Constructor));
             CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestSnapObject::SetValue));
             CppBridge::CallbackRegistry::Register(Utils::MakeCallback(&TestSnapObject::GetValue));
         }
 
-        IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(TestSnapObject)
+        IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(TestSnapObject)
         {
             CppBridge::V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), inGlobal, "TestSnapObject");
             V8LFuncTpl tpl =
@@ -120,14 +120,12 @@ namespace v8App
             std::filesystem::path snapshotFile = "playground.dat";
             snapshotFile = s_TestDir / snapshotFile;
 
-            m_App->SetEntryPointScript("%JS%/LoadModules.js");
-
             JSAppSharedPtr snapApp = m_App->CreateSnapshotApp();
             snapApp->AppInit();
-            JSRuntimeSharedPtr runtime = snapApp->GetJSRuntime();
+            JSRuntimeSharedPtr runtime = snapApp->GetMainRuntime();
 
             {
-                V8Isolate *isolate = snapApp->GetJSRuntime()->GetIsolate();
+                V8Isolate *isolate = runtime->GetIsolate();
                 V8IsolateScope iScope(isolate);
                 V8HandleScope hScope(isolate);
 
@@ -142,14 +140,8 @@ namespace v8App
                     snapObj.value = 100;
                 )";
 
-                V8TryCatch try_catch(isolate);
-
-                V8LString source1 = JSUtilities::StringToV8(isolate, csource1);
-
-                V8LScript script1 = v8::Script::Compile(context, source1).ToLocalChecked();
-
-                V8LValue result;
-                if (script1->Run(context).ToLocal(&result) == false)
+                V8LValue result = jsContext->RunScript(csource1);
+                if (result.IsEmpty())
                 {
                     std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
                     EXPECT_TRUE(false);
@@ -170,8 +162,8 @@ namespace v8App
             JSAppSharedPtr restore = std::make_shared<JSApp>("Restored", playgroundSnap);
             restore->Initialize(s_TestDir, false, std::make_shared<JSContextCreator>());
 
-            runtime = restore->GetJSRuntime();
-            JSContextSharedPtr jsContext = restore->CreateJSContext("Restored", "");
+            runtime = restore->GetMainRuntime();
+            JSContextSharedPtr jsContext = restore->GetMainRuntime()->CreateContext("Restored", "");
             {
                 V8Isolate *isolate = runtime->GetIsolate();
                 V8IsolateScope iScope(isolate);

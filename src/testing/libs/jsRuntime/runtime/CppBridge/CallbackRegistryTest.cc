@@ -11,7 +11,7 @@
 
 #include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8FunctionTemplate.h"
-#include "CppBridge/V8NativeObject.h"
+#include "CppBridge/V8CppObject.h"
 
 namespace v8App
 {
@@ -44,25 +44,25 @@ namespace v8App
                 static inline CallbackRegistry *s_Original = nullptr;
             };
 
-            class TestCallbackRegisterObj final : public CppBridge::V8NativeObject<TestCallbackRegisterObj>
+            class TestCallbackRegisterObj final : public CppBridge::V8CppObject<TestCallbackRegisterObj>
             {
             public:
-                DEF_V8NATIVE_FUNCTIONS(TestCallbackRegisterObj);
+                DEF_V8CPP_OBJ_FUNCTIONS(TestCallbackRegisterObj);
             };
 
-            IMPL_DESERIALIZER(TestCallbackRegisterObj)
+            IMPL_V8CPPOBJ_DESERIALIZER(TestCallbackRegisterObj)
             {
             }
 
-            IMPL_SERIALIZER(TestCallbackRegisterObj)
+            IMPL_V8CPPOBJ_SERIALIZER(TestCallbackRegisterObj)
             {
             }
 
-            IMPL_REGISTER_CLASS_FUNCS(TestCallbackRegisterObj)
+            IMPL_V8CPPOBJ_REGISTER_CLASS_FUNCS(TestCallbackRegisterObj)
             {
             }
 
-            IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(TestCallbackRegisterObj)
+            IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(TestCallbackRegisterObj)
             {
             }
 

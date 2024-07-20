@@ -2,6 +2,7 @@
 #define __V8_TYPES_H__
 
 #include "v8/v8-platform.h"
+#include "v8/libplatform/libplatform.h"
 #include "v8/v8-snapshot.h"
 #include "v8/v8-cppgc.h"
 #include "v8/v8.h"
@@ -125,6 +126,7 @@ namespace v8App
         using V8ScriptSourceUniquePtr = std::unique_ptr<v8::ScriptCompiler::Source>;
 
         using V8LScript = v8::Local<v8::Script>;
+        using V8MLScript = v8::MaybeLocal<v8::Script>;
 
         using V8ScriptOrigin = v8::ScriptOrigin;
 
@@ -183,10 +185,12 @@ namespace v8App
 
         using V8BlockingType = v8::BlockingType;
 
+        using IdleTaskSupport = v8::platform::IdleTaskSupport;
+
         /**
          * v8App Types
          */
-        using PlatformIsolateHelperUniquePtr = std::unique_ptr<class PlatformIsolateHelper>;
+        using PlatformRuntimeProviderUniquePtr = std::unique_ptr<class IJSPlatformRuntimeProvider>;
 
         using JSAppSharedPtr = std::shared_ptr<class JSApp>;
 
@@ -195,7 +199,10 @@ namespace v8App
         using JSRuntimeWeakPtr = std::weak_ptr<class JSRuntime>;
         using JSRuntimeSharedPtr = std::shared_ptr<class JSRuntime>;
 
-        using JSContextCreationHelperSharedPtr = std::shared_ptr<class JSContextCreationHelper>;
+        using IJSSnapshotProviderSharedPtr = std::shared_ptr<class IJSSnapshotProvider>;
+        using IJSRuntimeProviderSharedPtr = std::shared_ptr<class IJSRuntimeProvider>;
+        using IJSContextProviderSharedPtr = std::shared_ptr<class IJSContextProvider>;
+
         using V8SnapshotProviderSharedPtr = std::shared_ptr<class V8SnapshotProvider>;
 
         using JSContextSharedPtr = std::shared_ptr<class JSContext>;
@@ -209,7 +216,7 @@ namespace v8App
         /**
          * The method to use when snapshotting the context.
          * kNamespaceOnly will only setup the global object if needed
-         * kNamespaceAndEntrypoint with setup up the global object and run the appropriate entry point script
+         * kNamespaceAndEntrypoint with setup up the global object and run the entry point script
          */
         enum class SnapshotMethod : int
         {
@@ -217,6 +224,33 @@ namespace v8App
             kNamespaceAndEntrypoint
         };
 
+        /**
+         * Internal field for the Native Object.
+         * Declared here since we need to provide the indexes
+         * to the CppHeap
+         */
+        enum class V8CppObjDataIntField : int
+        {
+            CppHeapID,
+            ObjInfo,
+            ObjInstance,
+            MaxInternalFields
+        };
+
+        /**
+         * Struct that holds the provider classes to manage runtimes, contextes and snapshots
+         */
+        struct AppProviders
+        {
+            AppProviders() {}
+            AppProviders(IJSSnapshotProviderSharedPtr inSnapshotProvider, IJSRuntimeProviderSharedPtr inRuntimeProvider,
+                         IJSContextProviderSharedPtr inContextProvidr) : m_SnapshotProvider(inSnapshotProvider),
+                                                                         m_RuntimeProvider(inRuntimeProvider), 
+                                                                         m_ContextProvider(inContextProvidr) {}
+            IJSSnapshotProviderSharedPtr m_SnapshotProvider;
+            IJSRuntimeProviderSharedPtr m_RuntimeProvider;
+            IJSContextProviderSharedPtr m_ContextProvider;
+        };
     }
 }
 #endif //__V8_TYPES_H__

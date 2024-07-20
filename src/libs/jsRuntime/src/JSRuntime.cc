@@ -16,14 +16,19 @@
 #include "CppBridge/CallbackRegistry.h"
 #include "JSContext.h"
 #include "V8Types.h"
+#include "V8AppPlatform.h"
+#include "IJSSnapshotProvider.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        JSRuntime::JSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName)
-            : m_IdleEnabled(inEnableIdle), m_App(inApp), m_Name(inName)
+        JSRuntime::JSRuntime(JSAppSharedPtr inApp, IdleTaskSupport inEnableIdle,
+                             std::string inName, bool inSetupForSnapshot, size_t inRuntimeIndex)
+            : m_IdleEnabled(inEnableIdle), m_App(inApp), m_Name(inName),
+              m_IsSnapshotter(inSetupForSnapshot), m_SnapshotIndex(inRuntimeIndex)
         {
+            DCHECK_NOT_NULL(inApp.get());
             m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
         }
 
@@ -32,32 +37,44 @@ namespace v8App
             DisposeRuntime();
         }
 
-        JSRuntimeSharedPtr JSRuntime::CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
-                                                      JSContextCreationHelperSharedPtr inContextCreator, bool inForSnapshot)
+        JSRuntime::JSRuntime(JSRuntime &&inRuntime)
         {
-            DCHECK_NOT_NULL(inApp.get());
-            JSRuntimeSharedPtr jsRuntime = std::make_shared<JSRuntime>(inApp, inEnableIdle, inName);
-            jsRuntime->SetContextCreationHelper(inContextCreator);
-            if (jsRuntime->CreateIsolate(inForSnapshot) == false)
+            m_App = std::move(inRuntime.m_App);
+            m_IdleEnabled = inRuntime.m_IdleEnabled;
+            m_Name = inRuntime.m_Name;
+            m_HandleClosers = std::move(inRuntime.m_HandleClosers);
+            m_Isolate = std::move(inRuntime.m_Isolate);
+            m_Contextes = std::move(inRuntime.m_Contextes);
+            m_TaskRunner = std::move(inRuntime.m_TaskRunner);
+            m_ObjectTemplates = std::move(inRuntime.m_ObjectTemplates);
+            m_Creator = std::move(inRuntime.m_Creator);
+            m_IsSnapshotter = inRuntime.m_IsSnapshotter;
+            m_CppHeapID = inRuntime.m_CppHeapID;
+
+            m_Initialized = inRuntime.m_Initialized;
+            inRuntime.m_Initialized = false;
+        }
+
+        bool JSRuntime::Initialize(AppProviders inAppProviders)
+        {
+            if (inAppProviders.m_ContextProvider != nullptr)
             {
-                return nullptr;
+                m_CustomContextProvider = inAppProviders.m_ContextProvider;
             }
-            return jsRuntime;
-        }
 
-        void JSRuntime::Initialize()
-        {
+            if (m_Initialized)
+            {
+                return true;
+            }
+
+            if (CreateIsolate() == false)
+            {
+                return false;
+            }
+
             JSContextModules::SetupModulesCallbacks(m_Isolate.get());
-        }
-
-        V8TaskRunnerSharedPtr JSRuntime::GetForegroundTaskRunner()
-        {
-            return m_TaskRunner;
-        }
-
-        bool JSRuntime::IdleTasksEnabled()
-        {
-            return m_IdleEnabled == IdleTasksSupport::kIdleTasksEnabled;
+            m_Initialized = true;
+            return true;
         }
 
         JSRuntimeSharedPtr JSRuntime::GetJSRuntimeFromV8Isolate(V8Isolate *inIsloate)
@@ -126,23 +143,21 @@ namespace v8App
             return it->second.Get(m_Isolate.get());
         }
 
-        void JSRuntime::SetContextCreationHelper(JSContextCreationHelperSharedPtr inCreator)
-        {
-            m_ContextCreation = inCreator;
-        }
-
-        JSContextCreationHelperSharedPtr JSRuntime::GetContextCreationHelper()
-        {
-            return m_ContextCreation;
-        }
-
         JSContextSharedPtr JSRuntime::CreateContext(std::string inName, std::filesystem::path inEntryPoint, std::string inNamespace,
                                                     std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
         {
-            CHECK_NOT_NULL(m_ContextCreation);
-            JSContextSharedPtr context = m_ContextCreation->CreateContext(shared_from_this(), inName,
-                                                                          inNamespace, inEntryPoint, inSnapEntryPoint,
-                                                                          inSupportsSnapshot, inSnapMethod);
+            if (GetContextProvider() == nullptr)
+            {
+                return nullptr;
+            }
+            size_t contextIndex = m_ContextNamespaces.GetIndexForName(ResolveContextName(inName, inNamespace, inSnapMethod));
+            if(contextIndex == m_ContextNamespaces.GetMaxSupportedIndexes())
+            {
+                contextIndex = 0;
+            }
+            JSContextSharedPtr context = GetContextProvider()->CreateContext(shared_from_this(), inName,
+                                                                             inNamespace, inEntryPoint, inSnapEntryPoint,
+                                                                             inSupportsSnapshot, inSnapMethod, contextIndex);
             if (context == nullptr)
             {
                 Log::LogMessage message;
@@ -152,7 +167,7 @@ namespace v8App
             else
             {
                 m_Contextes.insert(std::make_pair(inName, context));
-                m_ContextCreation->RegisterSnapshotCloser(context);
+                //m_ContextProvider->RegisterSnapshotCloser(context);
             }
             return context;
         }
@@ -177,35 +192,21 @@ namespace v8App
             DisposeContext(context);
         }
 
-        std::string JSRuntime::GetNamespaceForSnapIndex(size_t inSnapIndex)
-        {
-            DCHECK_NOT_NULL(m_ContextCreation);
-            return m_ContextCreation->GetNamespaceForSnapIndex(inSnapIndex);
-        }
-
-        size_t JSRuntime::GetSnapIndexForNamespace(std::string inNamespace)
-        {
-            DCHECK_NOT_NULL(m_ContextCreation);
-            return m_ContextCreation->GetSnapIndexForNamespace(inNamespace);
-        }
-
-        bool JSRuntime::AddSnapIndexNamespace(size_t inSnapIndex, std::string inSnapIndexName)
-        {
-            DCHECK_NOT_NULL(m_ContextCreation);
-            return m_ContextCreation->AddSnapIndexNamespace(inSnapIndex, inSnapIndexName);
-        }
-
         void JSRuntime::DisposeContext(JSContextSharedPtr inContext)
         {
-            DCHECK_NOT_NULL(m_ContextCreation);
             if (inContext == nullptr)
             {
                 return;
             }
 
-            m_ContextCreation->UnregisterSnapshotCloser(inContext);
+            if (m_App->GetContextProvider() == nullptr)
+            {
+                return;
+            }
 
-            m_ContextCreation->DisposeContext(inContext);
+            // m_ContextProvider->UnregisterSnapshotCloser(inContext);
+
+            m_App->GetContextProvider()->DisposeContext(inContext);
             for (auto it = m_Contextes.begin(); it != m_Contextes.end(); it++)
             {
                 if (it->second == inContext)
@@ -237,11 +238,16 @@ namespace v8App
             m_Isolate.reset();
             m_App.reset();
             m_TaskRunner.reset();
+            m_Initialized = false;
         }
 
-        V8SnapshotCreatorSharedPtr JSRuntime::GetSnapshotCreator()
+        IJSContextProviderSharedPtr JSRuntime::GetContextProvider()
         {
-            return m_Creator;
+            if (m_CustomContextProvider != nullptr || m_App == nullptr)
+            {
+                return m_CustomContextProvider;
+            }
+            return m_App->GetContextProvider();
         }
 
         void JSRuntime::CloseOpenHandlesForSnapshot()
@@ -331,14 +337,23 @@ namespace v8App
             return m_Isolate->GetCppHeap();
         }
 
-        bool JSRuntime::CreateIsolate(bool inForSnapshot)
+        std::string JSRuntime::ResolveContextName(std::string inName, std::string inNamespace, SnapshotMethod inMethod)
         {
-            if (m_App == nullptr || m_App->GetSnapshotProvider() == nullptr)
+            if(inMethod == SnapshotMethod::kNamespaceOnly)
+            {
+                return inNamespace;
+            }
+            return inNamespace +"::" + inName;
+        }
+
+        bool JSRuntime::CreateIsolate()
+        {
+            if (m_App->GetSnapshotProvider() == nullptr)
             {
                 return false;
             }
             V8Isolate::CreateParams params;
-            params.snapshot_blob = m_App->GetSnapshotProvider()->GetSnapshotData();
+            params.snapshot_blob = m_App->GetSnapshotProvider()->GetSnapshotData(m_SnapshotIndex);
             params.external_references = m_App->GetSnapshotProvider()->GetExternalReferences();
 
             // custom deleter since we have to call dispose
@@ -361,7 +376,7 @@ namespace v8App
             // the isolate will own the heap so release it
             heap.release();
 
-            if (inForSnapshot)
+            if (m_IsSnapshotter)
             {
                 m_Creator = std::make_unique<V8SnapCreator>(isolate, params);
             }
@@ -370,6 +385,38 @@ namespace v8App
                 V8Isolate::Initialize(isolate, params);
             }
             return true;
+        }
+
+        bool JSRuntime::CloneRuntimeForSnapshotting(JSRuntimeSharedPtr inClonee)
+        {
+            for (auto it : m_Contextes)
+            {
+                if (it.second->SupportsSnapshots() == false)
+                {
+                    continue;
+                }
+//                JSContextSharedPtr snapContext = it.second->CloneForSnapshot(shared_from_this());
+//                auto [iit, success] = m_Contextes.insert(std::make_pair(snapContext->GetName(), snapContext));
+//                if (success == false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool JSRuntime::AddContextesToSnapshot()
+        {
+            if (m_Creator == nullptr)
+            {
+                return false;
+            }
+            IJSSnapshotProviderSharedPtr snapProvider = m_App->GetSnapshotProvider();
+            for (auto it : m_Contextes)
+            {
+                size_t index = m_Creator->AddContext(it.second->GetLocalContext(), snapProvider->GetInternalSerializerCallaback(), snapProvider->GetContextSerializerCallback());
+                m_ContextNamespaces.AddNamedIndex(index, it.second->GetNamespace());
+            }
         }
 
         V8TaskRunnerSharedPtr JSRuntimeIsolateHelper::GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority)

@@ -18,7 +18,7 @@ namespace v8App
             return m_Loaded;
         }
 
-        const V8StartupData *TestSnapshotProvider::GetSnapshotData()
+        const V8StartupData *TestSnapshotProvider::GetSnapshotData(size_t inIndex)
         {
             // if were loaded then return the data other wise return
             if (m_ReturnEmpty)

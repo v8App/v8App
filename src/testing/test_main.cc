@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 
     v8::V8::SetFlagsFromString("--expose_gc");
 
-    v8App::JSRuntime::PlatformIsolateHelperUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
+    v8App::JSRuntime::PlatformRuntimeProviderUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
     v8App::JSRuntime::V8AppPlatform::InitializeV8(std::move(helper));
 #endif
     std::cout << std::endl

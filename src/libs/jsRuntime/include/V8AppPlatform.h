@@ -19,17 +19,8 @@ namespace v8App
     namespace JSRuntime
     {
         /**
-         * A Helper class to remove a reference to the JSRuntime and isolate for testing.
+         * Class that implments v8 platform for v8App
          */
-        class PlatformIsolateHelper
-        {
-        public:
-            virtual ~PlatformIsolateHelper() = default;
-            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) = 0;
-            virtual bool IdleTasksEnabled(V8Isolate *inIsolate) = 0;
-        };
-
-
         class V8AppPlatform : public v8::Platform
         {
         public:
@@ -64,9 +55,9 @@ namespace v8App
             void SetHighAllocatoionObserver(V8HighAllocationThroughputObserver *inObserver);
             void SetZoneBlockingAllocator(V8ZoneBackingAllocator *inZoneAllocator);
 
-            void SetIsolateHelper(PlatformIsolateHelperUniquePtr inHelper);
+            void SetIsolateHelper(PlatformRuntimeProviderUniquePtr inHelper);
 
-            static void InitializeV8(PlatformIsolateHelperUniquePtr inHelper);
+            static void InitializeV8(PlatformRuntimeProviderUniquePtr inHelper);
             static void ShutdownV8();
 
             static std::shared_ptr<V8AppPlatform> Get();
@@ -124,7 +115,7 @@ namespace v8App
             static bool s_PlatformDestoryed;
             static bool s_PlatformInited;
 
-            PlatformIsolateHelperUniquePtr m_IsolateHelper;
+            PlatformRuntimeProviderUniquePtr m_IsolateHelper;
 
             static std::shared_ptr<V8AppPlatform> s_Platform;
         };

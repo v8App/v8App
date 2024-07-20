@@ -9,7 +9,7 @@
 #include <filesystem>
 
 #include "JSRuntime.h"
-#include "JSContextCreationHelper.h"
+#include "IJSContextProvider.h"
 #include "JSContextModules.h"
 #include "V8Types.h"
 
@@ -32,7 +32,7 @@ namespace v8App
             };
 
             JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
-                      std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                      size_t inContextIndex, std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
                       SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
             ~JSContext();
 
@@ -50,7 +50,7 @@ namespace v8App
             JSRuntimeSharedPtr GetJSRuntime() { return m_Runtime; }
 
             /**
-             * Shortcut to get to the JSApp faster than chainging through the GetJSRuntime() above
+             * Shortcut to get to the JSApp faster than chaining through the GetJSRuntime() above
              */
             JSAppSharedPtr GetJSApp();
 
@@ -75,7 +75,7 @@ namespace v8App
             /**
              * Gets the snapshot index context created from
              */
-            size_t GetSnapshotIndex() { return m_Index; }
+            size_t GetSnapshotIndex() { return m_SnapIndex; }
 
             /**
              * Gets a local context for use
@@ -83,7 +83,7 @@ namespace v8App
             V8LContext GetLocalContext();
 
             /**
-             * Sets up teh callback to create shadow realsm
+             * Sets up the callback to create shadow realsm
              */
             static void SetupShadowRealmCallback(V8Isolate *inIsolate);
 
@@ -99,7 +99,7 @@ namespace v8App
             /**
              * Returns if the context supports being snapshotted
              */
-            bool SupportsSnapshots() { return m_m_SupportsSnapshots; }
+            bool SupportsSnapshots() { return m_SupportsSnapshots; }
 
             /**
              * Gets the method fo snapshotting the context
@@ -116,11 +116,29 @@ namespace v8App
              */
             std::filesystem::path GetSnapshotEntrypoint() { return (m_SnapEntryPoint.empty()) ? m_EntryPoint : m_SnapEntryPoint; }
 
+            bool RunModule(std::filesystem::path inModulePath);
+            V8LValue RunScript(std::string inScript);
+
+            /**
+             * Returns whether the context has been initialized
+             */
+            bool IsInitialized() { return m_Initialized; }
         protected:
             /**
-             * Closes teh Global holding the context for snapshots
+             * Runs the entry point script for the snapshot
+             */
+            bool RunEntryPoint(bool inSnapshottting);
+
+            /**
+             * Clones the context for snapshotting using the specified runtime
+             */
+            JSContextSharedPtr CloneForSnapshot(JSRuntimeSharedPtr inRuntime);
+
+            /**
+             * Closes the Global holding the context for snapshots
              */
             virtual void CloseHandleForSnapshot() override;
+
             /**
              * Closes out the Global for the context and removes the weak ref so a
              *  snapshot can be generated
@@ -144,10 +162,8 @@ namespace v8App
 
             /**
              * Create the v8 context from the given snapshot index.
-             * If the index doesn't exist it'll try using the namespace and
-             * the default v8 context at 0.
              */
-            bool CreateContext(size_t inSnapIndex);
+            bool CreateContext();
             /**
              * Disposes the resources for the js context
              */
@@ -178,7 +194,7 @@ namespace v8App
             /**
              * The snapshot index this context was created from 0 == default v8 context
              */
-            size_t m_Index{0};
+            size_t m_SnapIndex;
             /**
              * The namespace tha tthe context was created with.
              * No namespace means it on;y has the default v8 builtins
@@ -200,7 +216,7 @@ namespace v8App
              * Indicates if this context is snapshottable. The app may not want all it's created
              * contexts to be snapshooted
              */
-            bool m_m_SupportsSnapshots;
+            bool m_SupportsSnapshots;
             /**
              * The methof of snapshotting this context
              */
@@ -209,8 +225,8 @@ namespace v8App
             JSContext(const JSContext &) = delete;
             JSContext &operator=(const JSContext &) = delete;
 
-            friend class JSContextCreator;
-            friend JSRuntime;
+            friend class V8ContextProvider;
+            //friend JSRuntime;
         };
     }
 }

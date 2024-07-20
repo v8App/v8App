@@ -55,7 +55,7 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
             JSModuleInfoSharedPtr info;
             JSModuleInfo::AttributesInfo attributesInfo;
-            std::filesystem::path rootPath = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path rootPath = m_App->GetAppRoot()->GetAppRoot();
 
             V8Isolate::Scope iScope(m_Isolate);
             V8HandleScope hScope(m_Isolate);
@@ -193,7 +193,7 @@ namespace v8App
                       Utils::format("Uncaught SyntaxError: Failed to find module's version: NoModVersion, ImportPath: {}", testPath));
 
             // test relative module path to specified root
-            std::filesystem::path modPath = m_App->GetAppRoots()->FindModuleVersionRootPath("buildModInfo/1.0.0");
+            std::filesystem::path modPath = m_App->GetAppRoot()->FindModuleVersionRootPath("buildModInfo/1.0.0");
             ASSERT_NE("", modPath.string());
 
             tryCatch.Reset();
@@ -241,7 +241,7 @@ namespace v8App
             V8LContext context = m_Context->GetLocalContext();
             V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
             JSModuleInfo::AttributesInfo attributesInfo;
             attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
@@ -313,7 +313,7 @@ namespace v8App
             V8LContext context = m_Context->GetLocalContext();
             V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
             JSModuleInfo::AttributesInfo attributesInfo;
             attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
@@ -387,7 +387,7 @@ namespace v8App
             V8LContext context = m_Context->GetLocalContext();
             V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
             JSModuleInfo::AttributesInfo attributesInfo;
             attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
@@ -414,7 +414,7 @@ namespace v8App
             V8LContext context = m_Context->GetLocalContext();
             V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
             JSModuleInfo::AttributesInfo attributesInfo;
             attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
@@ -440,7 +440,7 @@ namespace v8App
             V8LContext context = m_Context->GetLocalContext();
             V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
             JSModuleInfo::AttributesInfo attributesInfo;
             attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
@@ -508,7 +508,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, LoadModule)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8MBLModule maybeModule;
@@ -532,7 +532,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, LoadJSON)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -558,7 +558,7 @@ namespace v8App
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -592,7 +592,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, InstantiateModuleJSDynamic)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -609,7 +609,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, InstantiateModuleJSON)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -629,7 +629,7 @@ namespace v8App
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -663,7 +663,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, RunModuleJSDynamic)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -683,7 +683,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, RunModuleJSON)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -701,7 +701,7 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, GenerateCodeCache)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);

@@ -20,13 +20,13 @@ namespace v8App
         class BinaryAsset : public BaseAsset
         {
         public:
-            BinaryAsset(std::filesystem::path inAssetPath) : BaseAsset(inAssetPath){}
+            BinaryAsset(std::filesystem::path inAssetPath = std::filesystem::path()) : BaseAsset(inAssetPath){}
             virtual ~BinaryAsset(){}
 
             virtual bool ReadAsset() override;
             virtual bool WriteAsset() override;
 
-            const BinaryByteVector GetContent() { return m_Content; };
+            const BinaryByteVector& GetContent() { return m_Content; };
             bool SetContent(const BinaryByteVector& inContents);
 
         protected:

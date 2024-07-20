@@ -7,7 +7,7 @@
 #include "V8Types.h"
 #include "JSUtilities.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
-#include "CppBridge/V8NativeObject.h"
+#include "CppBridge/V8CppObject.h"
 
 namespace v8App
 {

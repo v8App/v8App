@@ -9,8 +9,10 @@
 #include "TestSnapshotProvider.h"
 
 #include "Utils/Environment.h"
+
 #include "JSContext.h"
-#include "JSContextCreator.h"
+#include "V8ContextProvider.h"
+#include "V8RuntimeProvider.h"
 
 namespace v8App 
 {
@@ -23,12 +25,15 @@ namespace v8App
             testSink->FlushMessages();
 
             const char* suiteName = ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
-            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-            m_App = std::make_shared<JSApp>(suiteName, snapProvider);
-            //no need for a parth the test prover doesn't do the loading the main function does
-            m_App->Initialize(s_TestDir, false, std::make_shared<JSContextCreator>());
+            AppProviders providers;
+            providers.m_SnapshotProvider = std::make_shared<TestSnapshotProvider>();
+            providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
+            providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
+
+            m_App = std::make_shared<JSApp>(suiteName, providers);
+            m_App->Initialize(s_TestDir, false);
             
-            m_Runtime = m_App->GetJSRuntime();
+            m_Runtime = m_App->GetMainRuntime();
             ASSERT_NE(nullptr, m_Runtime);
 
             m_Isolate = m_Runtime->GetIsolate();
@@ -38,13 +43,14 @@ namespace v8App
 
         void V8Fixture::TearDown()
         {
-            if (m_Runtime != nullptr)
+            if (m_Context != nullptr && m_Runtime != nullptr)
             {
                 V8IsolateScope isolateScope(m_Runtime->GetIsolate());
                 V8HandleScope scope(m_Runtime->GetIsolate());
                 m_Runtime->DisposeContext(m_Context);
             }
             m_Isolate = nullptr;
+            m_Context.reset();
             m_Runtime.reset();
             m_App->DisposeApp();
             m_App.reset();

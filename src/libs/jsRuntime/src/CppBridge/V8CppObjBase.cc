@@ -2,8 +2,9 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#include "CppBridge/V8NativeObject.h"
-#include "CppBridge/V8ObjectTemplateBuilder.h"
+#include "CppBridge/V8CppObjBase.h"
+#include "JSRuntime.h"
+#include "JSContext.h"
 
 namespace v8App
 {
@@ -11,38 +12,14 @@ namespace v8App
     {
         namespace CppBridge
         {
-
-            V8CppObjInfo *V8CppObjInfo::From(V8LObject inObject)
+            void V8CppObjectBase::FirstWeakCallback(const v8::WeakCallbackInfo<V8CppObjectBase> &inInfo)
             {
-                if (inObject->InternalFieldCount() != (int)V8CppObjDataIntField::MaxInternalFields)
-                {
-                    return nullptr;
-                }
-                V8CppObjInfo *info = static_cast<V8CppObjInfo *>(
-                    inObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInfo));
-                return info;
-            }
-
-            V8NativeObjectBase::V8NativeObjectBase() = default;
-
-            V8NativeObjectBase::~V8NativeObjectBase()
-            {
-                m_Object.Reset();
-            }
-
-            const char *V8NativeObjectBase::GetTypeName()
-            {
-                return nullptr;
-            }
-
-            void V8NativeObjectBase::FirstWeakCallback(const v8::WeakCallbackInfo<V8NativeObjectBase> &inInfo)
-            {
-                V8NativeObjectBase *baseObject = inInfo.GetParameter();
+                V8CppObjectBase *baseObject = inInfo.GetParameter();
                 baseObject->m_Dead = true;
                 baseObject->m_Object.Reset();
             }
 
-            V8LObject V8NativeObjectBase::CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo)
+            V8LObject V8CppObjectBase::CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo)
             {
                 JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
                 if (jsContext == nullptr)

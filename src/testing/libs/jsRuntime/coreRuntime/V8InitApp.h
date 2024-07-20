@@ -18,7 +18,8 @@
 #include "V8AppPlatform.h"
 #include "JSRuntime.h"
 #include "JSContext.h"
-#include "JSContextCreator.h"
+#include "V8ContextProvider.h"
+#include "V8RuntimeProvider.h"
 
 using bazel::tools::cpp::runfiles::Runfiles;
 
@@ -35,10 +36,16 @@ namespace v8App
                 TestUtils::TestLogSink *testSink = TestUtils::TestLogSink::GetGlobalSink();
                 testSink->FlushMessages();
 
-                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-                m_App = std::make_shared<JSApp>("testCore", snapProvider);
-                m_App->Initialize(s_TestDir, false, std::make_shared<JSContextCreator>());
+                const char *suiteName = ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
+                AppProviders providers;
+                providers.m_SnapshotProvider = std::make_shared<TestSnapshotProvider>();
+                providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
+                providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
+
+                m_App = std::make_shared<JSApp>(suiteName, providers);
+                m_App->Initialize(s_TestDir, false);
             }
+
             void TearDown() override
             {
                 m_App->DisposeApp();

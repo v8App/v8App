@@ -11,14 +11,15 @@ namespace v8App
 {
     namespace JSRuntime
     {
-                /**
+        /**
          * Interface for classes that need to have their handles closed in order
          * to create a snapshot
          */
         class ISnapshotHandleCloser
         {
         public:
-            ~ISnapshotHandleCloser() = default;
+            ISnapshotHandleCloser() = default;
+            virtual ~ISnapshotHandleCloser() = default;
 
         protected:
             virtual void CloseHandleForSnapshot() = 0;

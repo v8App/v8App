@@ -11,9 +11,11 @@
 #include "Serialization/WriteBuffer.h"
 #include "Serialization/TypeSerializer.h"
 
+#include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8CppObjInfo.h"
 #include "JSContext.h"
 #include "JSRuntime.h"
+#include "JSApp.h"
 #include "V8AppSnapshotProvider.h"
 
 namespace v8App
@@ -31,6 +33,65 @@ namespace v8App
             }
 
             return m_Loaded;
+        }
+
+        bool V8AppSnapshotProvider::LoadDataFile(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
+        {
+            if (inSnapshotPath.empty() == false)
+            {
+                m_SnapshotPath = inSnapshotPath;
+            }
+            if (m_SnapshotPath.empty())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, "A path needs to be specified at construction or passed to LoadSnapshotData"}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            std::filesystem::path absPath = inApp->GetAppRoot()->MakeAbsolutePathToAppRoot(m_SnapshotPath);
+            if (absPath.empty())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Specified snapshot path may have escaped the app root. File:{}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            if (std::filesystem::exists(absPath) == false)
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Passed snapshot path doesn't exist {}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+
+            m_SnapshotPath = absPath;
+
+            std::ifstream snapData(absPath, std::ios_base::binary | std::ios_base::ate);
+            if (snapData.is_open() == false || snapData.fail())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Failed to open the snapshot file {}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            int dataLength = snapData.tellg();
+            snapData.seekg(0, std::ios::beg);
+            std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
+            snapData.read(buf.get(), dataLength);
+            if (snapData.fail())
+            {
+                Log::LogMessage msg = {
+                    {Log::MsgKey::Msg, Utils::format("Failed to read the snapshot file {}", m_SnapshotPath)}};
+                LOG_ERROR(msg);
+                return false;
+            }
+            m_Snapshots.insert(std::make_pair("v8", V8StartupData{buf.release(), dataLength}));
+            return true;
+        }
+
+        const intptr_t *V8AppSnapshotProvider::GetExternalReferences()
+        {
+            return CppBridge::CallbackRegistry::GetReferences().data();
         }
 
         V8StartupData V8AppSnapshotProvider::SerializeInternalField(V8LObject inHolder, int inIndex)
@@ -57,14 +118,14 @@ namespace v8App
             if (inIndex == (int)V8CppObjDataIntField::ObjInstance)
             {
                 CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
-                CppBridge::V8NativeObjectBase *instance = static_cast<CppBridge::V8NativeObjectBase *>(inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance));
+                CppBridge::V8CppObjectBase *instance = static_cast<CppBridge::V8CppObjectBase *>(inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance));
                 if (info->m_Serializer != nullptr)
                 {
                     info->m_Serializer(wBuffer, instance);
                     if (wBuffer.HasErrored())
                     {
                         // should thorw and error here
-                        return { nullptr, 0};
+                        return {nullptr, 0};
                     }
                     return {wBuffer.GetDataNew(), (int)wBuffer.BufferSize()};
                 }
@@ -112,7 +173,7 @@ namespace v8App
                     // should probably throw an error
                     return;
                 }
-                CppBridge::V8NativeObjectBase *obj = objInfo->m_Deserializer(inHolder->GetIsolate(), inHolder, rBuffer);
+                CppBridge::V8CppObjectBase *obj = objInfo->m_Deserializer(inHolder->GetIsolate(), inHolder, rBuffer);
                 if (obj == nullptr)
                 {
                     // should probablt throw an error

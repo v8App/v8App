@@ -9,7 +9,8 @@
 #include "v8/cppgc/garbage-collected.h"
 
 #include "CppBridge/V8TypeConverter.h"
-#include "CppBridge/V8NativeObjectHandle.h"
+#include "CppBridge/V8CppObjBase.h"
+#include "CppBridge/V8CppObjHandle.h"
 #include "CppBridge/V8CppObjInfo.h"
 #include "JSRuntime.h"
 #include "JSContext.h"
@@ -21,57 +22,7 @@ namespace v8App
         namespace CppBridge
         {
             class V8ObjectTemplateBuilder;
-            class V8NativeObjectBase;
-
-            /**
-             * Base holder class for native objects
-             */
-            class V8NativeObjectBase : public ISnapshotHandleCloser
-            {
-            protected:
-                V8NativeObjectBase();
-                virtual ~V8NativeObjectBase();
-
-                virtual void CloseHandleForSnapshot() override
-                {
-                    m_Object.Reset();
-                }
-
-                /**
-                 * Gets a Maybe local object from the global object for this cpp object
-                 */
-                V8MBLObject GetJSObject(V8Isolate *inIsolate)
-                {
-                    if (inIsolate == nullptr || m_Object.IsEmpty())
-                    {
-                        return V8MBLObject();
-                    }
-                    return V8MBLObject(V8LObject::New(inIsolate, m_Object));
-                }
-
-                /**
-                 * overrided by the V8NativeObject to return the V8CppObjInfo typename
-                 */
-                virtual const char *GetTypeName();
-
-            protected:
-                /**
-                 * Creates the jsObject and sets up it's internal fields
-                 */
-                V8LObject CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo);
-
-            private:
-                /**
-                 * First callback for when the object is being GC'ed resetting the global v8 object held and marking the class as destorying
-                 */
-                static void FirstWeakCallback(const v8::WeakCallbackInfo<V8NativeObjectBase> &inInfo);
-
-                bool m_Dead = false;
-                V8GObject m_Object;
-
-                V8NativeObjectBase(const V8NativeObjectBase &) = delete;
-                V8NativeObjectBase &operator=(const V8NativeObjectBase &) = delete;
-            };
+            class V8CppObjectBase;
 
             /**
              * JS Objects backed by a Cpp Class should use this class to wrap the JS Object.
@@ -85,12 +36,12 @@ namespace v8App
              * Use the macros defined below to make it easier to define them
              *
              * Desrializes the class data from the startup data
-             * static CppBridge::V8NativeObjectBase *DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer);
+             * static CppBridge::V8CppObjectBase *DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer);
              *
              * Serilizes the class data ot the startup data
-             * static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8NativeObjectBase *inNativeObject);
+             * static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8CppObjectBase *inNativeObject);
              *
-             * Registers all the of the class's methods that are expoed to V8 with teh CallbackRegistry
+             * Registers all the of the class's methods that are expoed to V8 with the CallbackRegistry
              * static void RegisterClassFunctions();
              *
              * Registers the class object template on the passed in isolate. This is registered with the CallbackRegistry
@@ -102,11 +53,10 @@ namespace v8App
              * will leak since the weak class backs wouldn't be setup to delete it when the V8 side is disposed of.
              */
             template <typename T>
-            class V8NativeObject : public V8NativeObjectBase, public cppgc::GarbageCollected<T>
+            class V8CppObject : public V8CppObjectBase, public cppgc::GarbageCollected<T>
             {
             public:
-                V8NativeObject() {}
-                virtual ~V8NativeObject() override {}
+                V8CppObject() {}
 
                 /**
                  * Takes an v8 value and ifi t's an object then attempts to fetch
@@ -129,18 +79,18 @@ namespace v8App
                     {
                         return nullptr;
                     }
-                    return static_cast<T *>(static_cast<V8NativeObjectBase *>(jsObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance)));
+                    return static_cast<T *>(static_cast<V8CppObjectBase *>(jsObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance)));
                 }
 
                 /**
                  * If you have the JSContext so you can just use it
                  */
                 template <typename... Args>
-                static V8NativeObjectHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, JSContextSharedPtr inContext, Args &&...inArgs)
+                static V8CppObjHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, JSContextSharedPtr inContext, Args &&...inArgs)
                 {
                     if (inContext == nullptr)
                     {
-                        return V8NativeObjectHandle<T>();
+                        return V8CppObjHandle<T>();
                     }
                     V8LContext context = inContext->GetLocalContext();
                     return NewObj(inRuntime, context, std::forward<Args>(inArgs)...);
@@ -150,24 +100,24 @@ namespace v8App
                  * Have the local context
                  */
                 template <typename... Args>
-                static V8NativeObjectHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, V8LContext inContext, Args &&...inArgs)
+                static V8CppObjHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, V8LContext inContext, Args &&...inArgs)
                 {
                     if (inRuntime == nullptr)
                     {
-                        return V8NativeObjectHandle<T>();
+                        return V8CppObjHandle<T>();
                     }
                     V8CppHeap *heap = inRuntime->GetCppHeap();
                     if (heap == nullptr)
                     {
-                        return V8NativeObjectHandle<T>();
+                        return V8CppObjHandle<T>();
                     }
                     T *gcObject = cppgc::MakeGarbageCollected<T>(heap->GetAllocationHandle(), std::forward<Args>(inArgs)...);
                     V8LObject jsObject = gcObject->CreateAndSetupJSObject(inContext, &T::s_V8CppObjInfo);
                     if (jsObject.IsEmpty())
                     {
-                        return V8NativeObjectHandle<T>();
+                        return V8CppObjHandle<T>();
                     }
-                    return V8NativeObjectHandle<T>(jsObject, gcObject);
+                    return V8CppObjHandle<T>(jsObject, gcObject);
                 }
 
                 /**
@@ -175,18 +125,18 @@ namespace v8App
                  * hold that is allocated by the cpp heap
                  * Geenerally you would do something like this
                  * visitor->Trace(<some ccpgc variable);
-                 * V8NativeObject::Trace(visitor);
+                 * V8CppObject::Trace(visitor);
                  */
                 virtual void Trace(cppgc::Visitor *visitor) const {}
 
             private:
-                V8NativeObject(const V8NativeObject &) = delete;
-                V8NativeObject &operator=(const V8NativeObject &) = delete;
+                V8CppObject(const V8CppObject &) = delete;
+                V8CppObject &operator=(const V8CppObject &) = delete;
             };
 
             template <typename T>
             struct V8TypeConverter<T *,
-                                   typename std::enable_if<std::is_convertible<T *, V8NativeObjectBase *>::value>::type>
+                                   typename std::enable_if<std::is_convertible<T *, V8CppObjectBase *>::value>::type>
             {
                 static V8MBLValue To(V8Isolate *inIsolate, T **inValue)
                 {
@@ -195,7 +145,7 @@ namespace v8App
 
                 static bool From(V8Isolate *inIsolate, V8LValue inValue, T **outValue)
                 {
-                    cppgc::Member<T> gcObj = V8NativeObject<T>::GetCppObject(inValue);
+                    cppgc::Member<T> gcObj = V8CppObject<T>::GetCppObject(inValue);
                     *outValue = gcObj.Get();
                     return *outValue != nullptr;
                 }
@@ -207,36 +157,36 @@ namespace v8App
 /**
  * Creates the static class info variable and initializes it
  */
-#define DEF_V8NATIVE_FUNCTIONS(ClassName)                                                                                                      \
-    virtual const char *GetTypeName() override { return s_V8CppObjInfo.m_TypeName.c_str(); }                                                   \
-    static CppBridge::V8NativeObjectBase *DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer); \
-    static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8NativeObjectBase *inCppObject);                          \
-    static inline CppBridge::V8CppObjInfo s_V8CppObjInfo{#ClassName, &ClassName::SerializeCppObject, &ClassName::DeserializeCppObject};        \
-    static void RegisterClassFunctions();                                                                                                      \
+#define DEF_V8CPP_OBJ_FUNCTIONS(ClassName)                                                                                                  \
+    virtual std::string GetTypeName() override { return s_V8CppObjInfo.m_TypeName; }                                                        \
+    static CppBridge::V8CppObjectBase *DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer); \
+    static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8CppObjectBase *inCppObject);                          \
+    static inline CppBridge::V8CppObjInfo s_V8CppObjInfo{#ClassName, &ClassName::SerializeCppObject, &ClassName::DeserializeCppObject};     \
+    static void RegisterClassFunctions();                                                                                                   \
     static void RegisterGlobalTemplate(JSContextSharedPtr inContext, V8LObject &inGlobal);
 
 /**
  * Macro to implement the deserialize function
  */
-#define IMPL_DESERIALIZER(ClassName) \
-    CppBridge::V8NativeObjectBase *ClassName::DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer)
+#define IMPL_V8CPPOBJ_DESERIALIZER(ClassName) \
+    CppBridge::V8CppObjectBase *ClassName::DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer)
 
 /**
  * Macro to implement the serializer function
  */
-#define IMPL_SERIALIZER(ClassName) \
-    void ClassName::SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8NativeObjectBase *inCppObject)
+#define IMPL_V8CPPOBJ_SERIALIZER(ClassName) \
+    void ClassName::SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8CppObjectBase *inCppObject)
 
 /**
  * Macro to implement the serializer function
  */
-#define IMPL_REGISTER_CLASS_FUNCS(ClassName) \
+#define IMPL_V8CPPOBJ_REGISTER_CLASS_FUNCS(ClassName) \
     void ClassName::RegisterClassFunctions()
 
 /**
  * Macro to implement the serializer function
  */
-#define IMPL_REGISTER_CLASS_GLOBAL_TEMPLATE(ClassName) \
+#define IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(ClassName) \
     void ClassName::RegisterGlobalTemplate(JSContextSharedPtr inContext, V8LObject &inGlobal)
 
 #endif //__V8_NATIVE_OBJECT_H__

@@ -9,6 +9,7 @@
 
 #include "Logging/LogMacros.h"
 
+#include "CppBridge/CallbackRegistry.h"
 #include "JSApp.h"
 #include "V8SnapshotProvider.h"
 #include "JSContext.h"
@@ -19,10 +20,12 @@ namespace v8App
     namespace JSRuntime
     {
         JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
-                             std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
+                             std::filesystem::path inEntryPoint, size_t inContextIndex, 
+                             std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
                              SnapshotMethod inSnapMethod)
             : m_Runtime(inRuntime), m_Name(inName), m_Namespace(inNamespace), m_EntryPoint(inEntryPoint),
-              m_SnapEntryPoint(inSnapEntryPoint), m_m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
+              m_SnapEntryPoint(inSnapEntryPoint), m_SnapIndex(inContextIndex), 
+              m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
         {
             CHECK_NOT_NULL(m_Runtime.get());
             // We use the : a seperator for shadow names
@@ -136,7 +139,7 @@ namespace v8App
 
         V8MBLContext JSContext::HostCreateShadowRealmContext(V8LContext inInitiator)
         {
-            //TODO: rework this to create the approriate shadow context
+            // TODO: rework this to create the approriate shadow context
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inInitiator);
             if (jsContext == nullptr)
             {
@@ -152,7 +155,7 @@ namespace v8App
 
         void JSContext::MoveContext(JSContext &&inContext)
         {
-            // need to get teh wekref first before we move anything
+            // need to get the wekref first before we move anything
             JSContextWeakPtr *weakRef = inContext.GetContextWeakRef();
             m_Runtime = inContext.m_Runtime;
             inContext.m_Runtime = nullptr;
@@ -168,17 +171,17 @@ namespace v8App
             inContext.m_Modules.reset();
 
             m_Name = inContext.m_Name;
-            m_Index = inContext.m_Index;
+            m_SnapIndex = inContext.m_SnapIndex;
             m_Namespace = inContext.m_Namespace;
             m_EntryPoint = inContext.m_EntryPoint;
             m_SnapEntryPoint = inContext.m_SnapEntryPoint;
-            m_m_SupportsSnapshots = inContext.m_m_SupportsSnapshots;
+            m_SupportsSnapshots = inContext.m_SupportsSnapshots;
             m_SnapMethod = inContext.m_SnapMethod;
         }
 
-        bool JSContext::CreateContext(size_t inSnapIndex)
+        bool JSContext::CreateContext()
         {
-            V8SnapshotProviderSharedPtr provider = m_Runtime->GetApp()->GetSnapshotProvider();
+            IJSSnapshotProviderSharedPtr provider = GetJSApp()->GetSnapshotProvider();
             if (provider == nullptr)
             {
                 return false;
@@ -189,21 +192,19 @@ namespace v8App
                 return false;
             }
 
-            m_Index = inSnapIndex;
-
             V8IsolateScope isolateScope(isolate);
             V8TryCatch tryCatch(isolate);
             V8HandleScope handleScope(isolate);
 
             V8LContext context;
 
-            if (m_Index == 0)
+            if (m_SnapIndex == 0)
             {
                 context = V8Context::New(isolate, nullptr, {});
 
                 if (context.IsEmpty())
                 {
-                    //TODO: log error message
+                    // TODO: log error message
                     return false;
                 }
 
@@ -217,18 +218,18 @@ namespace v8App
             {
                 // Coming from a snapshot we don't have to create the global template
                 context = V8Context::FromSnapshot(isolate,
-                                                    m_Index,
-                                                    provider->GetInternalDeserializerCallback(),
-                                                    nullptr,
-                                                    V8MBLValue(),
-                                                    nullptr,
-                                                    provider->GetContextDeserializerCallaback())
+                                                  m_SnapIndex,
+                                                  provider->GetInternalDeserializerCallback(),
+                                                  nullptr,
+                                                  V8MBLValue(),
+                                                  nullptr,
+                                                  provider->GetContextDeserializerCallaback())
                               .ToLocalChecked();
             }
 
-            if(tryCatch.HasCaught())
+            if (tryCatch.HasCaught())
             {
-                //TODO: add erorr message
+                // TODO: add erorr message
                 return false;
             }
 
@@ -255,6 +256,125 @@ namespace v8App
             {
                 m_Runtime->UnregisterSnapshotHandlerCloser(shared_from_this());
             }
+        }
+
+        bool JSContext::RunModule(std::filesystem::path inModulePath)
+        {
+            JSModuleInfoSharedPtr module = m_Modules->LoadModule(inModulePath);
+            if (module == nullptr)
+            {
+                return false;
+            }
+            if (m_Modules->InstantiateModule(module) == false)
+            {
+                return false;
+            }
+            if (m_Modules->RunModule(module) == false)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        V8LValue JSContext::RunScript(std::string inScript)
+        {
+
+            V8Isolate *isolate = m_Runtime->GetIsolate();
+
+            V8IsolateScope iScope(isolate);
+            v8::EscapableHandleScope eScope(isolate);
+            V8LContext v8Context = GetLocalContext();
+            V8ContextScope cScope(v8Context);
+
+            V8TryCatch tryCatch(isolate);
+
+            V8LString source = JSUtilities::StringToV8(isolate, inScript.c_str());
+            if (tryCatch.HasCaught())
+            {
+                // TODO: Log message
+                return V8LValue();
+            }
+
+            V8MLScript maybeScript = v8::Script::Compile(v8Context, source);
+            if (tryCatch.HasCaught())
+            {
+                // TODO: Log message
+                return V8LValue();
+            }
+
+            V8LScript script;
+            script = maybeScript.FromMaybe(V8LScript());
+            if(script.IsEmpty())
+            {
+                //TODO: log message
+                return V8LValue();
+            }
+
+            V8LValue result;
+            if (script->Run(v8Context).ToLocal(&result) == false)
+            {
+                // TODO: Log Message
+                return V8LValue();
+            }
+            return eScope.Escape(result);
+        }
+
+        bool JSContext::RunEntryPoint(bool inSnapshotting)
+        {
+            std::filesystem::path entryPoint;
+            if (inSnapshotting)
+            {
+                entryPoint = GetSnapshotEntrypoint();
+            }
+            else
+            {
+                entryPoint = GetEntrypoint();
+            }
+
+            // if no entry point then return
+            if (entryPoint == "")
+            {
+                return true;
+            }
+
+            return RunModule(entryPoint);
+        }
+
+        JSContextSharedPtr JSContext::CloneForSnapshot(JSRuntimeSharedPtr inRuntime)
+        {
+            JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, m_Name, m_Namespace,
+                                                                     m_EntryPoint, m_SnapIndex, m_SnapEntryPoint,
+                                                                     m_SupportsSnapshots, m_SnapMethod);
+            // create it's context
+            if (context->CreateContext() == false)
+            {
+                return nullptr;
+            }
+            // if the context is not 0 then there is no need to set it up
+            if (m_SnapIndex != 0)
+            {
+                return context;
+            }
+
+            V8IsolateScope iScope(inRuntime->GetIsolate());
+            V8HandleScope hScope(inRuntime->GetIsolate());
+            V8LContext v8Context = context->GetLocalContext();
+            V8ContextScope cScope(v8Context);
+
+            V8LObject globalObj = v8Context->Global();
+            CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(context, globalObj, m_Namespace);
+
+            // if we only are doing the namespace then skip the script execution
+            if (m_SnapMethod == SnapshotMethod::kNamespaceOnly)
+            {
+                return context;
+            }
+
+            if (context->RunEntryPoint(true) == false)
+            {
+                return nullptr;
+            }
+            return context;
         }
 
         void JSContext::CloseHandleForSnapshot()

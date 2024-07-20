@@ -20,11 +20,11 @@ namespace v8App
              * Should only be used on the stack and not saved to the heap
              */
             template <typename T>
-            class V8NativeObjectHandle
+            class V8CppObjHandle
             {
             public:
-                V8NativeObjectHandle() : m_Object(nullptr) {}
-                V8NativeObjectHandle(V8LValue inWrapper, T *inObject)
+                V8CppObjHandle() : m_Object(nullptr) {}
+                V8CppObjHandle(V8LValue inWrapper, T *inObject)
                     : m_Wrapper(inWrapper), m_Object(inObject) {}
 
                 T *operator->() const { return m_Object; }
@@ -47,21 +47,21 @@ namespace v8App
              * TypeCovneter for the handle
              */
             template <typename T>
-            struct V8TypeConverter<V8NativeObjectHandle<T>>
+            struct V8TypeConverter<V8CppObjHandle<T>>
             {
-                static V8LValue To(V8Isolate *inIsolate, const V8NativeObjectHandle<T> &inValue)
+                static V8LValue To(V8Isolate *inIsolate, const V8CppObjHandle<T> &inValue)
                 {
                     return inValue.ToV8();
                 }
 
-                static bool From(V8Isolate *inIsolate, V8LValue inValue, V8NativeObjectHandle<T> *outValue)
+                static bool From(V8Isolate *inIsolate, V8LValue inValue, V8CppObjHandle<T> *outValue)
                 {
                     T *object = nullptr;
                     if (V8TypeConverter<T *>::From(inIsolate, inValue, &object) == false)
                     {
                         return false;
                     }
-                    *outValue = V8NativeObjectHandle<T>(inValue, object);
+                    *outValue = V8CppObjHandle<T>(inValue, object);
                     return true;
                 }
             };

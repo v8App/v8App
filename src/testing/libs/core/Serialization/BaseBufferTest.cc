@@ -76,7 +76,7 @@ namespace v8App
 
 
             buffer = std::make_unique<TestBuffer>(testData, len);
-            //we set teh state so we can see that copies or moves below
+            //we set the state so we can see that copies or moves below
             buffer->TestSetStreamState(state);
 
             EXPECT_EQ(len, buffer->BufferSize());

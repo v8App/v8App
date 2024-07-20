@@ -8,8 +8,9 @@
 
 #include "JSSnapshotCreator.h"
 #include "JSContext.h"
-#include "CppBridge/V8NativeObject.h"
+#include "CppBridge/V8CppObject.h"
 #include "CppBridge/CallbackRegistry.h"
+#include "V8AppPlatform.h"
 
 namespace v8App
 {
@@ -26,16 +27,17 @@ namespace v8App
 
         bool JSSnapshotCreator::CreateSnapshotFile(std::filesystem::path inSnapshotFile)
         {
-            V8SnapshotCreatorSharedPtr creator = m_App->GetSnapshotCreator();
+            IJSSnapshotProvider creator = m_App->GetSnapshotProvider();
             if (creator == nullptr)
             {
                 return false;
             }
 
-            V8Isolate * isolate = m_App->GetJSRuntime()->GetIsolate();
+            JSRuntimeSharedPtr runtime  = m_App->GetMainRuntime();
+            V8Isolate *isolate = runtime->GetIsolate();
 
-            JSContextSharedPtr defaultContext = m_App->CreateJSContext("v8-default", "");
-            //save set the default context which is the normal v8 one
+            JSContextSharedPtr defaultContext = runtime->CreateContext("v8-default", "");
+            // save set the default context which is the normal v8 one
             {
                 V8IsolateScope iScope(isolate);
                 V8HandleScope hScope(isolate);
@@ -44,11 +46,12 @@ namespace v8App
                 V8ContextScope cScope(lContext);
 
                 creator->SetDefaultContext(lContext);
-                m_App->GetJSRuntime()->CloseOpenHandlesForSnapshot();
+                runtime->CloseOpenHandlesForSnapshot();
             }
 
-            //now go through the contexts that have been created and add them
+            // now go through the contexts that have been created and add them
             {
+                
 
             }
 

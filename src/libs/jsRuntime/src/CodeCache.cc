@@ -49,7 +49,7 @@ namespace v8App
                 return nullptr;
             }
 
-            std::filesystem::path fileRoot = Utils::MakeRelativePathToRoot(inFilePath, m_App->GetAppRoots()->GetAppRoot());
+            std::filesystem::path fileRoot = Utils::MakeRelativePathToRoot(inFilePath, m_App->GetAppRoot()->GetAppRoot());
             auto it = fileRoot.begin();
             if (it->string() != Assets::c_RootJS && it->string() != Assets::c_RootModules)
             {
@@ -208,7 +208,7 @@ namespace v8App
 
         std::filesystem::path CodeCache::GenerateCachePath(std::filesystem::path inFilePath)
         {
-            std::filesystem::path cachePath = m_App->GetAppRoots()->MakeRelativePathToAppRoot(inFilePath);
+            std::filesystem::path cachePath = m_App->GetAppRoot()->MakeRelativePathToAppRoot(inFilePath);
             auto it = cachePath.begin();
             if (it->string() != "js" && it->string() != "modules")
             {
@@ -217,7 +217,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return std::filesystem::path();
             }
-            cachePath = m_App->GetAppRoots()->GetAppRoot() / std::filesystem::path(".code_cache") / cachePath;
+            cachePath = m_App->GetAppRoot()->GetAppRoot() / std::filesystem::path(".code_cache") / cachePath;
             cachePath = cachePath.replace_extension(std::string("jscc"));
             return cachePath;
         }

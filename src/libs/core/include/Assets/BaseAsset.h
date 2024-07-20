@@ -17,12 +17,13 @@ namespace v8App
         class BaseAsset
         {
         public:
-            BaseAsset(std::filesystem::path inAssetPath): m_AssetPath(inAssetPath) {}
+            BaseAsset(std::filesystem::path inAssetPath = std::filesystem::path()): m_AssetPath(inAssetPath) {}
             virtual ~BaseAsset() {}
 
             virtual bool ReadAsset() = 0;
             virtual bool WriteAsset() = 0;
 
+            void SetPath(std::filesystem::path inAssetPath) { m_AssetPath = inAssetPath; }
             std::filesystem::path GetPath() { return m_AssetPath; }
             bool Exists() { return std::filesystem::exists(m_AssetPath); }
             

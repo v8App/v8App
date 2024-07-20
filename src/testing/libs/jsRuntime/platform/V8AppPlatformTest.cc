@@ -9,6 +9,7 @@
 #include "gmock/gmock.h"
 
 #include "V8AppPlatform.h"
+#include "IJSPlatformRuntimeProvider.h"
 
 namespace v8App
 {
@@ -25,7 +26,7 @@ namespace v8App
             virtual bool IdleTasksEnabled() override {return true;}
         };
 
-        class TestIsolateHelper : public PlatformIsolateHelper
+        class TestIsolateHelper : public IJSPlatformRuntimeProvider
         {
         public:
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override
@@ -237,7 +238,7 @@ namespace v8App
         TEST(V8AppPlatformTest, GetForegroundTaskRunner)
         {
             std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
-            PlatformIsolateHelperUniquePtr helper = std::make_unique<TestIsolateHelper>();
+            PlatformRuntimeProviderUniquePtr helper = std::make_unique<TestIsolateHelper>();
             platform->SetIsolateHelper(std::move(helper));
             EXPECT_NE(nullptr, platform->GetForegroundTaskRunner(nullptr, V8TaskPriority::kBestEffort).get());
         }
@@ -245,7 +246,7 @@ namespace v8App
         TEST(V8AppPlatformTest, IdleTasksEnabled)
         {
             std::shared_ptr<V8AppPlatform> platform = V8AppPlatform::Get();
-            PlatformIsolateHelperUniquePtr helper = std::make_unique<TestIsolateHelper>();
+            PlatformRuntimeProviderUniquePtr helper = std::make_unique<TestIsolateHelper>();
             platform->SetIsolateHelper(std::move(helper));
             EXPECT_TRUE(platform->IdleTasksEnabled(nullptr));
         }

@@ -6,17 +6,24 @@
 #define __TEST_SNAPSHOT_PROVIDER__
 
 #include "JSApp.h"
+#include "IJSSnapshotProvider.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        class TestSnapshotProvider : public V8SnapshotProvider
+        class TestSnapshotProvider : public IJSSnapshotProvider
         {
         public:
-            TestSnapshotProvider(std::filesystem::path inSnapshotPath = std::filesystem::path()) : V8SnapshotProvider(inSnapshotPath) { m_Loaded = true; }
+            TestSnapshotProvider() { m_Loaded = true; }
             virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath = std::filesystem::path()) override;
-            virtual const V8StartupData *GetSnapshotData() override;
+            virtual const V8StartupData *GetSnapshotData(size_t inIndex = 0) override;
+            virtual const intptr_t *GetExternalReferences() override { return nullptr; }
+            virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) override { return {nullptr, 0}; };
+            virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) override { return {nullptr, 0}; };
+            virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override {};
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload) override {};
+
             void SetLoaded(bool inLoaded) { m_Loaded = inLoaded; }
             void SetReturnEmpty(bool inLoaded) { m_ReturnEmpty = inLoaded; }
 

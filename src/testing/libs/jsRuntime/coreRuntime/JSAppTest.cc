@@ -18,18 +18,72 @@
 
 #include "JSApp.h"
 #include "JSContext.h"
-#include "JSContextCreator.h"
+#include "V8ContextProvider.h"
+#include "V8ContextProvider.h"
+#include "V8RuntimeProvider.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        TEST(JSAppTest, ConstrcutorInitializeDispose)
+        TEST(JSAppTest, Constrcutor)
+        {
+            std::filesystem::path testRoot = s_TestDir / "ConstrcutorInitializeDispose";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
+            std::string appName = "testJSAppConstructor";
+            JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
+            EXPECT_EQ(nullptr, app->GetContextProvider());
+            EXPECT_EQ(nullptr, app->GetRuntimeProvider());
+            EXPECT_EQ(nullptr, app->GetMainRuntime());
+            EXPECT_EQ(nullptr, app->GetCodeCache());
+            EXPECT_EQ(nullptr, app->GetAppRoot());
+            EXPECT_EQ(appName, app->GetName());
+            EXPECT_FALSE(app->IsInitialized());
+            EXPECT_FALSE(app->IsSnapshotApp());
+        }
+
+       TEST(JSAppTest, GetSetProviders)
+        {
+            std::string appName = "testJSAppGetSetProviders";
+
+            std::filesystem::path testRoot = s_TestDir / "InitializeAsSnapshot";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
+            JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+
+            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
+            EXPECT_EQ(nullptr, app->GetContextProvider());
+            EXPECT_EQ(nullptr, app->GetRuntimeProvider());
+
+            IJSSnapshotProviderSharedPtr snapProvider = std::make_shared<TestSnapshotProvider>();
+            IJSRuntimeProviderSharedPtr runtimeProvider = std::make_shared<V8RuntimeProvider>();
+            IJSContextProviderSharedPtr contextProvider = std::make_shared<V8ContextProvider>();
+
+            app->SetSnapshotProvider(snapProvider);
+            app->SetRuntimeProvider(runtimeProvider);
+            app->SetContextProvider(contextProvider);
+
+            EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
+            EXPECT_EQ(contextProvider, app->GetContextProvider());
+            EXPECT_EQ(runtimeProvider, app->GetRuntimeProvider());
+
+            app->SetSnapshotProvider(nullptr);
+            app->SetRuntimeProvider(nullptr);
+            app->SetContextProvider(nullptr);
+
+            EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
+            EXPECT_EQ(contextProvider, app->GetContextProvider());
+            EXPECT_EQ(runtimeProvider, app->GetRuntimeProvider());
+        }
+
+        TEST(JSApptest, InitializeDispose)
         {
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::filesystem::path testRoot = s_TestDir / "ConstrcutorInitializeDispose";
+            std::filesystem::path testRoot = s_TestDir / "InitializeDispose";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
@@ -39,153 +93,140 @@ namespace v8App
                 Log::MsgKey::Function,
                 Log::MsgKey::Line};
 
-            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppConstructor";
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName);
-            EXPECT_EQ(appName, app->GetName());
-            EXPECT_EQ(nullptr, app->GetCodeCache());
-            EXPECT_EQ(nullptr, app->GetAppRoots());
-            EXPECT_EQ(nullptr, app->GetJSRuntime());
-            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
-            EXPECT_FALSE(app->IsSnapshotCreator());
-            EXPECT_FALSE(app->IsInitialized());
-            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
+            AppProviders providers;
 
+            JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+            std::shared_ptr snapProvider = std::make_shared<TestSnapshotProvider>();
+
+            // test snapshot provider not set
             EXPECT_FALSE(app->Initialize(testRoot));
-
             Log::LogMessage expected = {
                 {Log::MsgKey::Msg, "The snapshot provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
-            app = std::make_shared<JSApp>(appName, snapProvider);
-            EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
-            snapProvider->SetLoaded(false);
-            EXPECT_FALSE(app->Initialize(testRoot));
-
-            snapProvider->SetLoaded(true);
-            snapProvider->SetReturnEmpty(true);
-            EXPECT_FALSE(app->Initialize(testRoot));
+            // test runtime provider not set
+            providers.m_SnapshotProvider = snapProvider;
+            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
             expected = {
-                {Log::MsgKey::Msg, "Snapshot data seems to be empty"},
+                {Log::MsgKey::Msg, "The runtime provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
+            // test context provider not set
+            providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
+            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+            expected = {
+                {Log::MsgKey::Msg, "The context provider must be set before calling Initialize"},
+                {Log::MsgKey::LogLevel, "Error"},
+            };
+            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
+
+            providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
+
+            snapProvider->SetLoaded(false);
+            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+
+            snapProvider->SetLoaded(true);
+            snapProvider->SetReturnEmpty(true);
+            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+
             snapProvider->SetReturnEmpty(false);
-            EXPECT_TRUE(app->Initialize(testRoot));
+            EXPECT_TRUE(app->Initialize(testRoot, false, providers));
+            EXPECT_EQ(providers.m_SnapshotProvider, app->GetSnapshotProvider());
+            EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
+            EXPECT_EQ(providers.m_RuntimeProvider, app->GetRuntimeProvider());
+            EXPECT_NE(nullptr, app->GetMainRuntime());
             EXPECT_NE(nullptr, app->GetCodeCache());
-            EXPECT_NE(nullptr, app->GetAppRoots());
-            EXPECT_NE(nullptr, app->GetJSRuntime());
-            EXPECT_EQ(appName + "-runtime", app->GetJSRuntime()->GetName());
+            EXPECT_NE(nullptr, app->GetAppRoot());
+            EXPECT_EQ(appName, app->GetName());
             EXPECT_TRUE(app->IsInitialized());
+            EXPECT_FALSE(app->IsSnapshotApp());
+
+            AppProviders newProviders;
+            newProviders.m_SnapshotProvider = providers.m_SnapshotProvider;
+            newProviders.m_RuntimeProvider = providers.m_RuntimeProvider;
+            newProviders.m_ContextProvider = std::make_shared<V8ContextProvider>();;
+            
+            EXPECT_TRUE(app->Initialize(testRoot, false, providers));
+            EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
 
             app->DisposeApp();
+            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
+            EXPECT_EQ(nullptr, app->GetContextProvider());
+            EXPECT_EQ(nullptr, app->GetRuntimeProvider());
+            EXPECT_EQ(nullptr, app->GetMainRuntime());
             EXPECT_EQ(nullptr, app->GetCodeCache());
-            EXPECT_EQ(nullptr, app->GetAppRoots());
-            EXPECT_EQ(nullptr, app->GetJSRuntime());
+            EXPECT_EQ(nullptr, app->GetAppRoot());
+            EXPECT_EQ(appName, app->GetName());
             EXPECT_FALSE(app->IsInitialized());
+            EXPECT_FALSE(app->IsSnapshotApp());
         }
 
         TEST(JSAppTest, InitializeAsSnapshot)
         {
-            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
             std::string appName = "testJSAppInitializeSnapshot";
 
             std::filesystem::path testRoot = s_TestDir / "InitializeAsSnapshot";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
+            AppProviders providers(std::make_shared<TestSnapshotProvider>(), std::make_shared<V8RuntimeProvider>(),
+                                   std::make_shared<V8ContextProvider>());
+
+            JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
 
             app->Initialize(testRoot, true);
+            EXPECT_TRUE(app->Initialize(testRoot, true));
+            EXPECT_EQ(providers.m_SnapshotProvider, app->GetSnapshotProvider());
+            EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
+            EXPECT_EQ(providers.m_RuntimeProvider, app->GetRuntimeProvider());
+            EXPECT_NE(nullptr, app->GetMainRuntime());
             EXPECT_NE(nullptr, app->GetCodeCache());
-            EXPECT_NE(nullptr, app->GetAppRoots());
-            EXPECT_NE(nullptr, app->GetJSRuntime());
-            EXPECT_EQ(appName + "-runtime", app->GetJSRuntime()->GetName());
+            EXPECT_NE(nullptr, app->GetAppRoot());
+            EXPECT_EQ(appName, app->GetName());
             EXPECT_TRUE(app->IsInitialized());
-            EXPECT_TRUE(app->IsSnapshotCreator());
+            EXPECT_TRUE(app->IsSnapshotApp());
 
             app->DisposeApp();
+            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
+            EXPECT_EQ(nullptr, app->GetContextProvider());
+            EXPECT_EQ(nullptr, app->GetRuntimeProvider());
+            EXPECT_EQ(nullptr, app->GetMainRuntime());
             EXPECT_EQ(nullptr, app->GetCodeCache());
-            EXPECT_EQ(nullptr, app->GetAppRoots());
-            EXPECT_EQ(nullptr, app->GetJSRuntime());
+            EXPECT_EQ(nullptr, app->GetAppRoot());
+            EXPECT_EQ(appName, app->GetName());
             EXPECT_FALSE(app->IsInitialized());
+            EXPECT_FALSE(app->IsSnapshotApp());
         }
 
-        TEST(JSAppTest, GetCreateContext)
+ 
+        TEST(JSAppTest, GetCreateDisposeRuntimes)
         {
-            std::filesystem::path testRoot = s_TestDir / "GetCreateContext";
+            std::filesystem::path testRoot = s_TestDir / "GetCreateRuntimes";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
-            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-            std::string appName = "testJSAppGetCreateContext";
+            std::string appName = "testJSAppGetCreateRuntimes";
+            AppProviders providers(std::make_shared<TestSnapshotProvider>(), std::make_shared<V8RuntimeProvider>(),
+                                   std::make_shared<V8ContextProvider>());
 
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->Initialize(testRoot, false, std::make_shared<JSContextCreator>());
-            ASSERT_NE(nullptr, app->GetJSRuntime());
+            JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
+            app->Initialize(testRoot, false);
 
-            std::string contextName1 = "AppJSContext1";
-            std::string contextName2 = "AppJSContext2";
+            std::string runtimeName1 = "AppRuntime1";
+            std::string runtimeName2 = "AppRUNTIME2";
 
-            EXPECT_EQ(nullptr, app->GetJSContextByName(contextName1));
+            EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName1));
 
-            JSContextSharedPtr context = app->CreateJSContext(contextName1, "");
-            EXPECT_NE(nullptr, context);
-            EXPECT_EQ(context, app->GetJSContextByName(contextName1));
-            EXPECT_EQ(nullptr, app->GetJSContextByName(contextName2));
-            app->DisposeApp();
-        }
+            JSRuntimeSharedPtr runtime = app->CreateJSRuntime(runtimeName1, IdleTaskSupport::kEnabled);
+            EXPECT_NE(nullptr, runtime);
+            EXPECT_EQ(runtime, app->GetRuntimeByName(runtimeName1));
+            EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName2));
 
-        TEST(JSAppTest, EntryPointScript)
-        {
-            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
-            Log::Log::SetLogLevel(Log::LogLevel::Error);
-
-            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-            std::string appName = "testJSAppEntryPointScript";
-            std::filesystem::path testRoot = s_TestDir / "EntryPointScript";
-
-            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
-
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, snapProvider);
-            app->Initialize(testRoot);
-
-            EXPECT_EQ("", app->GetEntryPointScript().generic_string());
-
-            TestUtils::IgnoreMsgKeys ignoreKeys = {
-                Log::MsgKey::AppName,
-                Log::MsgKey::TimeStamp,
-                Log::MsgKey::File,
-                Log::MsgKey::Function,
-                Log::MsgKey::Line};
-
-            // create the required directroies for the app root
-            std::filesystem::path testFile("../../test.js");
-
-            // path escapes the app root
-            EXPECT_FALSE(app->SetEntryPointScript(testFile));
-            Log::LogMessage expected = {
-                {Log::MsgKey::Msg, Utils::format("Passed entry point script may have escaped the app root. File:{}", testFile)},
-                {Log::MsgKey::LogLevel, "Error"}};
-            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
-
-            // path doesn't exist
-            testFile = testRoot / "js/test.js";
-            EXPECT_FALSE(app->SetEntryPointScript(testFile));
-            expected = {
-                {Log::MsgKey::Msg, Utils::format("Passed entry point script doesn't exist {}", testFile)},
-                {Log::MsgKey::LogLevel, "Error"}};
-            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
-
-            // should succeed
-            {
-                Assets::TextAsset file(testFile);
-                file.SetContent("test");
-                EXPECT_TRUE(file.WriteAsset());
-            }
-            EXPECT_TRUE(app->SetEntryPointScript(testFile));
-            std::filesystem::remove(testFile);
+            app->DisposeRuntime(runtimeName1);
+            EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName1));
 
             app->DisposeApp();
         }

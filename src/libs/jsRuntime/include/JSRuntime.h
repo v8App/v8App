@@ -9,42 +9,19 @@
 #include <map>
 #include <filesystem>
 
-#include "Utils/Format.h"
+//#include "Utils/Format.h"
+#include "Containers/NamedIndexes.h"
 
+#include "ForegroundTaskRunner.h"
 #include "ISnapshotHandleCloser.h"
-// 4#include "JSApp.h"
+#include "IJSPlatformRuntimeProvider.h"
 #include "V8Types.h"
-#include "V8AppPlatform.h"
-// #include "JSSnapshotCreator.h"
-// #include "CppBridge/CallbackHolderBase.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
         class JSContext;
-
-        /**
-         * Enum for controlling whether idle tasks are enabled
-         */
-        enum class IdleTasksSupport
-        {
-            kIdleTasksDisabled,
-            kIdleTasksEnabled
-        };
-
-        /**
-         * Internal field for the Native Object.
-         * Declared here since we need to provide the indexes
-         * to the CppHeap
-         */
-        enum class V8CppObjDataIntField : int
-        {
-            CppHeapID,
-            ObjInfo,
-            ObjInstance,
-            MaxInternalFields
-        };
 
         /**
          * Class that wrapps the v8 Isolate and provides a variety of utilitied related to it
@@ -60,35 +37,24 @@ namespace v8App
                 kJSRuntimeWeakPtr = 0
             };
 
-            /**
-             * The max number of contexes we support in a snapshot
-             */
-            static inline const int kMaxContextNamespaces = 1024;
-
-            explicit JSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName);
+            JSRuntime(JSAppSharedPtr inApp, IdleTaskSupport inEnableIdle, std::string inName, bool inSetupForSnapshot, size_t inRuntimeIndex);
             virtual ~JSRuntime();
 
-            JSRuntime(JSRuntime &&inRuntime) = default; // TODO: use non default cause of the wekref
-
-            /**
-             * Creates a JSRuntime and V8 isolate and inializes the isolate for use.
-             */
-            static JSRuntimeSharedPtr CreateJSRuntime(JSAppSharedPtr inApp, IdleTasksSupport inEnableIdle, std::string inName,
-                                                      JSContextCreationHelperSharedPtr inContextCreator, bool inForSnapshot = false);
+            JSRuntime(JSRuntime &&inRuntime);
 
             /**
              * Iniialies the runtime
              */
-            void Initialize();
+            bool Initialize(AppProviders inAppProviders = AppProviders());
 
             /**
              * Gets the foreground task runner used by the isolate
              */
-            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner();
+            virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner() { return m_TaskRunner; }
             /**
              * Returns whether idle tasks are enabled
              */
-            virtual bool IdleTasksEnabled();
+            virtual bool IdleTasksEnabled() { return m_IdleEnabled == IdleTaskSupport::kEnabled; }
 
             /**
              * Gets the JSRuntime from the specified v8 isolate
@@ -122,15 +88,6 @@ namespace v8App
             v8::Local<v8::ObjectTemplate> GetObjectTemplate(void *inInfo);
 
             /**
-             * Sets the context creation helper
-             */
-            void SetContextCreationHelper(JSContextCreationHelperSharedPtr inCreator);
-            /**
-             * Gets the context creator for this runtime
-             */
-            JSContextCreationHelperSharedPtr GetContextCreationHelper();
-
-            /**
              * Creates a JSContext with the specified namespace.
              * If no namespace is provided then returns the default v8 context
              */
@@ -142,26 +99,13 @@ namespace v8App
              */
             JSContextSharedPtr GetContextByName(std::string inName);
             /**
-             * Disposes of the JSContext with the specified name
-             */
-            void DisposeContext(std::string inName);
-            /**
              * Dispose of the JSContext pased in the shared pointer
              */
             void DisposeContext(JSContextSharedPtr inContext);
-
             /**
-             * Gets the name of the snapshot index for a context
+             * Disposes of the JSContext with the specified name
              */
-            std::string GetNamespaceForSnapIndex(size_t inSnapIndex);
-            /**
-             * Gets the snapshot index for the given name
-             */
-            size_t GetSnapIndexForNamespace(std::string inNamespace);
-            /**
-             * Adds a snapshot index with the given name
-             */
-            bool AddSnapIndexNamespace(size_t inSnapIndex, std::string inNamespace);
+            void DisposeContext(std::string inName);
 
             /**
              * Disposes of reousrces for the runtime
@@ -180,7 +124,12 @@ namespace v8App
             /**
              * Gets the snapshot creator for the app.
              */
-            V8SnapshotCreatorSharedPtr GetSnapshotCreator();
+            V8SnapshotCreatorSharedPtr GetSnapshotCreator() { return m_Creator; }
+
+            /**
+             * Returns if this runtime is a snapshotting one
+             */
+            bool IsSnapshotRuntime() { return m_IsSnapshotter; }
 
             /**
              * Closes all open handles for snapshoting
@@ -204,15 +153,48 @@ namespace v8App
              */
             inline uint16_t *GetCppHeapID() { return &m_CppHeapID; }
 
+            /**
+             * Gets the context provider returning the app's or if one was passed when the runtime was inited
+             */
+            IJSContextProviderSharedPtr GetContextProvider();
+
+            bool IsInitialzed() { return m_Initialized; }
+
         protected:
+
+            /**
+             * Uses the name context's name, namespace and snap method to reolve the context's index name in the snapshot
+             * Naemspace only will only use the name space to look up the index. 
+             * NamespaceAndEntryPoint will use the name and namespace to resolve the name
+             */
+            std::string ResolveContextName(std::string inName, std::string inNamespace, SnapshotMethod inMethod);
+            
             /**
              * Creates the v8 isolate and if for a snapshot the v8 snapshot creator as well
              */
-            bool CreateIsolate(bool inForSnapshot);
+            bool CreateIsolate();
 
-            IdleTasksSupport m_IdleEnabled;
+            /**
+             * Clones the passin runtime for snapshotting. This will onyl copy contextex
+             * that support snapshotting, runs the snap shot entry point if specified or the entry point script
+             * if one is passed.
+             */
+            bool CloneRuntimeForSnapshotting(JSRuntimeSharedPtr inClonee);
+
+            /**
+             * Go through the contextes and adds them to the snapshot creator
+             * and records their indexes for serialization
+             */
+            bool AddContextesToSnapshot();
+
+            /** Wheter idle tasks are enabled */
+            IdleTaskSupport m_IdleEnabled;
+            /** Teh JSApp */
             JSAppSharedPtr m_App;
+            /** the name of the runtime */
             std::string m_Name;
+            /** Is the runtime already inited */
+            bool m_Initialized;
 
             /**
              * Cllbacks to close out the handles when the isolate is snapshotting
@@ -232,12 +214,7 @@ namespace v8App
             /**
              * The task runner for the isolate
              */
-            std::shared_ptr<class ForegroundTaskRunner> m_TaskRunner;
-
-            /**
-             * The Context Creator
-             */
-            JSContextCreationHelperSharedPtr m_ContextCreation;
+            std::shared_ptr<ForegroundTaskRunner> m_TaskRunner;
 
             using ObjectTemplateMap = std::map<void *, v8::Global<v8::ObjectTemplate>>;
 
@@ -252,23 +229,37 @@ namespace v8App
             V8SnapshotCreatorSharedPtr m_Creator;
 
             /**
+             * Is this a snapshot runtime
+             */
+            bool m_IsSnapshotter;
+            /**
              * Heap ID for the CppHeap
              */
             uint16_t m_CppHeapID = 1;
 
             /**
-             * Map of the snapshot indexs to names to create contextes from the snapshot
+             * If a custom context provider was passed in during init
              */
-            std::map<size_t, std::string> m_SnapshotContextNames;
+            IJSContextProviderSharedPtr m_CustomContextProvider;
+
+            /**
+             * Wchi index the the snapshot data was loaded from
+             */
+            size_t m_SnapshotIndex;
+
+            Containers::NamedIndexes m_ContextNamespaces;
 
             JSRuntime(const JSRuntime &) = delete;
             JSRuntime &operator=(const JSRuntime &) = delete;
+
+            friend class JSApp;
+            friend class JSSnapshotCreator;
         };
 
         /**
          * The helper class that implments the Platform Isolate helper for JSRuntimes
          */
-        class JSRuntimeIsolateHelper : public PlatformIsolateHelper
+        class JSRuntimeIsolateHelper : public IJSPlatformRuntimeProvider
         {
         public:
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override;

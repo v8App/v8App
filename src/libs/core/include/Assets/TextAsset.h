@@ -17,7 +17,7 @@ namespace v8App
         class TextAsset : public BaseAsset
         {
         public:
-            TextAsset(std::filesystem::path inAssetPath) : BaseAsset(inAssetPath) {}
+            TextAsset(std::filesystem::path inAssetPath = std::filesystem::path()) : BaseAsset(inAssetPath) {}
             virtual ~TextAsset() {}
 
             virtual bool ReadAsset() override;

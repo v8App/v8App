@@ -42,7 +42,7 @@ namespace v8App
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+                std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
                 JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
                 JSModuleInfo::AttributesInfo attributesInfo;
                 attributesInfo.m_Type = JSModuleInfo::ModuleType::kInvalid;
