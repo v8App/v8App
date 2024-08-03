@@ -9,14 +9,18 @@
 #include "gmock/gmock.h"
 
 #include "TestLogSink.h"
+#include "V8InitApp.h"
+#include "test_main.h"
+#include "TestSnapshotCreator.h"
+#include "TestSnapshotProvider.h"
+#include "TestFiles.h"
+
 #include "Utils/Environment.h"
 #include "Utils/Format.h"
 
+#include "JSApp.h"
 #include "JSRuntime.h"
 #include "V8AppPlatform.h"
-
-#include "V8InitApp.h"
-#include "test_main.h"
 
 namespace v8App
 {
@@ -216,7 +220,7 @@ namespace v8App
             std::string runtimeName = "testJSRuntimeSetGetObjectTemplate";
             JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(m_App, IdleTaskSupport::kEnabled, runtimeName, false, 0);
             ASSERT_TRUE(runtime->Initialize());
-            
+
             V8IsolateScope isolateScope(runtime->GetIsolate());
             V8HandleScope scope(runtime->GetIsolate());
 
@@ -249,13 +253,10 @@ namespace v8App
             std::string runtimeName = "testJSRuntimeCreateJSRuntimeForSnapshot";
             JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(m_App, IdleTaskSupport::kEnabled, runtimeName, false, 0);
 
-            AppProviders providers;
             std::shared_ptr<TestContextCreator> contextProvider = std::make_shared<TestContextCreator>();
-            providers.m_ContextProvider = contextProvider;
 
-            EXPECT_TRUE(runtime->Initialize(providers));
-            
-            //V8IsolateScope isolateScope(runtime->GetIsolate());
+            ASSERT_TRUE(runtime->Initialize());
+            runtime->SetContextProvider(contextProvider);
 
             EXPECT_EQ(nullptr, runtime->GetContextByName("test"));
             Log::LogMessage expected = {
@@ -284,9 +285,17 @@ namespace v8App
 
         TEST_F(JSRuntimeTest, RegisterUnregisterCloseHandlers)
         {
-            return;
-            IJSSnapshotProviderSharedPtr provider = std::make_shared<TestSnapshotProvider>();
-            JSAppSharedPtr snapApp = m_App->CloneAppForSnapshotting<JSApp>(provider);
+            std::filesystem::path testRoot = s_TestDir / "RegisterUnregisterCloseHandlers";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
+            IJSSnapshotCreatorSharedPtr provider = std::make_shared<TestSnapshotCreator>();
+            AppProviders providers(std::make_shared<TestSnapshotProvider>(),
+                                   std::make_shared<V8RuntimeProvider>(),
+                                   std::make_shared<V8ContextProvider>());
+
+            JSAppSharedPtr snapApp = std::make_shared<JSApp>("RegisterUnregisterCloseHandlers", providers);
+            ASSERT_TRUE(snapApp->Initialize(testRoot));
+
             JSRuntimeSharedPtr runtime = snapApp->GetMainRuntime();
             std::shared_ptr<TestCloseHandlerJSRuntime> closer = std::make_shared<TestCloseHandlerJSRuntime>();
 

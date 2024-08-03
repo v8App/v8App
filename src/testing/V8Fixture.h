@@ -24,7 +24,6 @@ namespace v8App
 
             void SetUp() override;
             void TearDown() override;
-            V8LContext GetContextAndEnter();
 
         protected:
             JSRuntimeSharedPtr m_Runtime;

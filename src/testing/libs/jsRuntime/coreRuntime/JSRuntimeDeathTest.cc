@@ -13,6 +13,7 @@
 #include "TestSnapshotProvider.h"
 #include "Utils/Environment.h"
 
+#include "JSApp.h"
 #include "JSRuntime.h"
 #include "V8AppPlatform.h"
 #include "V8RuntimeProvider.h"

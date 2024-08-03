@@ -14,6 +14,7 @@ filegroup(
     srcs = [
         "TestSnapshotProvider.cc",
         "TestSnapshotProvider.h",
+        "TestSnapshotCreator.h",
         "V8Fixture.cc",
         "V8Fixture.h",
         "test_main.cc",

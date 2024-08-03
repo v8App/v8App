@@ -11,6 +11,7 @@
 #include "TestLogSink.h"
 #include "TestFiles.h"
 #include "TestSnapshotProvider.h"
+#include "TestSnapshotCreator.h"
 
 #include "Assets/BinaryAsset.h"
 #include "Assets/TextAsset.h"
@@ -33,6 +34,7 @@ namespace v8App
 
             std::string appName = "testJSAppConstructor";
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
             EXPECT_EQ(nullptr, app->GetContextProvider());
             EXPECT_EQ(nullptr, app->GetRuntimeProvider());
@@ -44,7 +46,7 @@ namespace v8App
             EXPECT_FALSE(app->IsSnapshotApp());
         }
 
-       TEST(JSAppTest, GetSetProviders)
+        TEST(JSAppTest, GetSetProviders)
         {
             std::string appName = "testJSAppGetSetProviders";
 
@@ -53,26 +55,32 @@ namespace v8App
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
 
+            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
             EXPECT_EQ(nullptr, app->GetContextProvider());
             EXPECT_EQ(nullptr, app->GetRuntimeProvider());
 
+            IJSSnapshotCreatorSharedPtr snapCreator = std::make_shared<TestSnapshotCreator>();
             IJSSnapshotProviderSharedPtr snapProvider = std::make_shared<TestSnapshotProvider>();
             IJSRuntimeProviderSharedPtr runtimeProvider = std::make_shared<V8RuntimeProvider>();
             IJSContextProviderSharedPtr contextProvider = std::make_shared<V8ContextProvider>();
 
+            app->SetSnapshotCreator(snapCreator);
             app->SetSnapshotProvider(snapProvider);
             app->SetRuntimeProvider(runtimeProvider);
             app->SetContextProvider(contextProvider);
 
+            EXPECT_EQ(snapCreator, app->GetSnapshotCreator());
             EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
             EXPECT_EQ(contextProvider, app->GetContextProvider());
             EXPECT_EQ(runtimeProvider, app->GetRuntimeProvider());
 
+            app->SetSnapshotCreator(nullptr);
             app->SetSnapshotProvider(nullptr);
             app->SetRuntimeProvider(nullptr);
             app->SetContextProvider(nullptr);
 
+            EXPECT_EQ(snapCreator, app->GetSnapshotCreator());
             EXPECT_EQ(snapProvider, app->GetSnapshotProvider());
             EXPECT_EQ(contextProvider, app->GetContextProvider());
             EXPECT_EQ(runtimeProvider, app->GetRuntimeProvider());
@@ -98,6 +106,9 @@ namespace v8App
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
             std::shared_ptr snapProvider = std::make_shared<TestSnapshotProvider>();
+            std::shared_ptr snapCreator = std::make_shared<TestSnapshotCreator>();
+            // the creator isn't required to be set except during a snapshot
+            providers.m_SnapshotCreator = snapCreator;
 
             // test snapshot provider not set
             EXPECT_FALSE(app->Initialize(testRoot));
@@ -136,6 +147,7 @@ namespace v8App
 
             snapProvider->SetReturnEmpty(false);
             EXPECT_TRUE(app->Initialize(testRoot, false, providers));
+            EXPECT_EQ(providers.m_SnapshotCreator, app->GetSnapshotCreator());
             EXPECT_EQ(providers.m_SnapshotProvider, app->GetSnapshotProvider());
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
             EXPECT_EQ(providers.m_RuntimeProvider, app->GetRuntimeProvider());
@@ -149,12 +161,14 @@ namespace v8App
             AppProviders newProviders;
             newProviders.m_SnapshotProvider = providers.m_SnapshotProvider;
             newProviders.m_RuntimeProvider = providers.m_RuntimeProvider;
-            newProviders.m_ContextProvider = std::make_shared<V8ContextProvider>();;
-            
+            newProviders.m_ContextProvider = std::make_shared<V8ContextProvider>();
+            ;
+
             EXPECT_TRUE(app->Initialize(testRoot, false, providers));
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
 
             app->DisposeApp();
+            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
             EXPECT_EQ(nullptr, app->GetContextProvider());
             EXPECT_EQ(nullptr, app->GetRuntimeProvider());
@@ -173,13 +187,16 @@ namespace v8App
             std::filesystem::path testRoot = s_TestDir / "InitializeAsSnapshot";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
-            AppProviders providers(std::make_shared<TestSnapshotProvider>(), std::make_shared<V8RuntimeProvider>(),
-                                   std::make_shared<V8ContextProvider>());
+            AppProviders providers(std::make_shared<TestSnapshotProvider>(),
+                                   std::make_shared<V8RuntimeProvider>(),
+                                   std::make_shared<V8ContextProvider>(),
+                                   std::make_shared<TestSnapshotCreator>());
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
 
             app->Initialize(testRoot, true);
             EXPECT_TRUE(app->Initialize(testRoot, true));
+            EXPECT_EQ(providers.m_SnapshotCreator, app->GetSnapshotCreator());
             EXPECT_EQ(providers.m_SnapshotProvider, app->GetSnapshotProvider());
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
             EXPECT_EQ(providers.m_RuntimeProvider, app->GetRuntimeProvider());
@@ -191,6 +208,7 @@ namespace v8App
             EXPECT_TRUE(app->IsSnapshotApp());
 
             app->DisposeApp();
+            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
             EXPECT_EQ(nullptr, app->GetContextProvider());
             EXPECT_EQ(nullptr, app->GetRuntimeProvider());
@@ -202,15 +220,16 @@ namespace v8App
             EXPECT_FALSE(app->IsSnapshotApp());
         }
 
- 
         TEST(JSAppTest, GetCreateDisposeRuntimes)
         {
             std::filesystem::path testRoot = s_TestDir / "GetCreateRuntimes";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
             std::string appName = "testJSAppGetCreateRuntimes";
-            AppProviders providers(std::make_shared<TestSnapshotProvider>(), std::make_shared<V8RuntimeProvider>(),
-                                   std::make_shared<V8ContextProvider>());
+            AppProviders providers(std::make_shared<TestSnapshotProvider>(),
+                                   std::make_shared<V8RuntimeProvider>(),
+                                   std::make_shared<V8ContextProvider>(),
+                                   std::make_shared<TestSnapshotCreator>());
 
             JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
             app->Initialize(testRoot, false);

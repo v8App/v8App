@@ -16,6 +16,7 @@
 #include "Utils/Environment.h"
 
 #include "V8AppPlatform.h"
+#include "JSApp.h"
 #include "JSRuntime.h"
 #include "JSContext.h"
 #include "V8ContextProvider.h"

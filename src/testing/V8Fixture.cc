@@ -10,6 +10,7 @@
 
 #include "Utils/Environment.h"
 
+#include "JSApp.h"
 #include "JSContext.h"
 #include "V8ContextProvider.h"
 #include "V8RuntimeProvider.h"
