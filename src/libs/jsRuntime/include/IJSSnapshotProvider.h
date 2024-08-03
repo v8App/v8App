@@ -38,12 +38,6 @@ namespace v8App
             virtual const intptr_t *GetExternalReferences() = 0;
 
             /**
-             * Serializers for the snapshot
-             */
-            virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) = 0;
-            virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) = 0;
-
-            /**
              * Deserializers for the snapshot
              */
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) = 0;
@@ -62,16 +56,12 @@ namespace v8App
              * Returns the callback to pass to the context setup so
              * the internal callbacks are setup correctly below
              */
-            v8::SerializeInternalFieldsCallback GetInternalSerializerCallaback();
-            v8::SerializeContextDataCallback GetContextSerializerCallback();
             v8::DeserializeInternalFieldsCallback GetInternalDeserializerCallback();
             v8::DeserializeContextDataCallback GetContextDeserializerCallaback();
 
             /**
              * Internal serializers that get the provider and call the real serializer for it
              */
-            static V8StartupData SerializeInternalField_Internal(V8LObject inHolder, int inIndex, void *inData);
-            static V8StartupData SerializeContextInternalField_Internal(V8LContext inHolder, int inIndex, void *inData);
 
             static void DeserializeInternalField_Internal(V8LObject inHolder, int inIndex, V8StartupData inPayload, void *inData);
             static void DeserializeContextInternalField_Internal(V8LContext inHolder, int inIndex, V8StartupData inPayload, void *inData);

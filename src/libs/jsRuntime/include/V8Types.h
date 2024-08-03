@@ -200,6 +200,7 @@ namespace v8App
         using JSRuntimeSharedPtr = std::shared_ptr<class JSRuntime>;
 
         using IJSSnapshotProviderSharedPtr = std::shared_ptr<class IJSSnapshotProvider>;
+        using IJSSnapshotCreatorSharedPtr = std::shared_ptr<class IJSSnapshotCreator>;
         using IJSRuntimeProviderSharedPtr = std::shared_ptr<class IJSRuntimeProvider>;
         using IJSContextProviderSharedPtr = std::shared_ptr<class IJSContextProvider>;
 
@@ -244,12 +245,16 @@ namespace v8App
         {
             AppProviders() {}
             AppProviders(IJSSnapshotProviderSharedPtr inSnapshotProvider, IJSRuntimeProviderSharedPtr inRuntimeProvider,
-                         IJSContextProviderSharedPtr inContextProvidr) : m_SnapshotProvider(inSnapshotProvider),
-                                                                         m_RuntimeProvider(inRuntimeProvider), 
-                                                                         m_ContextProvider(inContextProvidr) {}
+                         IJSContextProviderSharedPtr inContextProvidr, IJSSnapshotCreatorSharedPtr inSnapshotCreator = nullptr)
+                : m_SnapshotProvider(inSnapshotProvider),
+                  m_RuntimeProvider(inRuntimeProvider),
+                  m_ContextProvider(inContextProvidr),
+                  m_SnapshotCreator(inSnapshotCreator) {}
+
             IJSSnapshotProviderSharedPtr m_SnapshotProvider;
             IJSRuntimeProviderSharedPtr m_RuntimeProvider;
             IJSContextProviderSharedPtr m_ContextProvider;
+            IJSSnapshotCreatorSharedPtr m_SnapshotCreator;
         };
     }
 }

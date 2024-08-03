@@ -8,16 +8,6 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        v8::SerializeInternalFieldsCallback IJSSnapshotProvider::GetInternalSerializerCallaback()
-        {
-            return v8::SerializeInternalFieldsCallback(&IJSSnapshotProvider::SerializeInternalField_Internal, this);
-        }
-
-        v8::SerializeContextDataCallback IJSSnapshotProvider::GetContextSerializerCallback()
-        {
-            return v8::SerializeContextDataCallback(&IJSSnapshotProvider::SerializeContextInternalField_Internal, this);
-        }
-
         v8::DeserializeInternalFieldsCallback IJSSnapshotProvider::GetInternalDeserializerCallback()
         {
             return v8::DeserializeInternalFieldsCallback(IJSSnapshotProvider::DeserializeInternalField_Internal, this);
@@ -26,26 +16,6 @@ namespace v8App
         v8::DeserializeContextDataCallback IJSSnapshotProvider::GetContextDeserializerCallaback()
         {
             return v8::DeserializeContextDataCallback(IJSSnapshotProvider::DeserializeContextInternalField_Internal, this);
-        }
-
-        V8StartupData IJSSnapshotProvider::SerializeInternalField_Internal(V8LObject inHolder, int inIndex, void *inData)
-        {
-            IJSSnapshotProvider *provider = static_cast<IJSSnapshotProvider *>(inData);
-            if (provider != nullptr)
-            {
-                provider->SerializeInternalField(inHolder, inIndex);
-            }
-            return {nullptr, 0};
-        }
-
-        V8StartupData IJSSnapshotProvider::SerializeContextInternalField_Internal(V8LContext inHolder, int inIndex, void *inData)
-        {
-            IJSSnapshotProvider *provider = static_cast<IJSSnapshotProvider *>(inData);
-            if (provider != nullptr)
-            {
-                provider->SerializeContextInternalField(inHolder, inIndex);
-            }
-            return {nullptr, 0};
         }
 
         void IJSSnapshotProvider::DeserializeInternalField_Internal(V8LObject inHolder, int inIndex, V8StartupData inPayload, void *inData)
