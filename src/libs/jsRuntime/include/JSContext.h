@@ -226,7 +226,7 @@ namespace v8App
             JSContext &operator=(const JSContext &) = delete;
 
             friend class V8ContextProvider;
-            //friend JSRuntime;
+            friend JSRuntime;
         };
     }
 }

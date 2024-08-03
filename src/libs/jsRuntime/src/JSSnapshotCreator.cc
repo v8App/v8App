@@ -6,6 +6,7 @@
 
 #include "Utils/Format.h"
 
+#include "JSApp.h"
 #include "JSSnapshotCreator.h"
 #include "JSContext.h"
 #include "CppBridge/V8CppObject.h"
@@ -60,7 +61,7 @@ namespace v8App
                 V8StartupData data = creator->CreateBlob(V8SnapCreator::FunctionCodeHandling::kClear);
                 if (data.raw_size == 0)
                 {
-                    V8AppPlatform::Get()->SetWorkersPaused(false);
+                    //V8AppPlatform::Get()->SetWorkersPaused(false);
                     return false;
                 }
                 // V8AppPlatform::Get()->SetWorkersPaused(false);

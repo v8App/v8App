@@ -13,16 +13,28 @@
 
 #include "CodeCache.h"
 #include "V8Types.h"
+#include "ISnapshotObject.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        class JSApp : public std::enable_shared_from_this<JSApp>
+        class JSApp : public std::enable_shared_from_this<JSApp>, public ISnapshotObject
         {
         public:
             JSApp(std::string inName, AppProviders inAppProviders);
             virtual ~JSApp();
+
+            /**
+             * Gets the snapshot creator for the app
+             */
+            IJSSnapshotCreatorSharedPtr GetSnapshotCreator();
+
+            /**
+             * Sets the app snapshot creator.
+             * A nullptr will be ignored.
+             */
+            void SetSnapshotCreator(IJSSnapshotCreatorSharedPtr inCreator);
 
             /**
              * Gets the snapshot provider for the app
@@ -73,7 +85,7 @@ namespace v8App
             /**
              * Create a new isolate that runs separate from the app's main runtime
              */
-            JSRuntimeSharedPtr CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
+            JSRuntimeSharedPtr CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled, bool inSupportsSnapshot = false);
             /**
              * Gets the specified JSRuntime by it's name. You can fetch the main runtime as well
              * by it's name which is <app_name>-main
@@ -112,19 +124,21 @@ namespace v8App
             bool IsInitialized() { return m_Initialized; }
 
             /**
-             * Creates a version fo the app for snapshoting. If the app is already a setup for snapshotting it just returns itself
-             * NOTE: Any contextes that were created with SupportsSnapshots == false will not be created in the returned app.
-             * You can change the snapshot provider by passing one in else it'll use the app currentyl set one
-             */
-            template <class App>
-            JSAppSharedPtr CloneAppForSnapshotting(IJSSnapshotProviderSharedPtr inSnapProvider = nullptr);
-
-            /**
              * Is this runtime for creatign a snapshot
              */
             bool IsSnapshotApp() { return m_IsSnapshotter; }
 
+            JSAppSharedPtr CloneAppForSnapshotting();
+
+            virtual bool MakeSnapshot(Serialization::WriteBuffer& inBuffer, void* inData = nullptr);
+            virtual bool RestoreSnapshot(Serialization::ReadBuffer& inBufffer, void *inData = nullptr);
+
         protected:
+            /**
+             * Used by the snapshot system to clone the app by creating the correct app type.
+             * Subclasses should override it to return the correct app class
+             */
+            virtual JSAppSharedPtr CreateSnapshotAppInstance();
             /**
              * Use by subclasses to do theiir actual init and setup
              */
@@ -134,22 +148,33 @@ namespace v8App
              * Create the JSRuntime
              */
             JSRuntimeSharedPtr CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks,
-                                 bool setupForSnapshot, size_t inRuntimeIndex);
-
+                                               bool setupForSnapshot, size_t inRuntimeIndex);
 
             /*
              * Allows subclasses to do any additional work for cloning the app for snapshotting
              */
             virtual bool CloneAppForSnapshot(JSAppSharedPtr inClonee);
 
+            //Snoapshot serialized properties
+            //****************************************/
             /** The name of the app */
             std::string m_Name;
 
+            /** The JS rutime for the this app */
+            JSRuntimeSharedPtr m_MainRuntime;
+
+            using JSRuntimesMap = std::map<std::string, JSRuntimeSharedPtr>;
+
+            JSRuntimesMap m_Runtimes;
+
+
+            //Non Snoapshot properties
+            //****************************************/
             /** The struct that holds the varois app providers */
             AppProviders m_AppProviders;
 
             /** Is this instance setup for snapshotting*/
-            bool m_IsSnapshotter = false;
+            bool m_IsSnapshotter{false};
 
             /** The code cache for the js */
             CodeCacheSharedPtr m_CodeCache;
@@ -160,17 +185,10 @@ namespace v8App
             /** Is this instance initialized*/
             bool m_Initialized = false;
 
-            /** The JS rutime for the this app */
-            JSRuntimeSharedPtr m_MainRuntime;
-
-            using JSRuntimesMap = std::map<std::string, JSRuntimeSharedPtr>;
-
-            JSRuntimesMap m_Runtimes;
             Containers::NamedIndexes m_RuntimesSnapIndexes;
+
         };
     }
 }
-
-#include "JSApp.hpp"
 
 #endif //_JS_APP_H_

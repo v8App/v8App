@@ -9,13 +9,14 @@
 #include <map>
 #include <filesystem>
 
-//#include "Utils/Format.h"
+// #include "Utils/Format.h"
 #include "Containers/NamedIndexes.h"
 
 #include "ForegroundTaskRunner.h"
 #include "ISnapshotHandleCloser.h"
 #include "IJSPlatformRuntimeProvider.h"
 #include "V8Types.h"
+#include "ISnapshotObject.h"
 
 namespace v8App
 {
@@ -26,7 +27,7 @@ namespace v8App
         /**
          * Class that wrapps the v8 Isolate and provides a variety of utilitied related to it
          */
-        class JSRuntime : public std::enable_shared_from_this<JSRuntime>
+        class JSRuntime : public std::enable_shared_from_this<JSRuntime>, public ISnapshotObject
         {
         public:
             /**
@@ -45,7 +46,7 @@ namespace v8App
             /**
              * Iniialies the runtime
              */
-            bool Initialize(AppProviders inAppProviders = AppProviders());
+            bool Initialize(bool isSnapshottable = false);
 
             /**
              * Gets the foreground task runner used by the isolate
@@ -127,9 +128,15 @@ namespace v8App
             V8SnapshotCreatorSharedPtr GetSnapshotCreator() { return m_Creator; }
 
             /**
-             * Returns if this runtime is a snapshotting one
+             * Returns if this runtime is a initialized as snapshot one
              */
             bool IsSnapshotRuntime() { return m_IsSnapshotter; }
+
+            /**
+             * Whether the runtime can be snapshotted. The runtime may not be
+             * initialized as a snapshot isolate but can be cloned into one
+             */
+            bool CanBeSnapshotted() { return m_Snapshottable; }
 
             /**
              * Closes all open handles for snapshoting
@@ -158,17 +165,27 @@ namespace v8App
              */
             IJSContextProviderSharedPtr GetContextProvider();
 
+            /**
+             * Sets a custom context provider on the runtime different from what the app has
+             */
+            void  SetContextProvider(IJSContextProviderSharedPtr inProvider);
+
+
             bool IsInitialzed() { return m_Initialized; }
 
-        protected:
+            size_t GetSnapshotIndex() { return m_SnapshotIndex; }
 
+            virtual bool MakeSnapshot(Serialization::WriteBuffer& inBuffer, void* inData = nullptr);
+            virtual bool RestoreSnapshot(Serialization::ReadBuffer& inBufffer, void *inData = nullptr);
+
+        protected:
             /**
              * Uses the name context's name, namespace and snap method to reolve the context's index name in the snapshot
-             * Naemspace only will only use the name space to look up the index. 
+             * Naemspace only will only use the name space to look up the index.
              * NamespaceAndEntryPoint will use the name and namespace to resolve the name
              */
             std::string ResolveContextName(std::string inName, std::string inNamespace, SnapshotMethod inMethod);
-            
+
             /**
              * Creates the v8 isolate and if for a snapshot the v8 snapshot creator as well
              */
@@ -179,7 +196,7 @@ namespace v8App
              * that support snapshotting, runs the snap shot entry point if specified or the entry point script
              * if one is passed.
              */
-            bool CloneRuntimeForSnapshotting(JSRuntimeSharedPtr inClonee);
+            JSRuntimeSharedPtr CloneRuntimeForSnapshotting(JSAppSharedPtr inApp);
 
             /**
              * Go through the contextes and adds them to the snapshot creator
@@ -232,6 +249,12 @@ namespace v8App
              * Is this a snapshot runtime
              */
             bool m_IsSnapshotter;
+
+            /**
+             * can be snapshotted
+             */
+            bool m_Snapshottable{false};
+
             /**
              * Heap ID for the CppHeap
              */

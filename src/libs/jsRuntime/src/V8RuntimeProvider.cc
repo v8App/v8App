@@ -13,10 +13,10 @@ namespace v8App
                                                             IdleTaskSupport inEnableIdleTasks,
                                                             bool inSetupForSnapshot,
                                                             size_t inRuntimeIndex,
-                                                            AppProviders inAppProvider)
+                                                            bool inSupportsSnapshots)
         {
             JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(inApp, inEnableIdleTasks, inName, inSetupForSnapshot, inRuntimeIndex);
-            if(runtime->Initialize(inAppProvider) == false)
+            if(runtime->Initialize(inSupportsSnapshots) == false)
             {
                 return nullptr;
             }

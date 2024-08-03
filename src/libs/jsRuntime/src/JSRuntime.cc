@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "Time/Time.h"
 #include "Serialization/ReadBuffer.h"
+#include "Serialization/TypeSerializer.h"
 #include "Utils/Format.h"
 
 #include "JSApp.h"
@@ -17,6 +18,7 @@
 #include "JSContext.h"
 #include "V8Types.h"
 #include "V8AppPlatform.h"
+#include "IJSSnapshotCreator.h"
 #include "IJSSnapshotProvider.h"
 
 namespace v8App
@@ -55,13 +57,8 @@ namespace v8App
             inRuntime.m_Initialized = false;
         }
 
-        bool JSRuntime::Initialize(AppProviders inAppProviders)
+        bool JSRuntime::Initialize(bool isSnapshottable)
         {
-            if (inAppProviders.m_ContextProvider != nullptr)
-            {
-                m_CustomContextProvider = inAppProviders.m_ContextProvider;
-            }
-
             if (m_Initialized)
             {
                 return true;
@@ -74,6 +71,7 @@ namespace v8App
 
             JSContextModules::SetupModulesCallbacks(m_Isolate.get());
             m_Initialized = true;
+            m_Snapshottable = isSnapshottable;
             return true;
         }
 
@@ -151,7 +149,7 @@ namespace v8App
                 return nullptr;
             }
             size_t contextIndex = m_ContextNamespaces.GetIndexForName(ResolveContextName(inName, inNamespace, inSnapMethod));
-            if(contextIndex == m_ContextNamespaces.GetMaxSupportedIndexes())
+            if (contextIndex == m_ContextNamespaces.GetMaxSupportedIndexes())
             {
                 contextIndex = 0;
             }
@@ -167,7 +165,7 @@ namespace v8App
             else
             {
                 m_Contextes.insert(std::make_pair(inName, context));
-                //m_ContextProvider->RegisterSnapshotCloser(context);
+                // m_ContextProvider->RegisterSnapshotCloser(context);
             }
             return context;
         }
@@ -248,6 +246,64 @@ namespace v8App
                 return m_CustomContextProvider;
             }
             return m_App->GetContextProvider();
+        }
+
+        void JSRuntime::SetContextProvider(IJSContextProviderSharedPtr inProvider)
+        {
+            // unlike in the app we allow being able to set it back to nullptr
+            // to revert back to the app
+            m_CustomContextProvider = inProvider;
+        }
+
+        bool JSRuntime::MakeSnapshot(Serialization::WriteBuffer &inBuffer, void *inData)
+        {
+            V8LContext defaultContext = V8Context::New(m_Isolate.get());
+
+            // we always add a v8 context to the snapshot so nothing is ever assigned
+            m_Creator->SetDefaultContext(defaultContext);
+
+            Containers::NamedIndexes contextIndexes;
+            if (contextIndexes.AddNamedIndex(0, "v8-default") == false)
+            {
+                return false;
+            }
+
+            for (auto [name, context] : m_Contextes)
+            {
+                if (context->SupportsSnapshots() == false)
+                {
+                    continue;
+                }
+                V8Isolate::Scope(m_Isolate.get());
+                V8HandleScope hScope(m_Isolate.get());
+
+                size_t index = m_Creator->AddContext(context->GetLocalContext());
+                if (contextIndexes.AddNamedIndex(index, name) == false)
+                {
+                    LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));
+                    return false;
+                }
+            }
+
+            V8StartupData snapshot = m_Creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kKeep);
+            if (snapshot.data == nullptr)
+            {
+                LOG_ERROR(Utils::format("Failed to create the snapshot for runtime {}", m_Name));
+                return false;
+            }
+            inBuffer << m_Name;
+            if (contextIndexes.SerializeNameIndexes(inBuffer) == false)
+            {
+                LOG_ERROR(Utils::format("Failed to seriaize the context indexes for runtime {}", m_Name));
+                return false;
+            }
+            inBuffer.SerializeWrite(snapshot.data, snapshot.raw_size);
+            return true;
+        }
+
+        bool JSRuntime::RestoreSnapshot(Serialization::ReadBuffer &inBufffer, void *inData)
+        {
+            return false;
         }
 
         void JSRuntime::CloseOpenHandlesForSnapshot()
@@ -339,11 +395,11 @@ namespace v8App
 
         std::string JSRuntime::ResolveContextName(std::string inName, std::string inNamespace, SnapshotMethod inMethod)
         {
-            if(inMethod == SnapshotMethod::kNamespaceOnly)
+            if (inMethod == SnapshotMethod::kNamespaceOnly)
             {
                 return inNamespace;
             }
-            return inNamespace +"::" + inName;
+            return inNamespace + "::" + inName;
         }
 
         bool JSRuntime::CreateIsolate()
@@ -387,22 +443,31 @@ namespace v8App
             return true;
         }
 
-        bool JSRuntime::CloneRuntimeForSnapshotting(JSRuntimeSharedPtr inClonee)
+        JSRuntimeSharedPtr JSRuntime::CloneRuntimeForSnapshotting(JSAppSharedPtr inApp)
         {
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(inApp, m_IdleEnabled, m_Name, true, m_SnapshotIndex);
+            if (runtime->Initialize(true) == false)
+            {
+                return nullptr;
+            }
             for (auto it : m_Contextes)
             {
                 if (it.second->SupportsSnapshots() == false)
                 {
                     continue;
                 }
-//                JSContextSharedPtr snapContext = it.second->CloneForSnapshot(shared_from_this());
-//                auto [iit, success] = m_Contextes.insert(std::make_pair(snapContext->GetName(), snapContext));
-//                if (success == false)
+                JSContextSharedPtr snapContext = it.second->CloneForSnapshot(shared_from_this());
+                if (snapContext == nullptr)
                 {
-                    return false;
+                    return nullptr;
+                }
+                auto [iit, success] = runtime->m_Contextes.insert(std::make_pair(snapContext->GetName(), snapContext));
+                if (success == false)
+                {
+                    return nullptr;
                 }
             }
-            return true;
+            return runtime;
         }
 
         bool JSRuntime::AddContextesToSnapshot()
@@ -411,10 +476,11 @@ namespace v8App
             {
                 return false;
             }
-            IJSSnapshotProviderSharedPtr snapProvider = m_App->GetSnapshotProvider();
+            IJSSnapshotCreatorSharedPtr snapCreator = m_App->GetSnapshotCreator();
             for (auto it : m_Contextes)
             {
-                size_t index = m_Creator->AddContext(it.second->GetLocalContext(), snapProvider->GetInternalSerializerCallaback(), snapProvider->GetContextSerializerCallback());
+                size_t index = m_Creator->AddContext(it.second->GetLocalContext(), snapCreator->GetInternalSerializerCallaback(),
+                                                     snapCreator->GetContextSerializerCallback());
                 m_ContextNamespaces.AddNamedIndex(index, it.second->GetNamespace());
             }
         }

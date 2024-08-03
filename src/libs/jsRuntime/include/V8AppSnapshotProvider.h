@@ -54,11 +54,6 @@ namespace v8App
 
             virtual const intptr_t *GetExternalReferences() override;
 
-            /**
-             * Serializers for the snapshot
-             */
-            virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) override;
-            virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) override;
 
             /**
              * Deserializers for the snapshot
@@ -76,6 +71,8 @@ namespace v8App
 
             SnapshotMap m_Snapshots;
         };
+
+        using V8AppSnapshotProviderSharedPtr = std::shared_ptr<V8AppSnapshotProvider>;
     }
 }
 

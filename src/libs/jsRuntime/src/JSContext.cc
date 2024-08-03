@@ -20,11 +20,11 @@ namespace v8App
     namespace JSRuntime
     {
         JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
-                             std::filesystem::path inEntryPoint, size_t inContextIndex, 
+                             std::filesystem::path inEntryPoint, size_t inContextIndex,
                              std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
                              SnapshotMethod inSnapMethod)
-            : m_Runtime(inRuntime), m_Name(inName), m_Namespace(inNamespace), m_EntryPoint(inEntryPoint),
-              m_SnapEntryPoint(inSnapEntryPoint), m_SnapIndex(inContextIndex), 
+            : m_Runtime(inRuntime), m_Name(inName), m_Namespace(inNamespace), m_SnapIndex(inContextIndex),
+              m_EntryPoint(inEntryPoint), m_SnapEntryPoint(inSnapEntryPoint),
               m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
         {
             CHECK_NOT_NULL(m_Runtime.get());
@@ -304,9 +304,9 @@ namespace v8App
 
             V8LScript script;
             script = maybeScript.FromMaybe(V8LScript());
-            if(script.IsEmpty())
+            if (script.IsEmpty())
             {
-                //TODO: log message
+                // TODO: log message
                 return V8LValue();
             }
 

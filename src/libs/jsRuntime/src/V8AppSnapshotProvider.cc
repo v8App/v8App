@@ -8,7 +8,6 @@
 #include "Utils/Paths.h"
 
 #include "Serialization/ReadBuffer.h"
-#include "Serialization/WriteBuffer.h"
 #include "Serialization/TypeSerializer.h"
 
 #include "CppBridge/CallbackRegistry.h"
@@ -92,55 +91,6 @@ namespace v8App
         const intptr_t *V8AppSnapshotProvider::GetExternalReferences()
         {
             return CppBridge::CallbackRegistry::GetReferences().data();
-        }
-
-        V8StartupData V8AppSnapshotProvider::SerializeInternalField(V8LObject inHolder, int inIndex)
-        {
-            Serialization::WriteBuffer wBuffer;
-
-            // Index 0 is hte object info but we can't do anythign with it without the actual cpp object
-            if (inIndex < (int)V8CppObjDataIntField::ObjInstance)
-            {
-                CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
-                if (info == nullptr)
-                {
-                    // should prboably thow an error here
-                    return {nullptr, 0};
-                }
-                wBuffer << info->m_TypeName;
-                if (wBuffer.HasErrored())
-                {
-                    // should throw an error here
-                    return {nullptr, 0};
-                }
-                return {wBuffer.GetDataNew(), (int)wBuffer.BufferSize()};
-            }
-            if (inIndex == (int)V8CppObjDataIntField::ObjInstance)
-            {
-                CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
-                CppBridge::V8CppObjectBase *instance = static_cast<CppBridge::V8CppObjectBase *>(inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance));
-                if (info->m_Serializer != nullptr)
-                {
-                    info->m_Serializer(wBuffer, instance);
-                    if (wBuffer.HasErrored())
-                    {
-                        // should thorw and error here
-                        return {nullptr, 0};
-                    }
-                    return {wBuffer.GetDataNew(), (int)wBuffer.BufferSize()};
-                }
-            }
-            return {nullptr, 0};
-        }
-
-        V8StartupData V8AppSnapshotProvider::SerializeContextInternalField(V8LContext inHolder, int inIndex)
-        {
-            if (inIndex == (int)JSContext::DataSlot::kJSContextWeakPtr)
-            {
-                JSContext *jsContext = static_cast<JSContext *>(inHolder->GetAlignedPointerFromEmbedderData(inIndex));
-                // TODO serialize the context
-            }
-            return {nullptr, 0};
         }
 
         void V8AppSnapshotProvider::DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload)

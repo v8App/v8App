@@ -21,7 +21,7 @@ namespace v8App
                                                      IdleTaskSupport inEnbaleIdleTasks,
                                                      bool inSetupForSnapshot = false,
                                                      size_t inRuntimeIndex = 0,
-                                                     AppProviders inAppProviders = AppProviders()) override;
+                                                     bool inSupportsSnapshots = false) override;
             /**
              * Override to dispose of the JSRuntime
              */
