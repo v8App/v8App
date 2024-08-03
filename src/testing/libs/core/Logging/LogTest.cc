@@ -217,6 +217,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Error);
 
+            // test using a LogMessage
             Log::Error(message);
 
             LogMessage expected = {
@@ -228,6 +229,15 @@ namespace v8App
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
+            // test using a string
+            Log::Error("TestStr");
+
+            expected = {
+                {MsgKey::LogLevel, "Error"},
+                {MsgKey::Msg, "TestStr"},
+            };
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
             // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::General);
             testSink->FlushMessages();
@@ -259,6 +269,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::General);
 
+            // test LogMessage version
             Log::General(message);
 
             LogMessage expected = {
@@ -270,6 +281,15 @@ namespace v8App
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
+            // test string version
+            Log::General("TestStr");
+
+            expected = {
+                {MsgKey::LogLevel, "General"},
+                {MsgKey::Msg, "TestStr"},
+            };
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
             // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Warn);
             testSink->FlushMessages();
@@ -301,6 +321,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Warn);
 
+            // test LogMessage version
             Log::Warn(message);
 
             LogMessage expected = {
@@ -312,6 +333,15 @@ namespace v8App
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
+            // test string versoin
+            Log::Warn("TestStr");
+
+            expected = {
+                {MsgKey::LogLevel, "Warn"},
+                {MsgKey::Msg, "TestStr"},
+            };
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
             // test that the message logged on higher level
             Log::SetLogLevel(LogLevel::Debug);
             testSink->FlushMessages();
@@ -343,6 +373,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Debug);
 
+            // test LogMessage version
             Log::Debug(message);
 
             LogMessage expected = {
@@ -351,6 +382,16 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Debug("TestStr");
+
+            expected = {
+                {MsgKey::LogLevel, "Debug"},
+                {MsgKey::Msg, "TestStr"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
@@ -385,13 +426,24 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Trace);
 
+            // test LogMessage version
             Log::Trace(message);
+
             LogMessage expected = {
                 {MsgKey::LogLevel, "Trace"},
                 {MsgKey::Msg, "Test"},
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Trace("TestStr");
+            expected = {
+                {MsgKey::LogLevel, "Trace"},
+                {MsgKey::Msg, "TestStr"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -408,6 +460,7 @@ namespace v8App
             // test sends message even though off and sink doesn't want it.
             Log::SetLogLevel(LogLevel::Off);
 
+            //test LogMessage version
             Log::Fatal(message);
 
             LogMessage expected = {
@@ -416,6 +469,17 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Fatal("TestStr");
+
+            expected = {
+                {MsgKey::LogLevel, "Fatal"},
+                {MsgKey::Msg, "TestStr"},
+            };
+
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -438,6 +502,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Error);
 
+            //test LogMessage version
             Log::Error(message, "File", "Function", 10);
 
             LogMessage expected = {
@@ -449,6 +514,19 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Error("TestStr", "File", "Function", 10);
+
+            expected = {
+                {MsgKey::LogLevel, "Error"},
+                {MsgKey::Msg, "TestStr"},
+                {MsgKey::File, "File"},
+                {MsgKey::Function, "Function"},
+                {MsgKey::Line, "10"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
@@ -483,7 +561,9 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::General);
 
+            // test LogMessage version
             Log::General(message, "File", "Function", 10);
+
             LogMessage expected = {
                 {MsgKey::LogLevel, "General"},
                 {MsgKey::Msg, "Test"},
@@ -493,6 +573,19 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            //test string version
+            Log::General("TestStr", "File", "Function", 10);
+
+            expected = {
+                {MsgKey::LogLevel, "General"},
+                {MsgKey::Msg, "TestStr"},
+                {MsgKey::File, "File"},
+                {MsgKey::Function, "Function"},
+                {MsgKey::Line, "10"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
@@ -527,6 +620,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Warn);
 
+            //test LogMessage version
             Log::Warn(message, "File", "Function", 10);
 
             LogMessage expected = {
@@ -538,6 +632,19 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Warn("TestStr", "File", "Function", 10);
+
+            expected = {
+                {MsgKey::LogLevel, "Warn"},
+                {MsgKey::Msg, "TestStr"},
+                {MsgKey::File, "File"},
+                {MsgKey::Function, "Function"},
+                {MsgKey::Line, "10"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
@@ -572,6 +679,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Debug);
 
+            //test LogMessage version
             Log::Debug(message, "File", "Function", 10);
 
             LogMessage expected = {
@@ -583,6 +691,19 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            //test string version
+            Log::Debug("TestStr", "File", "Function", 10);
+
+             expected = {
+                {MsgKey::LogLevel, "Debug"},
+                {MsgKey::Msg, "TestStr"},
+                {MsgKey::File, "File"},
+                {MsgKey::Function, "Function"},
+                {MsgKey::Line, "10"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
 
@@ -617,6 +738,7 @@ namespace v8App
             // test message gets logged on level
             Log::SetLogLevel(LogLevel::Trace);
 
+            //test LogMessage version
             Log::Trace(message, "File", "Function", 10);
 
             LogMessage expected = {
@@ -628,6 +750,19 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Trace("TestStr", "File", "Function", 10);
+
+            expected = {
+                {MsgKey::LogLevel, "Trace"},
+                {MsgKey::Msg, "TestStr"},
+                {MsgKey::File, "File"},
+                {MsgKey::Function, "Function"},
+                {MsgKey::Line, "10"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -644,6 +779,7 @@ namespace v8App
             // test message gets ent even though off and sink doesn't want it
             Log::SetLogLevel(LogLevel::Trace);
 
+            //test LogMessage version
             Log::Fatal(message, "File", "Function", 10);
 
             LogMessage expected = {
@@ -655,6 +791,19 @@ namespace v8App
             };
 
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
+
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // test string version
+            Log::Fatal("TestStr", "File", "Function", 10);
+
+            expected = {
+                {MsgKey::LogLevel, "Fatal"},
+                {MsgKey::Msg, "TestStr"},
+                {MsgKey::File, "File"},
+                {MsgKey::Function, "Function"},
+                {MsgKey::Line, "10"},
+            };
 
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -672,6 +821,7 @@ namespace v8App
 
             testSink->FlushMessages();
 
+            // logMesssage version
             LOG_ERROR(message);
             ASSERT_FALSE(testSink->NoMessages());
 
@@ -683,7 +833,7 @@ namespace v8App
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 #ifdef V8APP_DEBUG
             // so the checks aren't as brittle
-            size_t line = 675;
+            size_t line = 825;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
             const char *func = __func__;
@@ -691,6 +841,17 @@ namespace v8App
             expected.emplace(MsgKey::File, file);
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
+#endif
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // string version
+            LOG_ERROR("TestStr");
+            expected[MsgKey::Msg] = "TestStr";
+#ifdef V8APP_DEBUG
+            // so the checks aren't as brittle
+            line = 848;
+            sLine = std::to_string(line);
+            expected[MsgKey::Line] = sLine;
 #endif
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -716,7 +877,7 @@ namespace v8App
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 #ifdef V8APP_DEBUG
             // so the checks aren't as brittle
-            size_t line = 709;
+            size_t line = 870;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
             const char *func = __func__;
@@ -724,6 +885,17 @@ namespace v8App
             expected.emplace(MsgKey::File, file);
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
+#endif
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // string version
+            LOG_GENERAL("TestStr");
+            expected[MsgKey::Msg] = "TestStr";
+#ifdef V8APP_DEBUG
+            // so the checks aren't as brittle
+            line = 892;
+            sLine = std::to_string(line);
+            expected[MsgKey::Line] = sLine;
 #endif
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -751,7 +923,7 @@ namespace v8App
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 #ifdef V8APP_DEBUG
             // so the checks aren't as brittle
-            size_t line = 744;
+            size_t line = 916;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
             const char *func = __func__;
@@ -759,6 +931,17 @@ namespace v8App
             expected.emplace(MsgKey::File, file);
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
+#endif
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // string version
+            LOG_WARN("TestStr");
+            expected[MsgKey::Msg] = "TestStr";
+#ifdef V8APP_DEBUG
+            // so the checks aren't as brittle
+            line = 938;
+            sLine = std::to_string(line);
+            expected[MsgKey::Line] = sLine;
 #endif
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -784,7 +967,7 @@ namespace v8App
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 #ifdef V8APP_DEBUG
             // so the checks aren't as brittle
-            size_t line = 777;
+            size_t line = 960;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
             const char *func = __func__;
@@ -792,6 +975,17 @@ namespace v8App
             expected.emplace(MsgKey::File, file);
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
+#endif
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // string version
+            LOG_DEBUG("TestStr");
+            expected[MsgKey::Msg] = "TestStr";
+#ifdef V8APP_DEBUG
+            // so the checks aren't as brittle
+            line = 982;
+            sLine = std::to_string(line);
+            expected[MsgKey::Line] = sLine;
 #endif
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -817,7 +1011,7 @@ namespace v8App
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 #ifdef V8APP_DEBUG
             // so the checks aren't as brittle
-            size_t line = 810;
+            size_t line = 1004;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
             const char *func = __func__;
@@ -825,6 +1019,17 @@ namespace v8App
             expected.emplace(MsgKey::File, file);
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
+#endif
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // string version
+            LOG_TRACE("TestStr");
+            expected[MsgKey::Msg] = "TestStr";
+#ifdef V8APP_DEBUG
+            // so the checks aren't as brittle
+            line = 1026;
+            sLine = std::to_string(line);
+            expected[MsgKey::Line] = sLine;
 #endif
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }
@@ -850,7 +1055,7 @@ namespace v8App
             TestUtils::IgnoreMsgKeys ignore = {MsgKey::TimeStamp, MsgKey::AppName};
 #ifdef V8APP_DEBUG
             // so the checks aren't as brittle
-            size_t line = 843;
+            size_t line = 1048;
             std::string sLine = std::to_string(line);
             const char *file = __FILE__;
             const char *func = __func__;
@@ -858,6 +1063,17 @@ namespace v8App
             expected.emplace(MsgKey::File, file);
             expected.emplace(MsgKey::Function, func);
             expected.emplace(MsgKey::Line, sLine);
+#endif
+            ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
+
+            // string version
+            LOG_FATAL("TestStr");
+            expected[MsgKey::Msg] = "TestStr";
+#ifdef V8APP_DEBUG
+            // so the checks aren't as brittle
+            line = 1070;
+            sLine = std::to_string(line);
+            expected[MsgKey::Line] = sLine;
 #endif
             ASSERT_TRUE(testSink->ValidateMessage(expected, ignore));
         }

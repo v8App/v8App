@@ -111,12 +111,24 @@ namespace v8App
             }
         }
 
+        void Log::Error(std::string inMessage)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Error(msg);
+        }
+
         void Log::General(LogMessage &inMessage)
         {
             if (m_LogLevel >= LogLevel::General)
             {
                 InternalLog(inMessage, LogLevel::General);
             }
+        }
+
+        void Log::General(std::string inMessage)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            General(msg);
         }
 
         void Log::Warn(LogMessage &inMessage)
@@ -127,12 +139,24 @@ namespace v8App
             }
         }
 
+        void Log::Warn(std::string inMessage)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Warn(msg);
+        }
+
         void Log::Debug(LogMessage &inMessage)
         {
             if (m_LogLevel >= LogLevel::Debug)
             {
                 InternalLog(inMessage, LogLevel::Debug);
             }
+        }
+
+        void Log::Debug(std::string inMessage)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Debug(msg);
         }
 
         void Log::Trace(LogMessage &inMessage)
@@ -143,18 +167,22 @@ namespace v8App
             }
         }
 
+        void Log::Trace(std::string inMessage)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Trace(msg);
+        }
+
         void Log::Fatal(LogMessage &inMessage)
         {
             // Fatal always logs a message
             InternalLog(inMessage, LogLevel::Fatal);
         }
 
-        void Log::Error(LogMessage &inMessage, std::string File, std::string Function, int Line)
+        void Log::Fatal(std::string inMessage)
         {
-            if (m_LogLevel >= LogLevel::Error)
-            {
-                InternalLog(inMessage, LogLevel::Error, File, Function, Line);
-            }
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Fatal(msg);
         }
 
         void Log::General(LogMessage &inMessage, std::string File, std::string Function, int Line)
@@ -165,12 +193,38 @@ namespace v8App
             }
         }
 
+        void Log::General(std::string inMessage, std::string File, std::string Function, int Line)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            General(msg, File, Function, Line);
+        }
+
+        void Log::Error(LogMessage &inMessage, std::string File, std::string Function, int Line)
+        {
+            if (m_LogLevel >= LogLevel::Error)
+            {
+                InternalLog(inMessage, LogLevel::Error, File, Function, Line);
+            }
+        }
+
+        void Log::Error(std::string inMessage, std::string File, std::string Function, int Line)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Error(msg, File, Function, Line);
+        }
+
         void Log::Warn(LogMessage &inMessage, std::string File, std::string Function, int Line)
         {
             if (m_LogLevel >= LogLevel::Warn)
             {
                 InternalLog(inMessage, LogLevel::Warn, File, Function, Line);
             }
+        }
+
+        void Log::Warn(std::string inMessage, std::string File, std::string Function, int Line)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Warn(msg, File, Function, Line);
         }
 
         void Log::Debug(LogMessage &inMessage, std::string File, std::string Function, int Line)
@@ -181,6 +235,12 @@ namespace v8App
             }
         }
 
+        void Log::Debug(std::string inMessage, std::string File, std::string Function, int Line)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Debug(msg, File, Function, Line);
+        }
+
         void Log::Trace(LogMessage &inMessage, std::string File, std::string Function, int Line)
         {
             if (m_LogLevel >= LogLevel::Trace)
@@ -189,10 +249,22 @@ namespace v8App
             }
         }
 
+        void Log::Trace(std::string inMessage, std::string File, std::string Function, int Line)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Trace(msg, File, Function, Line);
+        }
+
         void Log::Fatal(LogMessage &inMessage, std::string File, std::string Function, int Line)
         {
             // Fata always logs a message
             InternalLog(inMessage, LogLevel::Fatal, File, Function, Line);
+        }
+
+        void Log::Fatal(std::string inMessage, std::string File, std::string Function, int Line)
+        {
+            LogMessage msg = {{MsgKey::Msg, inMessage}};
+            Fatal(msg, File, Function, Line);
         }
 
         void Log::Shutdown()
