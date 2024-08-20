@@ -88,15 +88,6 @@ namespace v8App
             static void SetupShadowRealmCallback(V8Isolate *inIsolate);
 
             /**
-             * Reigster the contexts snaphot close handler.
-             */
-            void RegisterSnapshotCloser();
-            /**
-             * Unregisters the contexts snapshot closer
-             */
-            void UnregisterSnapshotCloser();
-
-            /**
              * Returns if the context supports being snapshotted
              */
             bool SupportsSnapshots() { return m_SupportsSnapshots; }

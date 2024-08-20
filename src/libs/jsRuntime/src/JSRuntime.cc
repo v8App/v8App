@@ -284,7 +284,7 @@ namespace v8App
                     return false;
                 }
             }
-
+            CloseOpenHandlesForSnapshot();
             V8StartupData snapshot = m_Creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kKeep);
             if (snapshot.data == nullptr)
             {
@@ -309,7 +309,7 @@ namespace v8App
         void JSRuntime::CloseOpenHandlesForSnapshot()
         {
             // If not a snapshotting runtime return
-            if (m_Creator == nullptr)
+            if (m_IsSnapshotter == false)
             {
                 return;
             }
@@ -323,7 +323,7 @@ namespace v8App
             }
 
             m_ObjectTemplates.clear();
-            for (auto callback : m_HandleClosers)
+            for (auto [closerPtr, callback] : m_HandleClosers)
             {
                 if (callback.expired())
                 {
@@ -337,23 +337,33 @@ namespace v8App
 
         void JSRuntime::RegisterSnapshotHandleCloser(ISnapshotHandleCloserWeakPtr inCloser)
         {
-            auto callback = std::find_if(m_HandleClosers.begin(), m_HandleClosers.end(),
-                                         [&inCloser](const ISnapshotHandleCloserWeakPtr &inPtr)
-                                         {
-                                             if (inPtr.expired() == false)
-                                             {
-                                                 return inCloser.lock() == inPtr.lock();
-                                             }
-                                             return false;
-                                         });
-            if (callback == m_HandleClosers.end())
+            //not a snapshotter no reason to register them
+            if(m_IsSnapshotter == false)
             {
-                m_HandleClosers.push_back(inCloser);
+                return;
             }
+            //no point in adding an expired ptr
+            if(inCloser.expired())
+            {
+                return;
+            }
+            ISnapshotHandleCloser * closerPtr = inCloser.lock().get();
+            if(m_HandleClosers.find(closerPtr) != m_HandleClosers.end())
+            {
+                return;
+            }
+            m_HandleClosers.emplace(closerPtr, inCloser);
         }
 
-        void JSRuntime::UnregisterSnapshotHandlerCloser(ISnapshotHandleCloserWeakPtr inCloser)
+        void JSRuntime::UnregisterSnapshotHandlerCloser(ISnapshotHandleCloser *inCloser)
         {
+            //not a snapshotter no reason to unregister them
+            if(m_IsSnapshotter == false)
+            {
+                return;
+            }
+
+            //if empty no need to go on
             if (m_HandleClosers.empty())
             {
                 return;
@@ -362,25 +372,23 @@ namespace v8App
             // we loop through the callbacks to find the registered callback but
             // also any callabcks that are expired just to clean them out
             bool found = true;
-            while (found)
+            std::vector<ISnapshotHandleCloser*> removePos;
+            for(auto [closerPtr, closerWeakPtr]: m_HandleClosers)
             {
-                auto pos = std::find_if(m_HandleClosers.begin(), m_HandleClosers.end(),
-                                        [&inCloser](const ISnapshotHandleCloserWeakPtr &inPtr)
-                                        {
-                                            if (inPtr.expired() == false)
-                                            {
-                                                return inCloser.lock() == inPtr.lock();
-                                            }
-                                            return true;
-                                        });
-                if (m_HandleClosers.end() != pos)
+                if (closerPtr == inCloser)
                 {
-                    m_HandleClosers.erase(pos);
+                    removePos.push_back(closerPtr);
                 }
-                else
+                else if (closerWeakPtr.expired())
                 {
-                    found = false;
-                }
+                    removePos.push_back(closerPtr);
+                }                
+            }
+            //now acutaly remove them
+            for(auto closerPtr: removePos)
+            {
+                auto pos = m_HandleClosers.find(closerPtr);
+                m_HandleClosers.erase(pos);
             }
         }
 

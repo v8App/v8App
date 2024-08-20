@@ -25,8 +25,6 @@ namespace v8App
             virtual void CloseHandleForSnapshot() = 0;
             friend class JSRuntime;
         };
-        using ISnapshotHandleCloserWeakPtr = std::weak_ptr<ISnapshotHandleCloser>;
-
     }
 }
 

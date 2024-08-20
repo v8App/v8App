@@ -214,6 +214,9 @@ namespace v8App
 
         using JSSnapshotCreatorUniquePtr = std::unique_ptr<class JSSnapshotCreator>;
 
+        using ISnapshotHandleCloserSharedPtr = std::shared_ptr<class ISnapshotHandleCloser>;
+        using ISnapshotHandleCloserWeakPtr = std::weak_ptr<class ISnapshotHandleCloser>;
+
         /**
          * The method to use when snapshotting the context.
          * kNamespaceOnly will only setup the global object if needed
@@ -256,6 +259,7 @@ namespace v8App
             IJSContextProviderSharedPtr m_ContextProvider;
             IJSSnapshotCreatorSharedPtr m_SnapshotCreator;
         };
+
     }
 }
 #endif //__V8_TYPES_H__

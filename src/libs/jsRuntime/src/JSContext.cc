@@ -239,23 +239,13 @@ namespace v8App
 
             m_Context.Reset(isolate, context);
             m_Initialized = true;
-            return true;
-        }
 
-        void JSContext::RegisterSnapshotCloser()
-        {
-            if (m_Runtime != nullptr)
+            if (m_Runtime->IsSnapshotRuntime())
             {
                 m_Runtime->RegisterSnapshotHandleCloser(shared_from_this());
             }
-        }
 
-        void JSContext::UnregisterSnapshotCloser()
-        {
-            if (m_Runtime != nullptr)
-            {
-                m_Runtime->UnregisterSnapshotHandlerCloser(shared_from_this());
-            }
+            return true;
         }
 
         bool JSContext::RunModule(std::filesystem::path inModulePath)
@@ -387,6 +377,10 @@ namespace v8App
             if (m_Initialized == false)
             {
                 return;
+            }
+            if (m_Runtime != nullptr)
+            {
+                m_Runtime->UnregisterSnapshotHandlerCloser(this);
             }
             DisposeV8Context();
 

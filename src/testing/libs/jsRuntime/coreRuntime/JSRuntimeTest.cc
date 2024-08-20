@@ -88,13 +88,24 @@ namespace v8App
             std::shared_ptr<TestContext> m_Context;
         };
 
-        class TestCloseHandlerJSRuntime final : public ISnapshotHandleCloser
+        class TestJSRuntimeCloseHandler final : public ISnapshotHandleCloser, std::enable_shared_from_this<TestJSRuntimeCloseHandler>
         {
         public:
             int m_Value = 0;
 
         protected:
             virtual void CloseHandleForSnapshot() { m_Value = 10; }
+        };
+
+        class TestCloseHandlerJSRuntime : public JSRuntime
+        {
+        public:
+            TestCloseHandlerJSRuntime(JSAppSharedPtr inApp, IdleTaskSupport inEnableIdle, std::string inName, bool inSetupForSnapshot, size_t inRuntimeIndex)
+             : JSRuntime(inApp, inEnableIdle, inName, inSetupForSnapshot, inRuntimeIndex) {}
+            virtual ~TestCloseHandlerJSRuntime() {};
+
+            int GetNumberOfClosers() { return m_HandleClosers.size(); }
+            void SetSnapshotter(bool inValue) { m_IsSnapshotter = inValue; }
         };
 
         TEST_F(JSRuntimeTest, Constrcutor)
@@ -283,7 +294,7 @@ namespace v8App
             runtime->DisposeRuntime();
         }
 
-        TEST_F(JSRuntimeTest, RegisterUnregisterCloseHandlers)
+        TEST_F(JSRuntimeTest, RegisterUnregisterRunCloseHandlers)
         {
             std::filesystem::path testRoot = s_TestDir / "RegisterUnregisterCloseHandlers";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
@@ -295,19 +306,52 @@ namespace v8App
 
             JSAppSharedPtr snapApp = std::make_shared<JSApp>("RegisterUnregisterCloseHandlers", providers);
             ASSERT_TRUE(snapApp->Initialize(testRoot));
+            std::shared_ptr<TestJSRuntimeCloseHandler> closer = std::make_shared<TestJSRuntimeCloseHandler>();
+            std::shared_ptr<TestJSRuntimeCloseHandler> closer2 = std::make_shared<TestJSRuntimeCloseHandler>();
 
-            JSRuntimeSharedPtr runtime = snapApp->GetMainRuntime();
-            std::shared_ptr<TestCloseHandlerJSRuntime> closer = std::make_shared<TestCloseHandlerJSRuntime>();
+            // non snapshot runtime
+            std::shared_ptr<TestCloseHandlerJSRuntime> runtime = std::make_shared<TestCloseHandlerJSRuntime>(snapApp, IdleTaskSupport::kEnabled, "RegisterUnregisterCloseHandlers", true, 0);
 
+            // won't add on non snapshotter
+            runtime->SetSnapshotter(false);
             runtime->RegisterSnapshotHandleCloser(closer);
-            EXPECT_EQ(closer->m_Value, 0);
+            EXPECT_EQ(0, runtime->GetNumberOfClosers());
+
+            // won't add expired
+            runtime->SetSnapshotter(true);
+            runtime->RegisterSnapshotHandleCloser(std::shared_ptr<TestJSRuntimeCloseHandler>());
+            EXPECT_EQ(0, runtime->GetNumberOfClosers());
+
+            // adds it
+            runtime->RegisterSnapshotHandleCloser(closer);
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            // test unregister is not called when a non snapshotter
+            runtime->SetSnapshotter(false);
+            runtime->UnregisterSnapshotHandlerCloser(closer.get());
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            // test that it just removes the one we want
+            runtime->SetSnapshotter(true);
+            runtime->RegisterSnapshotHandleCloser(closer2);
+            EXPECT_EQ(2, runtime->GetNumberOfClosers());
+            runtime->UnregisterSnapshotHandlerCloser(closer2.get());
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            // register the second closer then delete it to test the wek ptr check when running them
+            runtime->RegisterSnapshotHandleCloser(closer2);
+            closer2.reset();
+
+            // test that the handlers don't get run if it's a snapshot
+            runtime->SetSnapshotter(false);
             runtime->CloseOpenHandlesForSnapshot();
-            EXPECT_EQ(closer->m_Value, 10);
-            closer->m_Value = 0;
-            EXPECT_EQ(closer->m_Value, 0);
-            runtime->UnregisterSnapshotHandlerCloser(closer);
+            EXPECT_EQ(2, runtime->GetNumberOfClosers());
+
+            runtime->SetSnapshotter(true);
             runtime->CloseOpenHandlesForSnapshot();
-            EXPECT_EQ(closer->m_Value, 0);
+            EXPECT_EQ(0, runtime->GetNumberOfClosers());
+            EXPECT_EQ(10, closer->m_Value);
+
             snapApp->DisposeApp();
         }
 

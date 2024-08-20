@@ -14,9 +14,14 @@ namespace v8App
         {
             void V8CppObjectBase::FirstWeakCallback(const v8::WeakCallbackInfo<V8CppObjectBase> &inInfo)
             {
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inInfo.GetIsolate());
                 V8CppObjectBase *baseObject = inInfo.GetParameter();
                 baseObject->m_Dead = true;
                 baseObject->m_Object.Reset();
+                if(runtime != nullptr)
+                {
+                    runtime->UnregisterSnapshotHandlerCloser(baseObject);
+                }
             }
 
             V8LObject V8CppObjectBase::CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo)
@@ -48,6 +53,7 @@ namespace v8App
 
                 jsObject->SetAlignedPointerInInternalFields((int)V8CppObjDataIntField::MaxInternalFields, indexes, values);
                 m_Object.Reset(runtime->GetIsolate(), jsObject);
+                runtime->RegisterSnapshotHandleCloser(shared_from_this());
 
                 return jsObject;
             }

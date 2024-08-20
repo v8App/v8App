@@ -51,6 +51,7 @@ namespace v8App
                 creater->SetDefaultContext(context);
             }
 
+            runtime->CloseOpenHandlesForSnapshot();
             V8StartupData data = creater->CreateBlob(V8SnapCreator::FunctionCodeHandling::kClear);
             if (data.raw_size == 0)
             {
