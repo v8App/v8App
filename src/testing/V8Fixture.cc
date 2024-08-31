@@ -26,12 +26,11 @@ namespace v8App
             testSink->FlushMessages();
 
             const char* suiteName = ::testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
-            AppProviders providers;
-            providers.m_SnapshotProvider = std::make_shared<TestSnapshotProvider>();
-            providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
-            providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
+            m_Providers.m_SnapshotProvider = std::make_shared<TestSnapshotProvider>();
+            m_Providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
+            m_Providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
 
-            m_App = std::make_shared<JSApp>(suiteName, providers);
+            m_App = std::make_shared<JSApp>(suiteName, m_Providers);
             m_App->Initialize(s_TestDir, false);
             
             m_Runtime = m_App->GetMainRuntime();

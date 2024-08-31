@@ -145,7 +145,7 @@ namespace v8App
             /**
              * Register a callback to close a handle for the isolate
              */
-            void RegisterSnapshotHandleCloser(ISnapshotHandleCloserWeakPtr inCloser);
+            void RegisterSnapshotHandleCloser(ISnapshotHandleCloser* inCloser);
             /**
              * Unregister a close handler, use a ptr since we could be in a destructor
              * and shared_ptr is no longer valid
@@ -217,7 +217,7 @@ namespace v8App
             /**
              * Cllbacks to close out the handles when the isolate is snapshotting
              */
-            std::map<ISnapshotHandleCloser*, ISnapshotHandleCloserWeakPtr> m_HandleClosers;
+            std::vector<ISnapshotHandleCloser*> m_HandleClosers;
 
             /**
              * Has a custom deleter to call dispose on the isolate

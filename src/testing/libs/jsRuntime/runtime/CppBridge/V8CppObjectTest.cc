@@ -16,7 +16,6 @@
 #include "CppBridge/V8ObjectTemplateBuilder.h"
 #include "JSUtilities.h"
 
-
 namespace v8App
 {
     namespace JSRuntime
@@ -40,7 +39,8 @@ namespace v8App
             class TestV8CppObject final : public V8CppObject<TestV8CppObject>
             {
             public:
-                virtual ~TestV8CppObject() 
+                TestV8CppObject() {}
+                virtual ~TestV8CppObject()
                 {
                     TestV8CppObject::objInstance = nullptr;
                     TestV8CppObject::secondCallback = true;

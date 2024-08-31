@@ -17,10 +17,11 @@ namespace v8App
             /**
              * Base holder class for native objects
              */
-            class V8CppObjectBase : public ISnapshotHandleCloser
+            class V8CppObjectBase : public std::enable_shared_from_this<V8CppObjectBase>, public ISnapshotHandleCloser
             {
             protected:
-                V8CppObjectBase() = default;
+                V8CppObjectBase() {};
+                virtual ~V8CppObjectBase() {}
 
                 virtual void CloseHandleForSnapshot() override
                 {

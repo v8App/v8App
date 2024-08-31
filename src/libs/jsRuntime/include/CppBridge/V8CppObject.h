@@ -57,6 +57,7 @@ namespace v8App
             {
             public:
                 V8CppObject() {}
+                virtual ~V8CppObject() {}
 
                 /**
                  * Takes an v8 value and ifi t's an object then attempts to fetch

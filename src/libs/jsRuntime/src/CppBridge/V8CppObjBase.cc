@@ -37,7 +37,7 @@ namespace v8App
                     return V8LObject();
                 }
 
-                //TODO: Look at removing this as we may be able to us ethe object passed in FunctionCallbackInfo.This()
+                //TODO: Look at removing this as we may be able to use the object passed in FunctionCallbackInfo.This()
                 V8LObjTpl objTpl = runtime->GetObjectTemplate(inInfo);
                 if (objTpl.IsEmpty())
                 {
@@ -53,7 +53,7 @@ namespace v8App
 
                 jsObject->SetAlignedPointerInInternalFields((int)V8CppObjDataIntField::MaxInternalFields, indexes, values);
                 m_Object.Reset(runtime->GetIsolate(), jsObject);
-                runtime->RegisterSnapshotHandleCloser(shared_from_this());
+                runtime->RegisterSnapshotHandleCloser(this);
 
                 return jsObject;
             }

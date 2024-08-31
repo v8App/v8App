@@ -32,11 +32,16 @@ namespace v8App
                 runtime = app->GetMainRuntime().get();
                 if (runtime == nullptr)
                 {
-                    LOG_ERROR("CreateSNaphot failed to get the main context from the app");
+                    LOG_ERROR("CreateSNaphot failed to get the main runtime from the app");
                     return false;
                 }
             }
-            if (runtime->IsInitialzed() || runtime->IsSnapshotRuntime() == false)
+            if (runtime->IsInitialzed() == false)
+            {
+                LOG_ERROR(Utils::format("The runtime {} is not initialized", runtime->GetName()));
+                return false;
+            }
+            if (runtime->IsSnapshotRuntime() == false)
             {
                 LOG_ERROR(Utils::format("The runtime {} is not snapshottable", runtime->GetName()));
                 return false;

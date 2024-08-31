@@ -242,7 +242,7 @@ namespace v8App
 
             if (m_Runtime->IsSnapshotRuntime())
             {
-                m_Runtime->RegisterSnapshotHandleCloser(shared_from_this());
+                m_Runtime->RegisterSnapshotHandleCloser(this);
             }
 
             return true;
@@ -281,30 +281,34 @@ namespace v8App
             V8LString source = JSUtilities::StringToV8(isolate, inScript.c_str());
             if (tryCatch.HasCaught())
             {
-                // TODO: Log message
-                return V8LValue();
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(msg);                return V8LValue();
             }
 
             V8MLScript maybeScript = v8::Script::Compile(v8Context, source);
             if (tryCatch.HasCaught())
             {
-                // TODO: Log message
-                return V8LValue();
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(msg);                return V8LValue();
             }
 
             V8LScript script;
             script = maybeScript.FromMaybe(V8LScript());
             if (script.IsEmpty())
             {
-                // TODO: log message
-                return V8LValue();
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(msg);                return V8LValue();
             }
 
             V8LValue result;
             if (script->Run(v8Context).ToLocal(&result) == false)
             {
-                // TODO: Log Message
-                return V8LValue();
+                Log::LogMessage msg;
+                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(msg);                return V8LValue();
             }
             return eScope.Escape(result);
         }

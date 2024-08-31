@@ -17,6 +17,7 @@
 #include "Utils/Paths.h"
 #include "Utils/Format.h"
 
+#include "JSApp.h"
 #include "V8ContextProvider.h"
 #include "V8RuntimeProvider.h"
 #include "V8SnapshotProvider.h"

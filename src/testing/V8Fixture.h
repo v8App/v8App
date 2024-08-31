@@ -30,6 +30,7 @@ namespace v8App
             JSAppSharedPtr m_App;
             V8Isolate *m_Isolate = nullptr;
             JSContextSharedPtr m_Context;
+            AppProviders m_Providers;
 
             TestUtils::IgnoreMsgKeys m_IgnoreKeys = {
                 Log::MsgKey::AppName,

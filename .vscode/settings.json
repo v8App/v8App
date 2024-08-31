@@ -114,6 +114,7 @@
         "gsl_util": "cpp"
     },
     "gtest-adapter.debugConfig": [
+        "test libJSRuntimeCore Debug",
         "test libJSRuntime Debug"
     ],
     "gtest-adapter.supportLocation": true,

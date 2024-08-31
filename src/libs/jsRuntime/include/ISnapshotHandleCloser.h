@@ -18,8 +18,8 @@ namespace v8App
         class ISnapshotHandleCloser
         {
         public:
-            ISnapshotHandleCloser() = default;
-            virtual ~ISnapshotHandleCloser() = default;
+            ISnapshotHandleCloser() {};
+            virtual ~ISnapshotHandleCloser() {};
 
         protected:
             virtual void CloseHandleForSnapshot() = 0;

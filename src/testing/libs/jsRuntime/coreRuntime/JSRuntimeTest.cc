@@ -314,16 +314,12 @@ namespace v8App
 
             // won't add on non snapshotter
             runtime->SetSnapshotter(false);
-            runtime->RegisterSnapshotHandleCloser(closer);
-            EXPECT_EQ(0, runtime->GetNumberOfClosers());
-
-            // won't add expired
-            runtime->SetSnapshotter(true);
-            runtime->RegisterSnapshotHandleCloser(std::shared_ptr<TestJSRuntimeCloseHandler>());
+            runtime->RegisterSnapshotHandleCloser(closer.get());
             EXPECT_EQ(0, runtime->GetNumberOfClosers());
 
             // adds it
-            runtime->RegisterSnapshotHandleCloser(closer);
+            runtime->SetSnapshotter(true);
+            runtime->RegisterSnapshotHandleCloser(closer.get());
             EXPECT_EQ(1, runtime->GetNumberOfClosers());
 
             // test unregister is not called when a non snapshotter
@@ -333,19 +329,15 @@ namespace v8App
 
             // test that it just removes the one we want
             runtime->SetSnapshotter(true);
-            runtime->RegisterSnapshotHandleCloser(closer2);
+            runtime->RegisterSnapshotHandleCloser(closer2.get());
             EXPECT_EQ(2, runtime->GetNumberOfClosers());
             runtime->UnregisterSnapshotHandlerCloser(closer2.get());
             EXPECT_EQ(1, runtime->GetNumberOfClosers());
 
-            // register the second closer then delete it to test the wek ptr check when running them
-            runtime->RegisterSnapshotHandleCloser(closer2);
-            closer2.reset();
-
             // test that the handlers don't get run if it's a snapshot
             runtime->SetSnapshotter(false);
             runtime->CloseOpenHandlesForSnapshot();
-            EXPECT_EQ(2, runtime->GetNumberOfClosers());
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
 
             runtime->SetSnapshotter(true);
             runtime->CloseOpenHandlesForSnapshot();

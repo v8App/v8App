@@ -15,6 +15,7 @@
 #include "CppBridge/V8CppObject.h"
 #include "CppBridge/V8ObjectTemplateBuilder.h"
 #include "CppBridge/V8CppObjHandle.h"
+#include "V8AppSnapshotProvider.h"
 
 namespace v8App
 {
@@ -120,8 +121,7 @@ namespace v8App
             std::filesystem::path snapshotFile = "playground.dat";
             snapshotFile = s_TestDir / snapshotFile;
 
-            JSAppSharedPtr snapApp = m_App->CreateSnapshotApp();
-            snapApp->AppInit();
+            JSAppSharedPtr snapApp = m_App->CloneAppForSnapshotting<JSApp>();
             JSRuntimeSharedPtr runtime = snapApp->GetMainRuntime();
 
             {
