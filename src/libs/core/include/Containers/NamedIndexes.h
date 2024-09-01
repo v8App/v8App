@@ -7,6 +7,8 @@
 
 #include <map>
 
+#include "Serialization/TypeSerializer.h"
+
 namespace v8App
 {
     namespace Serialization
@@ -41,11 +43,11 @@ namespace v8App
             /**
              * Serializes the name index info into the specified buffer
              */
-            bool DeserializeNameIndexes(Serialization::ReadBuffer &inBuffer);
+            bool DeserializeNameIndexes(Serialization::BaseBuffer &inBuffer);
             /**
              * Desrializes the name index info from the specified buffer
              */
-            bool SerializeNameIndexes(Serialization::WriteBuffer &inBuffer);
+            bool SerializeNameIndexes(Serialization::BaseBuffer &inBuffer);
             /**
              * Addes an index for the namae.
              * If the name or index already exists then returns false
@@ -65,6 +67,12 @@ namespace v8App
             std::map<size_t, std::string> m_NamedIndexes;
         };
     }
+
+    template <>
+    struct Serialization::TypeSerializer<Containers::NamedIndexes>
+    {
+        static bool Serialize(Serialization::BaseBuffer &inBuffer, Containers::NamedIndexes &inValue);
+    };
 }
 
 #endif //__NAMED_INDEXES_H__

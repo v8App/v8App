@@ -64,6 +64,10 @@ namespace v8App
             EXPECT_EQ('o', testChar);
             EXPECT_TRUE(buffer->AtEnd());
             EXPECT_TRUE(buffer->HasErrored());
+
+            buffer->ResetPos();
+            buffer->SerializeRead(&testChar, 1);
+            EXPECT_EQ('H', testChar);
         }
 
         TEST(ReadBufferTest, Peek)
@@ -72,7 +76,7 @@ namespace v8App
             int value = 0;
             size_t size_int = sizeof(int);
 
-            std::unique_ptr<ReadBuffer> buffer = std::make_unique<ReadBuffer>((const char*)&testData, size_int);
+            std::unique_ptr<ReadBuffer> buffer = std::make_unique<ReadBuffer>((const char *)&testData, size_int);
 
             buffer->Peek(&value, size_int);
             EXPECT_EQ(value, testData);
@@ -82,7 +86,6 @@ namespace v8App
             buffer->SerializeRead(&value, size_int);
             EXPECT_EQ(value, testData);
             EXPECT_TRUE(buffer->AtEnd());
-
         }
     }
 }

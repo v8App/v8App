@@ -24,6 +24,7 @@ namespace v8App
             virtual void SerializeWrite(const void *inBytes, size_t inSize) override {};
             virtual bool AtEnd() override { return true; }
             void TestSetStreamState(BaseBuffer::StreamState inState) { SetStreamState(inState); }
+            void ResetPos() {};
         };
 
         TEST(BaseBuffertest, TestConstrcutorAndMethods)

@@ -7,6 +7,8 @@
 
 #include <string>
 
+#include "Serialization/TypeSerializer.h"
+
 namespace v8App
 {
     namespace Utils
@@ -14,7 +16,7 @@ namespace v8App
         /**
          * Implements class that deals with version string parsing based on Semantic version strings
          * See https://semver.org/
-        */
+         */
         class VersionString
         {
         public:
@@ -30,13 +32,41 @@ namespace v8App
             const std::string &GetPreRelease() const { return m_PreRelease; }
             const std::string &GetBuild() const { return m_Build; }
 
+            void SetMajor(int inMajor)
+            {
+                m_Major = inMajor;
+                m_Version = "";
+            }
+            void SetMinor(int inMinor)
+            {
+                m_Minor = inMinor;
+                m_Version = "";
+            }
+            void SetPatch(int inPatch)
+            {
+                m_Patch = inPatch;
+                m_Version = "";
+            }
+            void SetPreRelease(std::string inPreRelease)
+            {
+                m_PreRelease = inPreRelease;
+                m_Version = "";
+            }
+            void SetBuild(std::string inBuild)
+            {
+                m_Build = inBuild;
+                m_Version = "";
+            }
+
+            bool SetVersionString(std::string inVersion);
+
             int CompareVersions(const VersionString &inVersion) const;
             auto operator<=>(const VersionString &inVersion) const { return CompareVersions(inVersion); }
             auto operator<=>(const std::string &inVersion) const { return CompareVersions(VersionString(inVersion)); }
-            bool operator==(const VersionString& inVersion) const { return CompareVersions(inVersion) == 0;}
-            bool operator==(const std::string inVersion) const { return CompareVersions(VersionString(inVersion)) == 0;}
-            
-            std::string GetVersionString() const { return m_Version; }
+            bool operator==(const VersionString &inVersion) const { return CompareVersions(inVersion) == 0; }
+            bool operator==(const std::string inVersion) const { return CompareVersions(VersionString(inVersion)) == 0; }
+
+            std::string GetVersionString();
 
         private:
             void ParseVersionString();
@@ -51,6 +81,13 @@ namespace v8App
             std::string m_PreRelease;
             std::string m_Build;
         };
+
     }
+
+    template <>
+    struct Serialization::TypeSerializer<Utils::VersionString>
+    {
+        static bool Serialize(Serialization::BaseBuffer &inBuffer, Utils::VersionString &inValue);
+    };
 }
 #endif //__VERSIONS_H__

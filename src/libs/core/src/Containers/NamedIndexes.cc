@@ -33,7 +33,7 @@ namespace v8App
             return NamedIndexes::m_MaxNmaedIndexes;
         }
 
-        bool NamedIndexes::DeserializeNameIndexes(Serialization::ReadBuffer &inBuffer)
+        bool NamedIndexes::DeserializeNameIndexes(Serialization::BaseBuffer &inBuffer)
         {
             if (inBuffer.AtEnd())
             {
@@ -62,7 +62,7 @@ namespace v8App
             return true;
         }
 
-        bool NamedIndexes::SerializeNameIndexes(Serialization::WriteBuffer &inBuffer)
+        bool NamedIndexes::SerializeNameIndexes(Serialization::BaseBuffer &inBuffer)
         {
             inBuffer << m_MaxNmaedIndexes;
             inBuffer << m_NamedIndexes.size();
@@ -99,4 +99,17 @@ namespace v8App
             return success;
         }
     }
+
+    bool Serialization::TypeSerializer<Containers::NamedIndexes>::Serialize(Serialization::BaseBuffer &inBuffer, Containers::NamedIndexes &inValue)
+    {
+        if (inBuffer.IsReader())
+        {
+            return inValue.DeserializeNameIndexes(inBuffer);
+        }
+        else
+        {
+            return inValue.SerializeNameIndexes(inBuffer);
+        }
+    }
+
 }

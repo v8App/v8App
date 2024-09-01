@@ -40,6 +40,8 @@ namespace v8App
              */
             void Peek(void* inData, size_t inSize);
 
+            virtual void ResetPos() override {m_ReadPos = 0; }
+
         protected:
             size_t m_ReadPos{0};
         };

@@ -7,6 +7,8 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
+#include "Serialization/ReadBuffer.h"
+#include "Serialization/WriteBuffer.h"
 #include "Utils/VersionString.h"
 
 namespace v8App
@@ -85,23 +87,26 @@ namespace v8App
             EXPECT_EQ(test1.GetPatch(), -1);
             EXPECT_EQ(test1.GetPreRelease(), "");
             EXPECT_EQ(test1.GetBuild(), "");
-            EXPECT_EQ(test1.GetVersionString(), "");
+            EXPECT_EQ(test1.GetVersionString(), "0.0.0");
 
+            // via constrcutor
             VersionString test2(v1);
             EXPECT_EQ(test2.GetMajor(), 1);
             EXPECT_EQ(test2.GetMinor(), 0);
             EXPECT_EQ(test2.GetPatch(), 0);
             EXPECT_EQ(test2.GetPreRelease(), "");
             EXPECT_EQ(test2.GetBuild(), "");
-            EXPECT_EQ(test2.GetVersionString(),  v1);
+            EXPECT_EQ(test2.GetVersionString(), v1);
 
-            VersionString test3(v3);
+            // via the set string
+            VersionString test3;
+            EXPECT_TRUE(test3.SetVersionString(v3));
             EXPECT_EQ(test3.GetMajor(), 1);
             EXPECT_EQ(test3.GetMinor(), 0);
             EXPECT_EQ(test3.GetPatch(), 0);
             EXPECT_EQ(test3.GetPreRelease(), "x.7.z.92");
             EXPECT_EQ(test3.GetBuild(), "");
-            EXPECT_EQ(test3.GetVersionString(),  v3);
+            EXPECT_EQ(test3.GetVersionString(), v3);
 
             VersionString test4(v4);
             EXPECT_EQ(test4.GetMajor(), 1);
@@ -109,7 +114,7 @@ namespace v8App
             EXPECT_EQ(test4.GetPatch(), 0);
             EXPECT_EQ(test4.GetPreRelease(), "");
             EXPECT_EQ(test4.GetBuild(), "21AF26D3----117B344092BD");
-            EXPECT_EQ(test4.GetVersionString(),  v4);
+            EXPECT_EQ(test4.GetVersionString(), v4);
 
             VersionString test5(v5);
             EXPECT_EQ(test5.GetMajor(), 1);
@@ -118,6 +123,37 @@ namespace v8App
             EXPECT_EQ(test5.GetPreRelease(), "beta");
             EXPECT_EQ(test5.GetBuild(), "exp.sha.5114f85");
             EXPECT_EQ(test5.GetVersionString(), v5);
+
+            // test setters
+            test5.SetMajor(10);
+            test5.SetMinor(10);
+            test5.SetPatch(10);
+            test5.SetPreRelease("preRelease");
+            test5.SetBuild("build");
+            EXPECT_EQ(test5.GetMajor(), 10);
+            EXPECT_EQ(test5.GetMinor(), 10);
+            EXPECT_EQ(test5.GetPatch(), 10);
+            EXPECT_EQ(test5.GetPreRelease(), "preRelease");
+            EXPECT_EQ(test5.GetBuild(), "build");
+            EXPECT_EQ("10.10.10-preRelease+build", test5.GetVersionString());
+        }
+
+        TEST(VersionStringTest, TestSerializers)
+        {
+            Serialization::WriteBuffer wBuffer;
+            VersionString test1(v1);
+            VersionString test2;
+
+            wBuffer << test1;
+
+            Serialization::ReadBuffer rBuffer(wBuffer.GetData(), wBuffer.BufferSize());
+            rBuffer >> test2;
+
+            EXPECT_EQ(1, test2.GetMajor());
+            EXPECT_EQ(0, test2.GetMinor());
+            EXPECT_EQ(0, test2.GetPatch());
+            EXPECT_EQ("", test2.GetPreRelease());
+            EXPECT_EQ("", test2.GetBuild());
         }
 
         TEST(VersionStringTest, TestCompareVersion)

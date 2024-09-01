@@ -20,7 +20,7 @@ namespace v8App
             EXPECT_EQ(124, buffer->BufferCapacity());
 
             const char *testData = "Hello";
-            size_t len = strlen(testData)+1;
+            size_t len = strlen(testData) + 1;
 
             buffer = std::make_unique<WriteBuffer>(testData, len);
             EXPECT_STREQ(testData, buffer->GetData());
@@ -47,10 +47,17 @@ namespace v8App
             EXPECT_EQ('e', buffer->GetData()[1]);
             EXPECT_EQ('l', buffer->GetData()[2]);
             EXPECT_EQ('l', buffer->GetData()[3]);
- 
+
             testChar = 'o';
             buffer->SerializeWrite(&testChar, 1);
             EXPECT_EQ('o', buffer->GetData()[4]);
+
+            buffer->ResetPos();
+            EXPECT_EQ(0, buffer->BufferSize());
+            testChar = 'H';
+            buffer->SerializeWrite(&testChar, 1);
+            EXPECT_EQ('H', buffer->GetData()[0]);
+            EXPECT_EQ(1, buffer->BufferSize());
         }
     }
 }

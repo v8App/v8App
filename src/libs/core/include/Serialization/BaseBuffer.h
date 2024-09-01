@@ -104,6 +104,11 @@ namespace v8App
              */
             virtual bool AtEnd() = 0;
 
+            /*
+             * Reset the position of the buffer
+             */
+            virtual void ResetPos() = 0;
+
         protected:
             /**
              * Sets info about the stream state by subclasses

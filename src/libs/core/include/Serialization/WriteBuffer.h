@@ -21,7 +21,7 @@ namespace v8App
             WriteBuffer(WriteBuffer &inBuffer);
             WriteBuffer(WriteBuffer &&inBuffer);
 
-            //for the writer do nothing
+            // for the writer do nothing
             virtual void SerializeRead(void *inBytes, size_t inSize) override {}
             /**
              * Serialize the bytes either into or out of the buffer.
@@ -33,6 +33,8 @@ namespace v8App
              * Write is always at the end
              */
             virtual bool AtEnd() override { return true; }
+
+            virtual void ResetPos() override {m_Buffer.clear(); }
         };
     }
 }

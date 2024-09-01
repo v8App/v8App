@@ -66,6 +66,24 @@ namespace v8App
 
             EXPECT_EQ(2056, indexes2.GetMaxSupportedIndexes());
             EXPECT_EQ(2, indexes2.GetNumberOfIndexes());
+
+            // test streaning form teh buffer
+            Serialization::WriteBuffer wBuffer2;
+            wBuffer2 << indexes;
+
+            Serialization::ReadBuffer rBuffer2(wBuffer2.GetData(), wBuffer2.BufferSize());
+            NamedIndexes indexes3;
+
+            rBuffer2 >> indexes3;
+
+            EXPECT_EQ(0, indexes3.GetIndexForName("test"));
+            EXPECT_EQ("test", indexes3.GetNameFromIndex(0));
+
+            EXPECT_EQ(1, indexes3.GetIndexForName("test2"));
+            EXPECT_EQ("test2", indexes3.GetNameFromIndex(1));
+
+            EXPECT_EQ(2056, indexes3.GetMaxSupportedIndexes());
+            EXPECT_EQ(2, indexes3.GetNumberOfIndexes());
         }
     }
 }
