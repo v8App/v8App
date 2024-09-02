@@ -169,7 +169,8 @@ namespace v8App
                 }
                 else
                 {
-                    m_Version += "0";
+                    m_Version = "";
+                    return "";
                 }
 
                 m_Version += ".";
@@ -179,7 +180,8 @@ namespace v8App
                 }
                 else
                 {
-                    m_Version += "0";
+                    m_Version = "";
+                    return "";
                 }
 
                 m_Version += ".";
@@ -189,7 +191,8 @@ namespace v8App
                 }
                 else
                 {
-                    m_Version += "0";
+                    m_Version = "";
+                    return "";
                 }
 
                 if (m_PreRelease != "")

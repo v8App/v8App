@@ -66,6 +66,10 @@ namespace v8App
             bool operator==(const VersionString &inVersion) const { return CompareVersions(inVersion) == 0; }
             bool operator==(const std::string inVersion) const { return CompareVersions(VersionString(inVersion)) == 0; }
 
+            /**
+             * Returns the already built version string or if empty tries and build it.
+             * If Major, Minor or Patch are -1 then an empty string is returned
+             */
             std::string GetVersionString();
 
         private:

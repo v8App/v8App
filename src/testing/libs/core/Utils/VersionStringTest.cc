@@ -87,6 +87,15 @@ namespace v8App
             EXPECT_EQ(test1.GetPatch(), -1);
             EXPECT_EQ(test1.GetPreRelease(), "");
             EXPECT_EQ(test1.GetBuild(), "");
+            EXPECT_EQ(test1.GetVersionString(), "");
+
+            test1.SetMajor(0);
+            EXPECT_EQ(test1.GetVersionString(), "");
+
+            test1.SetMinor(0);
+            EXPECT_EQ(test1.GetVersionString(), "");
+
+            test1.SetPatch(0);
             EXPECT_EQ(test1.GetVersionString(), "0.0.0");
 
             // via constrcutor
