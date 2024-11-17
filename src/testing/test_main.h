@@ -19,6 +19,7 @@ extern std::unique_ptr<Runfiles> s_Runfiles;
 extern std::filesystem::path s_TestDir;
 
 #ifdef USE_JSRUNTIME
+extern std::filesystem::path s_SnapPath;
 extern v8App::JSRuntime::V8StartupData s_V8StartupData;
 #endif
 

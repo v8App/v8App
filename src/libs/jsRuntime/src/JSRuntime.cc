@@ -20,18 +20,14 @@
 #include "V8AppPlatform.h"
 #include "IJSSnapshotCreator.h"
 #include "IJSSnapshotProvider.h"
+#include "JSRuntimeSnapData.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        JSRuntime::JSRuntime(JSAppSharedPtr inApp, IdleTaskSupport inEnableIdle,
-                             std::string inName, bool inSetupForSnapshot, size_t inRuntimeIndex)
-            : m_IdleEnabled(inEnableIdle), m_App(inApp), m_Name(inName),
-              m_IsSnapshotter(inSetupForSnapshot), m_SnapshotIndex(inRuntimeIndex)
+        JSRuntime::JSRuntime()
         {
-            DCHECK_NOT_NULL(inApp.get());
-            m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
         }
 
         JSRuntime::~JSRuntime()
@@ -57,12 +53,27 @@ namespace v8App
             inRuntime.m_Initialized = false;
         }
 
-        bool JSRuntime::Initialize(bool isSnapshottable)
+        bool JSRuntime::Initialize(JSAppSharedPtr inApp, std::string inName, size_t inRuntimeIndex, JSRuntimeSnapshotAttributes inSnapAttribute,
+                                   bool isSnapshottable, IdleTaskSupport inEnableIdle)
         {
             if (m_Initialized)
             {
                 return true;
             }
+
+            if (inApp == nullptr)
+            {
+                LOG_ERROR("JSApp was a nullptr");
+                return false;
+            }
+
+            m_Name = inName;
+            m_App = inApp;
+            m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
+            m_IsSnapshotter = isSnapshottable;
+            m_Snapshottable = inSnapAttribute;
+            m_IdleEnabled = inEnableIdle;
+            m_SnapshotIndex = inRuntimeIndex;
 
             if (CreateIsolate() == false)
             {
@@ -71,7 +82,6 @@ namespace v8App
 
             JSContextModules::SetupModulesCallbacks(m_Isolate.get());
             m_Initialized = true;
-            m_Snapshottable = isSnapshottable;
             return true;
         }
 
@@ -217,9 +227,12 @@ namespace v8App
 
         void JSRuntime::DisposeRuntime()
         {
-            m_Creator.reset();
+            if (m_Initialized == false)
+            {
+                return;
+            }
             m_HandleClosers.clear();
-            if (m_Isolate != nullptr)
+            if (m_Isolate != nullptr && m_Creator == nullptr)
             {
                 V8IsolateScope isolateScope(m_Isolate.get());
                 V8Locker locker(m_Isolate.get());
@@ -233,6 +246,7 @@ namespace v8App
                 delete weakPtr;
                 m_Isolate->SetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr), nullptr);
             }
+            m_Creator.reset();
             m_Isolate.reset();
             m_App.reset();
             m_TaskRunner.reset();
@@ -257,51 +271,107 @@ namespace v8App
 
         bool JSRuntime::MakeSnapshot(Serialization::WriteBuffer &inBuffer, void *inData)
         {
-            V8LContext defaultContext = V8Context::New(m_Isolate.get());
-
-            // we always add a v8 context to the snapshot so nothing is ever assigned
-            m_Creator->SetDefaultContext(defaultContext);
+            inBuffer << m_Name;
+            inBuffer << m_IdleEnabled;
 
             Containers::NamedIndexes contextIndexes;
-            if (contextIndexes.AddNamedIndex(0, "v8-default") == false)
-            {
-                return false;
-            }
 
-            for (auto [name, context] : m_Contextes)
             {
-                if (context->SupportsSnapshots() == false)
+                V8IsolateScope iScope(m_Isolate.get());
+                V8HandleScope hiScope(m_Isolate.get());
                 {
-                    continue;
+                    V8LContext defaultContext = V8Context::New(m_Isolate.get());
+
+                    // we always add a v8 context to the snapshot so nothing is ever assigned
+                    m_Creator->SetDefaultContext(defaultContext);
                 }
-                V8Isolate::Scope(m_Isolate.get());
-                V8HandleScope hScope(m_Isolate.get());
 
-                size_t index = m_Creator->AddContext(context->GetLocalContext());
-                if (contextIndexes.AddNamedIndex(index, name) == false)
+                if (contextIndexes.AddNamedIndex(JSApp::kDefaultV8RutimeIndex, JSApp::kDefaulV8tRuntimeName) == false)
                 {
-                    LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));
                     return false;
                 }
+
+                for (auto [name, context] : m_Contextes)
+                {
+                    if (context->SupportsSnapshots() == false)
+                    {
+                        continue;
+                    }
+
+                    V8LContext v8Context = context->GetLocalContext();
+                    // we add one since for us index 0 is the default context and the above added default context is
+                    //  not factored into the indexes for v8 that AddContext returns
+                    size_t index = m_Creator->AddContext(v8Context) + 1;
+                    if (contextIndexes.AddNamedIndex(index, name) == false)
+                    {
+                        LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));
+                        return false;
+                    }
+                }
+                CloseOpenHandlesForSnapshot();
+                V8StartupData snapshot = m_Creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kKeep);
+                if (snapshot.data == nullptr)
+                {
+                    LOG_ERROR(Utils::format("Failed to create the snapshot for runtime {}", m_Name));
+                    return false;
+                }
+
+                if (contextIndexes.SerializeNameIndexes(inBuffer) == false)
+                {
+                    LOG_ERROR(Utils::format("Failed to seriaize the context indexes for runtime {}", m_Name));
+                    return false;
+                }
+                inBuffer << snapshot.raw_size;
+                inBuffer.SerializeWrite(snapshot.data, snapshot.raw_size);
             }
-            CloseOpenHandlesForSnapshot();
-            V8StartupData snapshot = m_Creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kKeep);
-            if (snapshot.data == nullptr)
-            {
-                LOG_ERROR(Utils::format("Failed to create the snapshot for runtime {}", m_Name));
-                return false;
-            }
-            inBuffer << m_Name;
-            if (contextIndexes.SerializeNameIndexes(inBuffer) == false)
-            {
-                LOG_ERROR(Utils::format("Failed to seriaize the context indexes for runtime {}", m_Name));
-                return false;
-            }
-            inBuffer.SerializeWrite(snapshot.data, snapshot.raw_size);
             return true;
         }
 
-        bool JSRuntime::RestoreSnapshot(Serialization::ReadBuffer &inBufffer, void *inData)
+        JSRuntimeSnapDataSharedPtr JSRuntime::LoadSnapshotData(Serialization::ReadBuffer &inBuffer)
+        {
+            JSRuntimeSnapDataSharedPtr snapData = std::make_shared<JSRuntimeSnapData>();
+
+            inBuffer >> snapData->m_RuntimeName;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading runtime name");
+                return {};
+            }
+            inBuffer >> snapData->m_IdleEnabled;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading runtime idle enabled");
+                return {};
+            }
+
+            inBuffer >> snapData->m_ContextIndexes;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading runtime context namespaces");
+                return {};
+            }
+            int dataSize;
+            inBuffer >> dataSize;
+
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading runtime isolate data size");
+                return {};
+            }
+            snapData->m_StartupData.raw_size = dataSize;
+            snapData->m_StartupDeleter = std::make_unique<char[]>(dataSize);
+            inBuffer.SerializeRead(snapData->m_StartupDeleter.get(), dataSize);
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading isoalte data");
+                return {};
+            }
+            snapData->m_StartupData.data = snapData->m_StartupDeleter.get();
+
+            return snapData;
+        }
+
+        bool JSRuntime::RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData)
         {
             return false;
         }
@@ -331,19 +401,19 @@ namespace v8App
             m_HandleClosers.clear();
         }
 
-        void JSRuntime::RegisterSnapshotHandleCloser(ISnapshotHandleCloser* inCloser)
+        void JSRuntime::RegisterSnapshotHandleCloser(ISnapshotHandleCloser *inCloser)
         {
-            //not a snapshotter no reason to register them
-            if(m_IsSnapshotter == false)
+            // not a snapshotter no reason to register them
+            if (m_IsSnapshotter == false)
             {
                 return;
             }
-            //no point in adding an expired ptr
-            if(inCloser == nullptr)
+            // no point in adding an expired ptr
+            if (inCloser == nullptr)
             {
                 return;
             }
-            if(std::find(m_HandleClosers.begin(), m_HandleClosers.end(), inCloser) != m_HandleClosers.end())
+            if (std::find(m_HandleClosers.begin(), m_HandleClosers.end(), inCloser) != m_HandleClosers.end())
             {
                 return;
             }
@@ -352,13 +422,13 @@ namespace v8App
 
         void JSRuntime::UnregisterSnapshotHandlerCloser(ISnapshotHandleCloser *inCloser)
         {
-            //not a snapshotter no reason to unregister them
-            if(m_IsSnapshotter == false)
+            // not a snapshotter no reason to unregister them
+            if (m_IsSnapshotter == false)
             {
                 return;
             }
 
-            //if empty no need to go on
+            // if empty no need to go on
             if (m_HandleClosers.empty())
             {
                 return;
@@ -367,8 +437,8 @@ namespace v8App
             // we loop through the callbacks to find the registered callback but
             // also any callabcks that are expired just to clean them out
             auto it = std::find(m_HandleClosers.begin(), m_HandleClosers.end(), inCloser);
-            std::vector<ISnapshotHandleCloser*> removePos;
-            if(it == m_HandleClosers.end())
+            std::vector<ISnapshotHandleCloser *> removePos;
+            if (it == m_HandleClosers.end())
             {
                 return;
             }
@@ -401,16 +471,12 @@ namespace v8App
             }
             V8Isolate::CreateParams params;
             params.snapshot_blob = m_App->GetSnapshotProvider()->GetSnapshotData(m_SnapshotIndex);
+            if (params.snapshot_blob == nullptr)
+            {
+                LOG_ERROR(Utils::format("Failed to get teh snapshot data for index {} form the snapshot provider", m_SnapshotIndex));
+                return false;
+            }
             params.external_references = m_App->GetSnapshotProvider()->GetExternalReferences();
-
-            // custom deleter since we have to call dispose
-            V8Isolate *isolate = V8Isolate::Allocate();
-            m_Isolate = std::shared_ptr<V8Isolate>(isolate, [](V8Isolate *isolate)
-                                                   { isolate->Dispose(); });
-            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
-
-            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
-            m_Isolate->SetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr), weakPtr);
 
             // TODO: replace with custom allocator
             params.array_buffer_allocator =
@@ -422,6 +488,15 @@ namespace v8App
             params.cpp_heap = heap.get();
             // the isolate will own the heap so release it
             heap.release();
+
+            // custom deleter since we have to call dispose
+            V8Isolate *isolate = V8Isolate::Allocate();
+
+            m_Isolate = std::shared_ptr<V8Isolate>(isolate, [](V8Isolate *isolate)
+                                                   { isolate->Dispose(); });
+            m_Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
+            JSRuntimeWeakPtr *weakPtr = new JSRuntimeWeakPtr(shared_from_this());
+            m_Isolate->SetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr), weakPtr);
 
             if (m_IsSnapshotter)
             {
@@ -436,8 +511,8 @@ namespace v8App
 
         JSRuntimeSharedPtr JSRuntime::CloneRuntimeForSnapshotting(JSAppSharedPtr inApp)
         {
-            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(inApp, m_IdleEnabled, m_Name, true, m_SnapshotIndex);
-            if (runtime->Initialize(true) == false)
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
+            if (runtime->Initialize(inApp, m_Name, m_SnapshotIndex, m_Snapshottable, true, m_IdleEnabled) == false)
             {
                 return nullptr;
             }
@@ -447,7 +522,7 @@ namespace v8App
                 {
                     continue;
                 }
-                JSContextSharedPtr snapContext = it.second->CloneForSnapshot(shared_from_this());
+                JSContextSharedPtr snapContext = it.second->CloneForSnapshot(runtime);
                 if (snapContext == nullptr)
                 {
                     return nullptr;
@@ -490,4 +565,20 @@ namespace v8App
             return runtime->IdleTasksEnabled();
         };
     } // namespace JSRuntime
+
+    bool Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>::Serialize(Serialization::BaseBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue)
+    {
+        if (inBuffer.IsReader())
+        {
+            bool enabled;
+            inBuffer >> enabled;
+
+            inValue = enabled ? v8App::JSRuntime::IdleTaskSupport::kEnabled : v8App::JSRuntime::IdleTaskSupport::kDisabled;
+        }
+        else
+        {
+            inBuffer << (inValue == v8App::JSRuntime::IdleTaskSupport::kEnabled ? true : false);
+        }
+        return true;
+    }
 } // namespace v8App

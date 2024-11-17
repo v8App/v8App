@@ -33,7 +33,7 @@ namespace v8App
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
             std::string appName = "testJSAppConstructor";
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+            JSAppSharedPtr app = std::make_shared<JSApp>();
             EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
             EXPECT_EQ(nullptr, app->GetContextProvider());
@@ -41,7 +41,7 @@ namespace v8App
             EXPECT_EQ(nullptr, app->GetMainRuntime());
             EXPECT_EQ(nullptr, app->GetCodeCache());
             EXPECT_EQ(nullptr, app->GetAppRoot());
-            EXPECT_EQ(appName, app->GetName());
+            EXPECT_EQ("", app->GetName());
             EXPECT_FALSE(app->IsInitialized());
             EXPECT_FALSE(app->IsSnapshotApp());
         }
@@ -53,7 +53,7 @@ namespace v8App
             std::filesystem::path testRoot = s_TestDir / "InitializeAsSnapshot";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
 
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+            JSAppSharedPtr app = std::make_shared<JSApp>();
 
             EXPECT_EQ(nullptr, app->GetSnapshotCreator());
             EXPECT_EQ(nullptr, app->GetSnapshotProvider());
@@ -86,7 +86,7 @@ namespace v8App
             EXPECT_EQ(runtimeProvider, app->GetRuntimeProvider());
         }
 
-        TEST(JSApptest, InitializeDispose)
+        TEST(JSAppTest, InitializeDispose)
         {
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
@@ -104,14 +104,14 @@ namespace v8App
             std::string appName = "testJSAppConstructor";
             AppProviders providers;
 
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, AppProviders());
+            JSAppSharedPtr app = std::make_shared<JSApp>();
             std::shared_ptr snapProvider = std::make_shared<TestSnapshotProvider>();
             std::shared_ptr snapCreator = std::make_shared<TestSnapshotCreator>();
             // the creator isn't required to be set except during a snapshot
             providers.m_SnapshotCreator = snapCreator;
 
             // test snapshot provider not set
-            EXPECT_FALSE(app->Initialize(testRoot));
+            EXPECT_FALSE(app->Initialize(appName, testRoot, AppProviders()));
             Log::LogMessage expected = {
                 {Log::MsgKey::Msg, "The snapshot provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
@@ -120,7 +120,7 @@ namespace v8App
 
             // test runtime provider not set
             providers.m_SnapshotProvider = snapProvider;
-            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+            EXPECT_FALSE(app->Initialize(appName, testRoot, providers, false));
             expected = {
                 {Log::MsgKey::Msg, "The runtime provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
@@ -129,7 +129,7 @@ namespace v8App
 
             // test context provider not set
             providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
-            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+            EXPECT_FALSE(app->Initialize(appName, testRoot, providers, false));
             expected = {
                 {Log::MsgKey::Msg, "The context provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
@@ -139,14 +139,19 @@ namespace v8App
             providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
 
             snapProvider->SetLoaded(false);
-            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+            EXPECT_FALSE(app->Initialize(appName, testRoot, providers, false));
 
             snapProvider->SetLoaded(true);
             snapProvider->SetReturnEmpty(true);
-            EXPECT_FALSE(app->Initialize(testRoot, false, providers));
+            EXPECT_FALSE(app->Initialize(appName, testRoot, providers, false));
+            expected = {
+                {Log::MsgKey::Msg, "Snapshot provider says data is loaded but default snapshot size is 0"},
+                {Log::MsgKey::LogLevel, "Error"},
+            };
+            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             snapProvider->SetReturnEmpty(false);
-            EXPECT_TRUE(app->Initialize(testRoot, false, providers));
+            EXPECT_TRUE(app->Initialize(appName, testRoot, providers, false));
             EXPECT_EQ(providers.m_SnapshotCreator, app->GetSnapshotCreator());
             EXPECT_EQ(providers.m_SnapshotProvider, app->GetSnapshotProvider());
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
@@ -164,7 +169,7 @@ namespace v8App
             newProviders.m_ContextProvider = std::make_shared<V8ContextProvider>();
             ;
 
-            EXPECT_TRUE(app->Initialize(testRoot, false, providers));
+            EXPECT_TRUE(app->Initialize(appName, testRoot, providers, false));
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
 
             app->DisposeApp();
@@ -192,10 +197,10 @@ namespace v8App
                                    std::make_shared<V8ContextProvider>(),
                                    std::make_shared<TestSnapshotCreator>());
 
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
+            JSAppSharedPtr app = std::make_shared<JSApp>();
 
-            app->Initialize(testRoot, true);
-            EXPECT_TRUE(app->Initialize(testRoot, true));
+            app->Initialize(appName, testRoot, providers, true);
+            EXPECT_TRUE(app->Initialize(appName, testRoot, providers, false));
             EXPECT_EQ(providers.m_SnapshotCreator, app->GetSnapshotCreator());
             EXPECT_EQ(providers.m_SnapshotProvider, app->GetSnapshotProvider());
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
@@ -231,21 +236,24 @@ namespace v8App
                                    std::make_shared<V8ContextProvider>(),
                                    std::make_shared<TestSnapshotCreator>());
 
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
-            app->Initialize(testRoot, false);
+            JSAppSharedPtr app = std::make_shared<JSApp>();
+            app->Initialize(appName, testRoot, providers, false);
 
             std::string runtimeName1 = "AppRuntime1";
             std::string runtimeName2 = "AppRUNTIME2";
 
             EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName1));
 
-            JSRuntimeSharedPtr runtime = app->CreateJSRuntime(runtimeName1, IdleTaskSupport::kEnabled);
+            JSRuntimeSharedPtr runtime = app->CreateJSRuntimeFromIndex(runtimeName1, 0, JSRuntimeSnapshotAttributes::NotSnapshottable,IdleTaskSupport::kEnabled);
             EXPECT_NE(nullptr, runtime);
             EXPECT_EQ(runtime, app->GetRuntimeByName(runtimeName1));
             EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName2));
 
             app->DisposeRuntime(runtimeName1);
             EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName1));
+
+            runtime = app->CreateJSRuntimeFromIndex(runtimeName1, 0, JSRuntimeSnapshotAttributes::SnapshotOnly,IdleTaskSupport::kEnabled);
+            runtime = app->CreateJSRuntimeFromIndex(runtimeName2, 0, JSRuntimeSnapshotAttributes::SnapshotOnly,IdleTaskSupport::kEnabled);
 
             app->DisposeApp();
         }

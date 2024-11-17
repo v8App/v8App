@@ -30,31 +30,13 @@ namespace v8App
             bool m_Bool;
         };
 
-        TEST(JSRuntimeDeathTest, CreateJSRuntimeAppNull)
-        {
-#ifdef V8APP_DEBUG
-            GTEST_FLAG_SET(death_test_style, "threadsafe");
-            ASSERT_DEATH({
-                JSAppSharedPtr app;
-
-                std::string runtimeName = "testJSRuntimeCreateJSRuntimeForSnapshot";
-                JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(app, IdleTaskSupport::kEnabled, runtimeName, false, 0);
-
-                std::exit(0); }, "");
-#endif
-        }
-
         TEST(JSRuntimeDeathTest, SetObjectTemplate)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                AppProviders providers(std::make_shared<TestSnapshotProvider>(), std::make_shared<V8RuntimeProvider>(),
-                                   std::make_shared<V8ContextProvider>());
-    
-                std::string appName = "testJSRuntimeDeathSetObjectTemplate";
-                JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
+                JSAppSharedPtr app = std::make_shared<JSApp>();
 
-                JSRuntimeSharedPtr runtimePtr = std::make_shared<JSRuntime>(app, IdleTaskSupport::kEnabled, "SetObjectTemplate", false, 0);
+                JSRuntimeSharedPtr runtimePtr = std::make_shared<JSRuntime>();
 
                 V8LObjTpl objTemplate;
                 struct TemplateInfo info;
@@ -66,13 +48,9 @@ namespace v8App
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                AppProviders providers(std::make_shared<TestSnapshotProvider>(), std::make_shared<V8RuntimeProvider>(),
-                                   std::make_shared<V8ContextProvider>());
-    
-                std::string appName = "testJSRuntimeDeathGetObjectTemplate";
-                JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
+                JSAppSharedPtr app = std::make_shared<JSApp>();
 
-                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>(app, IdleTaskSupport::kEnabled, "GetObjectTemplate", false, 0);
+                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>();
 
                 struct TemplateInfo info;
                 runtimePtr->GetObjectTemplate(&info);

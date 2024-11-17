@@ -17,6 +17,7 @@
 #include "IJSPlatformRuntimeProvider.h"
 #include "V8Types.h"
 #include "ISnapshotObject.h"
+#include "JSRuntimeSnapData.h"
 
 namespace v8App
 {
@@ -30,6 +31,9 @@ namespace v8App
         class JSRuntime : public std::enable_shared_from_this<JSRuntime>, public ISnapshotObject
         {
         public:
+            inline static const char *kDefaultV8ContextName = "v8-default";
+            inline static const size_t kDefaultV8ContextIndex = 0;
+
             /**
              * What type of data is stored in the runtime data slots
              */
@@ -38,7 +42,7 @@ namespace v8App
                 kJSRuntimeWeakPtr = 0
             };
 
-            JSRuntime(JSAppSharedPtr inApp, IdleTaskSupport inEnableIdle, std::string inName, bool inSetupForSnapshot, size_t inRuntimeIndex);
+            JSRuntime();
             virtual ~JSRuntime();
 
             JSRuntime(JSRuntime &&inRuntime);
@@ -46,7 +50,8 @@ namespace v8App
             /**
              * Iniialies the runtime
              */
-            bool Initialize(bool isSnapshottable = false);
+            bool Initialize(JSAppSharedPtr inApp, std::string inName, size_t inRuntimeIndex = 0, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
+                            bool isSnapshottable = false, IdleTaskSupport inEnableIdle = IdleTaskSupport::kEnabled);
 
             /**
              * Gets the foreground task runner used by the isolate
@@ -136,7 +141,7 @@ namespace v8App
              * Whether the runtime can be snapshotted. The runtime may not be
              * initialized as a snapshot isolate but can be cloned into one
              */
-            bool CanBeSnapshotted() { return m_Snapshottable; }
+            bool CanBeSnapshotted() { return m_Snapshottable != JSRuntimeSnapshotAttributes::NotSnapshottable; }
 
             /**
              * Closes all open handles for snapshoting
@@ -145,7 +150,7 @@ namespace v8App
             /**
              * Register a callback to close a handle for the isolate
              */
-            void RegisterSnapshotHandleCloser(ISnapshotHandleCloser* inCloser);
+            void RegisterSnapshotHandleCloser(ISnapshotHandleCloser *inCloser);
             /**
              * Unregister a close handler, use a ptr since we could be in a destructor
              * and shared_ptr is no longer valid
@@ -169,15 +174,15 @@ namespace v8App
             /**
              * Sets a custom context provider on the runtime different from what the app has
              */
-            void  SetContextProvider(IJSContextProviderSharedPtr inProvider);
-
+            void SetContextProvider(IJSContextProviderSharedPtr inProvider);
 
             bool IsInitialzed() { return m_Initialized; }
 
             size_t GetSnapshotIndex() { return m_SnapshotIndex; }
 
-            virtual bool MakeSnapshot(Serialization::WriteBuffer& inBuffer, void* inData = nullptr);
-            virtual bool RestoreSnapshot(Serialization::ReadBuffer& inBufffer, void *inData = nullptr);
+            virtual bool MakeSnapshot(Serialization::WriteBuffer &inBuffer, void *inData = nullptr);
+            virtual JSRuntimeSnapDataSharedPtr LoadSnapshotData(Serialization::ReadBuffer &inBuffer);
+            virtual bool RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData);
 
         protected:
             /**
@@ -217,7 +222,7 @@ namespace v8App
             /**
              * Cllbacks to close out the handles when the isolate is snapshotting
              */
-            std::vector<ISnapshotHandleCloser*> m_HandleClosers;
+            std::vector<ISnapshotHandleCloser *> m_HandleClosers;
 
             /**
              * Has a custom deleter to call dispose on the isolate
@@ -254,7 +259,7 @@ namespace v8App
             /**
              * can be snapshotted
              */
-            bool m_Snapshottable{false};
+            JSRuntimeSnapshotAttributes m_Snapshottable{JSRuntimeSnapshotAttributes::NotSnapshottable};
 
             /**
              * Heap ID for the CppHeap
@@ -267,7 +272,7 @@ namespace v8App
             IJSContextProviderSharedPtr m_CustomContextProvider;
 
             /**
-             * Wchi index the the snapshot data was loaded from
+             * Which index the the snapshot data was loaded from
              */
             size_t m_SnapshotIndex;
 
@@ -289,6 +294,13 @@ namespace v8App
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override;
             virtual bool IdleTasksEnabled(V8Isolate *inIsolate) override;
         };
+
     } // namespace JSRuntime
+
+    template <>
+    struct Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>
+    {
+        static bool Serialize(BaseBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue);
+    };
 } // namespace v8App
 #endif

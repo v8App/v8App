@@ -23,7 +23,7 @@ namespace v8App
                              std::filesystem::path inEntryPoint, size_t inContextIndex,
                              std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
                              SnapshotMethod inSnapMethod)
-            : m_Runtime(inRuntime), m_Name(inName), m_Namespace(inNamespace), m_SnapIndex(inContextIndex),
+            : m_Runtime(inRuntime), m_Name(inName), m_SnapIndex(inContextIndex), m_Namespace(inNamespace),
               m_EntryPoint(inEntryPoint), m_SnapEntryPoint(inSnapEntryPoint),
               m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
         {
@@ -217,6 +217,8 @@ namespace v8App
             else
             {
                 // Coming from a snapshot we don't have to create the global template
+                // We reduce the index since we increased it by 1 since we use 0 for the
+                // the default context
                 context = V8Context::FromSnapshot(isolate,
                                                   m_SnapIndex,
                                                   provider->GetInternalDeserializerCallback(),
@@ -283,7 +285,8 @@ namespace v8App
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);                return V8LValue();
+                LOG_ERROR(msg);
+                return V8LValue();
             }
 
             V8MLScript maybeScript = v8::Script::Compile(v8Context, source);
@@ -291,7 +294,8 @@ namespace v8App
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);                return V8LValue();
+                LOG_ERROR(msg);
+                return V8LValue();
             }
 
             V8LScript script;
@@ -300,7 +304,8 @@ namespace v8App
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);                return V8LValue();
+                LOG_ERROR(msg);
+                return V8LValue();
             }
 
             V8LValue result;
@@ -308,7 +313,8 @@ namespace v8App
             {
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);                return V8LValue();
+                LOG_ERROR(msg);
+                return V8LValue();
             }
             return eScope.Escape(result);
         }

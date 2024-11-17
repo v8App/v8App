@@ -30,8 +30,8 @@ namespace v8App
             m_Providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
             m_Providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
 
-            m_App = std::make_shared<JSApp>(suiteName, m_Providers);
-            m_App->Initialize(s_TestDir, false);
+            m_App = std::make_shared<JSApp>();
+            m_App->Initialize(suiteName, s_TestDir, m_Providers, false);
             
             m_Runtime = m_App->GetMainRuntime();
             ASSERT_NE(nullptr, m_Runtime);

@@ -159,8 +159,8 @@ namespace v8App
             snapApp->DisposeApp();
 
             V8SnapshotProviderSharedPtr playgroundSnap = std::make_shared<V8SnapshotProvider>(snapshotFile);
-            JSAppSharedPtr restore = std::make_shared<JSApp>("Restored", playgroundSnap);
-            restore->Initialize(s_TestDir, false, std::make_shared<JSContextCreator>());
+            JSAppSharedPtr restore = std::make_shared<JSApp>();
+            restore->Initialize("Restored", s_TestDir, AppProviders(), false);
 
             runtime = restore->GetMainRuntime();
             JSContextSharedPtr jsContext = restore->GetMainRuntime()->CreateContext("Restored", "");

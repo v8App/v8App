@@ -193,11 +193,13 @@ namespace v8App
         using PlatformRuntimeProviderUniquePtr = std::unique_ptr<class IJSPlatformRuntimeProvider>;
 
         using JSAppSharedPtr = std::shared_ptr<class JSApp>;
+        using JSAppSnapDataSharedPtr = std::shared_ptr<class JSAppSnapData>;
 
         using CodeCacheSharedPtr = std::shared_ptr<class CodeCache>;
 
         using JSRuntimeWeakPtr = std::weak_ptr<class JSRuntime>;
         using JSRuntimeSharedPtr = std::shared_ptr<class JSRuntime>;
+        using JSRuntimeSnapDataSharedPtr = std::shared_ptr<class JSRuntimeSnapData>;
 
         using IJSSnapshotProviderSharedPtr = std::shared_ptr<class IJSSnapshotProvider>;
         using IJSSnapshotCreatorSharedPtr = std::shared_ptr<class IJSSnapshotCreator>;
@@ -242,9 +244,32 @@ namespace v8App
         };
 
         /**
-         * Struct that holds the provider classes to manage runtimes, contextes and snapshots
+         * Runtime snapshot attribute used to determine if a runtime can be snapshotted
+         * and if it should be resotred on restoration.
+         * RUntime that are not restored are ones that would be created on the fly
          */
-        struct AppProviders
+        enum class JSRuntimeSnapshotAttributes : int
+        {
+            NotSnapshottable,  // skips snapshotting the runtime
+            SnapshotOnly,      // only snapshot the runtime but isn't restored with the app
+            SnapshotAndRestore // snapshots the runtime and restores an instance of it
+        };
+
+        /**
+         * The state the JSApp is in
+         */
+        enum class JSAppStates : int
+        {
+            Uninitialized,
+            Restored,
+            Initialized,
+            Running
+        };
+
+            /**
+             * Struct that holds the provider classes to manage runtimes, contextes and snapshots
+             */
+            struct AppProviders
         {
             AppProviders() {}
             AppProviders(IJSSnapshotProviderSharedPtr inSnapshotProvider, IJSRuntimeProviderSharedPtr inRuntimeProvider,
@@ -259,7 +284,6 @@ namespace v8App
             IJSContextProviderSharedPtr m_ContextProvider;
             IJSSnapshotCreatorSharedPtr m_SnapshotCreator;
         };
-
     }
 }
 #endif //__V8_TYPES_H__

@@ -10,6 +10,7 @@
 #include "V8AppSnapshotCreator.h"
 #include "JSContext.h"
 #include "JSApp.h"
+#include "JSRuntimeVersion.h"
 
 namespace v8App
 {
@@ -17,22 +18,41 @@ namespace v8App
     {
         bool V8AppSnapshotCreator::CreateSnapshot(ISnapshotObject &inObject, std::filesystem::path inSnapshotFile)
         {
-            if(inSnapshotFile.empty())
+            if (inSnapshotFile.empty())
             {
                 LOG_ERROR("CreateSnapshot passed an empty file path");
                 return false;
             }
 
-            JSApp* app = dynamic_cast<JSApp*>(&inObject);
-            if(app == nullptr)
+            JSApp *app = dynamic_cast<JSApp *>(&inObject);
+            if (app == nullptr)
             {
                 LOG_ERROR("CreateSnapshot expected a JSApp Object");
                 return false;
             }
 
-            Serialization::WriteBuffer buffer;
+            if (app->IsSnapshotApp() == false)
+            {
+                LOG_ERROR(Utils::format("The app {} is not snapshottable", app->GetName()));
+                return false;
+            }
 
-            if(app->MakeSnapshot(buffer) == false)
+            Serialization::WriteBuffer buffer;
+            uint32_t v8AppMagicNumber = 0; //TODO: comeup with a magic number
+
+            // V8's magic number is at the start we want it to be 0 so we can tell it's ours
+            buffer << (uint32_t)0;
+            buffer << v8AppMagicNumber;
+            buffer << (uint32_t)JSRUNTIME_MAJOR_VERSION;
+            buffer << (uint32_t)JSRUNTIME_MINOR_VERSION;
+            buffer << (uint32_t)JSRUNTIME_PATCH_LEVEL;
+            buffer << (uint32_t)JSRUNTIME_BUILD_NUM;
+
+            buffer << "PlatformArch"; //TODO: Turn into some macro or function to return a string for the arch and platform
+
+            buffer << app->GetClassType();
+
+            if (app->MakeSnapshot(buffer) == false)
             {
                 LOG_ERROR(Utils::format("Faile to snapshot the app {}", app->GetName()));
                 return false;

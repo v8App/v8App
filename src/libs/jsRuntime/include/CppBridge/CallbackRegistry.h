@@ -158,7 +158,7 @@ namespace v8App
  * REGISTER_FUNCS(Test)
  * {
  *  **  run registeration code here
- * }}
+ * }
  */
 #define CONCAT_REG(a, b) a##b
 #define REGISTER_FUNCS(Name)                               \
@@ -185,7 +185,7 @@ namespace v8App
  * function in the class to do the registration. Registers the 
  * Class template setup in the specified namespaces.
  */
-#define REGISTER_CLASS_FUNCS_IN_NAMESPACES(ClassName, FuncNamespaces)                                                            \
+#define REGISTER_CLASS_FUNCS_IN_NAMESPACES(ClassName, FuncNamespaces)                              \
     namespace Registration                                                                         \
     {                                                                                              \
         static void CONCAT_REG(register_funcs_, ClassName)();                                      \
@@ -193,11 +193,9 @@ namespace v8App
         {                                                                                          \
             struct CONCAT_REG(register_struct_, ClassName)                                         \
             {                                                                                      \
-                CONCAT_REG(register_struct_, ClassName)                                            \
-                ()                                                                                 \
+                CONCAT_REG(register_struct_, ClassName)()                                          \
                 {                                                                                  \
-                    CONCAT_REG(register_funcs_, ClassName)                                         \
-                    ();                                                                            \
+                    CONCAT_REG(register_funcs_, ClassName)();                                      \
                 }                                                                                  \
             } CONCAT_REG(register_struct_instance_, ClassName);                                    \
         }                                                                                          \

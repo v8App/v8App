@@ -12,11 +12,19 @@ namespace v8App
     namespace JSRuntime
     {
         /*
-         * Used to isolate the context creation during testing and potentially different JS engines
+         * Creates the V8App snapshot file which can contain multiple V8 snapshots
+         * File Format
+         * uint32 0 - Magic number for V8 to determine that it's not a actual V8 Snapshot
+         * Runtime Version
+         * uint32 Major Version
+         * uint32 Minor Version
+         * uint32 Patch Version
+         * uint32 Build Version
+         * JSApp Data
          */
         class V8AppSnapshotCreator : public IJSSnapshotCreator
         {
-        public:
+        public:            
             V8AppSnapshotCreator() = default;
             virtual ~V8AppSnapshotCreator() = default;
 

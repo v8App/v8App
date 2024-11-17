@@ -276,7 +276,7 @@ namespace v8App
             }
 
             Assets::BinaryAsset file(inCachePath);
-            std::vector<uint8_t> vecData(inData, inData + inDataLength);
+            std::vector<char> vecData(inData, inData + inDataLength);
             if (file.SetContent(vecData) == false)
             {
                 return false;
@@ -306,7 +306,7 @@ namespace v8App
             {
                 return false;
             }
-            const std::vector<uint8_t> &buffer = file.GetContent();
+            const std::vector<char> &buffer = file.GetContent();
             if (buffer.size() == 0)
             {
                 return true;

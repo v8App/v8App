@@ -41,8 +41,8 @@ namespace v8App
             AppProviders providers(std::make_shared<TestSnapshotProvider>(),
                                    std::make_shared<V8RuntimeProvider>(),
                                    std::make_shared<V8ContextProvider>());
-            JSAppSharedPtr app = std::make_shared<JSApp>(appName, providers);
-            app->Initialize(testRoot);
+            JSAppSharedPtr app = std::make_shared<JSApp>();
+            app->Initialize(appName, testRoot, providers);
 
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
@@ -59,14 +59,14 @@ namespace v8App
             EXPECT_EQ("", testingSnapProvider->GetSnapshotPath().generic_string());
 
             // no path passed on construction or in function call
-            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(app, ""));
+            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(""));
             Log::LogMessage expected = {
                 {Log::MsgKey::Msg, "A path needs to be passed to LoadSnapshotData"},
                 {Log::MsgKey::LogLevel, "Error"}};
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
 
             // path escapes the app root
-            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(app, testFile));
+            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(testFile));
             expected = {
                 {Log::MsgKey::Msg, Utils::format("Specified snapshot path may have escaped the app root. File:{}", testFile)},
                 {Log::MsgKey::LogLevel, "Error"}};
@@ -74,7 +74,7 @@ namespace v8App
 
             // path doesn't exist
             testFile = testRoot / "resources/test.dat";
-            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(app, testFile));
+            EXPECT_FALSE(testingSnapProvider->LoadSnapshotData(testFile));
             expected = {
                 {Log::MsgKey::Msg, Utils::format("Passed snapshot path doesn't exist {}", testFile)},
                 {Log::MsgKey::LogLevel, "Error"}};
@@ -92,16 +92,16 @@ namespace v8App
                 dataFile2.SetContent(data2);
                 EXPECT_TRUE(dataFile2.WriteAsset());
             }
-            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(app, testFile));
+            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(testFile));
             EXPECT_EQ(4, testingSnapProvider->GetSnapshotData()->raw_size);
             EXPECT_TRUE(testingSnapProvider->SnapshotLoaded());
 
             // return true since data is already loaded
-            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(app, testFile));
+            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(testFile));
 
             // loads new file over old
             testingSnapProvider = std::make_shared<V8SnapshotProvider>();
-            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(app, testFile2));
+            EXPECT_TRUE(testingSnapProvider->LoadSnapshotData(testFile2));
             EXPECT_EQ(2, testingSnapProvider->GetSnapshotData()->raw_size);
 
             std::filesystem::remove(testFile);

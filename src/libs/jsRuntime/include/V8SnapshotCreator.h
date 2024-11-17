@@ -12,7 +12,7 @@ namespace v8App
     namespace JSRuntime
     {
         /*
-         * Used to isolate the context creation during testing and potentially different JS engines
+         * Recreates the V8 Snapshot style file
          */
         class V8SnapshotCreator : public IJSSnapshotCreator
         {

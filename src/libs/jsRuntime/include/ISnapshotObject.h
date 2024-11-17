@@ -16,7 +16,6 @@ namespace v8App
         {
         public:
             virtual bool MakeSnapshot(Serialization::WriteBuffer &inBuffer, void* inData = nullptr) = 0;
-            virtual bool RestoreSnapshot(Serialization::ReadBuffer& inBufffer, void *inData = nullptr) = 0;
         };
     }
 }

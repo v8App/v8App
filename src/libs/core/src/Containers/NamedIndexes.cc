@@ -4,7 +4,6 @@
 
 #include "Serialization/ReadBuffer.h"
 #include "Serialization/WriteBuffer.h"
-#include "Serialization/TypeSerializer.h"
 
 #include "Containers/NamedIndexes.h"
 

@@ -28,7 +28,7 @@ namespace v8App
             virtual JSAppSharedPtr CreateApp()
             {
                 m_AppCreated = true;
-                return std::make_shared<TestJSApp>("TestApp", m_AppProviders);
+                return std::make_shared<TestJSApp>();
             }
 
             static inline bool m_AppCreated{false};
@@ -51,8 +51,8 @@ namespace v8App
             IJSSnapshotCreatorSharedPtr snapCreator = std::make_shared<TestSnapshotCreator>();
             TestSnapshotCreator *testCreator = dynamic_cast<TestSnapshotCreator*>(snapCreator.get());
 
-            JSAppSharedPtr app = std::make_shared<TestJSApp>(appName, providers);
-            ASSERT_TRUE(app->Initialize(testRoot, false));
+            JSAppSharedPtr app = std::make_shared<TestJSApp>();
+            ASSERT_TRUE(app->Initialize(appName, testRoot, providers, false));
             // file is empty
             EXPECT_FALSE(app->CreateSnapshot(snapCreator, ""));
             expected = {
@@ -85,8 +85,8 @@ namespace v8App
             app->DisposeApp();
 
             //test where the app is already a snapshot app
-            app = std::make_shared<TestJSApp>(appName + "AppSnap", providers);
-            ASSERT_TRUE(app->Initialize(testRoot, true));
+            app = std::make_shared<TestJSApp>();
+            ASSERT_TRUE(app->Initialize(appName + "AppSnap", testRoot, providers, true));
             TestJSApp::m_AppCreated = false;
             EXPECT_TRUE(app->CreateSnapshot(snapCreator, snapFile));
             EXPECT_FALSE(TestJSApp::m_AppCreated);

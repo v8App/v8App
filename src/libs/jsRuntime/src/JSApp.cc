@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <fstream>
+#include <ranges>
 
 #include "Logging/LogMacros.h"
 #include "Utils/Paths.h"
@@ -14,18 +15,96 @@
 #include "IJSRuntimeProvider.h"
 #include "IJSSnapshotCreator.h"
 #include "IJSSnapshotProvider.h"
+#include "JSRuntimeSnapData.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        JSApp::JSApp(std::string inName, AppProviders inAppProviders)
-            : m_Name(inName), m_AppProviders(inAppProviders)
+        JSApp::JSApp()
         {
         }
 
         JSApp::~JSApp()
         {
+        }
+
+        bool JSApp::Initialize(std::string inAppName, std::filesystem::path inAppRoot, AppProviders inAppProviders, bool setupForSnapshot)
+        {
+            if (IsInitialized())
+            {
+                return true;
+            }
+            if (m_AppState == JSAppStates::Restored)
+            {
+                LOG_ERROR("Initalize can not be called on a restored app. Use RestoreInitialize.");
+                return false;
+            }
+
+            m_Name = inAppName;
+            if (SetAndCheckAppProviders(inAppProviders) == false)
+            {
+                return false;
+            }
+
+            JSAppSharedPtr sharedApp = shared_from_this();
+            m_IsSnapshotter = setupForSnapshot;
+
+            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
+            m_AppAssets->SetAppRootPath(inAppRoot);
+
+            if (GetSnapshotProvider()->SnapshotLoaded() == false && GetSnapshotProvider()->GetSnapshotPath().empty() == false)
+            {
+                if (GetSnapshotProvider()->LoadSnapshotData() == false)
+                {
+                    return false;
+                }
+            }
+            if (GetSnapshotProvider()->GetSnapshotData(0)->raw_size == 0)
+            {
+                LOG_ERROR("Snapshot provider says data is loaded but default snapshot size is 0");
+                return false;
+            }
+
+            m_CodeCache = std::make_shared<CodeCache>(sharedApp);
+
+            std::string runtimeName = m_Name + "-main";
+            // the main runtime always supports snapshotting
+            m_MainRuntime = CreateJSRuntime(runtimeName, IdleTaskSupport::kEnabled, 0, JSRuntimeSnapshotAttributes::SnapshotAndRestore);
+
+            if (m_MainRuntime == nullptr)
+            {
+                return false;
+            }
+            if (AppInit() == false)
+            {
+                return false;
+            }
+            m_AppState = JSAppStates::Initialized;
+            return true;
+        }
+
+        bool JSApp::ResotreInitialize(std::filesystem::path inAppRoot, AppProviders inAppProviders)
+        {
+            if (IsInitialized())
+            {
+                return true;
+            }
+            if (m_AppState == JSAppStates::Uninitialized)
+            {
+                LOG_ERROR("RestoreInitalize can not be called on a non restored app. Use Initialize.");
+                return false;
+            }
+
+            if (SetAndCheckAppProviders(inAppProviders) == false)
+            {
+                return false;
+            }
+
+            // TODO: add code to do the rest of the init
+
+            m_AppState = JSAppStates::Initialized;
+            return true;
         }
 
         IJSSnapshotCreatorSharedPtr JSApp::GetSnapshotCreator()
@@ -88,98 +167,37 @@ namespace v8App
             m_AppProviders.m_ContextProvider = inProvider;
         }
 
-        bool JSApp::Initialize(std::filesystem::path inAppRoot, bool setupForSnapshot, AppProviders inAppProviders)
-        {
-            if (m_Initialized)
-            {
-                return true;
-            }
-            // make sure that the providers all setup and not null
-            SetSnapshotCreator(inAppProviders.m_SnapshotCreator);
-            SetSnapshotProvider(inAppProviders.m_SnapshotProvider);
-            SetRuntimeProvider(inAppProviders.m_RuntimeProvider);
-            SetContextProvider(inAppProviders.m_ContextProvider);
-
-            if (m_AppProviders.m_SnapshotProvider == nullptr)
-            {
-                LOG_ERROR("The snapshot provider must be set before calling Initialize");
-                return false;
-            }
-            if (m_AppProviders.m_RuntimeProvider == nullptr)
-            {
-                LOG_ERROR("The runtime provider must be set before calling Initialize");
-                return false;
-            }
-            if (m_AppProviders.m_ContextProvider == nullptr)
-            {
-                LOG_ERROR("The context provider must be set before calling Initialize");
-                return false;
-            }
-
-            JSAppSharedPtr sharedApp = shared_from_this();
-            m_IsSnapshotter = setupForSnapshot;
-
-            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
-            m_AppAssets->SetAppRootPath(inAppRoot);
-
-            if (GetSnapshotProvider()->SnapshotLoaded() == false)
-            {
-                if (GetSnapshotProvider()->LoadSnapshotData(sharedApp) == false)
-                {
-                    return false;
-                }
-            }
-            if (GetSnapshotProvider()->GetSnapshotData()->raw_size == 0)
-            {
-                // TODO: add logging
-                return false;
-            }
-
-            m_CodeCache = std::make_shared<CodeCache>(sharedApp);
-
-            std::string runtimeName = m_Name + "-main";
-            // the main runtime always supports snapshotting
-            m_MainRuntime = CreateJSRuntime(runtimeName, IdleTaskSupport::kEnabled, true, 0);
-            if (m_MainRuntime == nullptr)
-            {
-                return false;
-            }
-            if (AppInit() == false)
-            {
-                return false;
-            }
-            m_Initialized = true;
-            return true;
-        }
-
         void JSApp::DisposeApp()
         {
+            if (m_DestroyOrder.size())
+            {
+                // Destory hte runtimes in the reverse order of creation
+                for (auto it : std::ranges::views::reverse(m_DestroyOrder))
+                {
+                    GetRuntimeProvider()->DisposeRuntime(it);
+                }
+            }
+            m_DestroyOrder.clear();
+            m_Runtimes.clear();
+
             GetRuntimeProvider()->DisposeRuntime(m_MainRuntime);
             m_MainRuntime.reset();
             m_CodeCache.reset();
             m_AppAssets.reset();
 
-            if (m_Runtimes.size())
-            {
-                for (auto it : m_Runtimes)
-                {
-                    GetRuntimeProvider()->DisposeRuntime(it.second);
-                }
-            }
             m_AppProviders.m_SnapshotCreator.reset();
             m_AppProviders.m_SnapshotProvider.reset();
             m_AppProviders.m_RuntimeProvider.reset();
             m_AppProviders.m_ContextProvider.reset();
 
-            m_Runtimes.clear();
             m_IsSnapshotter = false;
-            m_Initialized = false;
+            m_AppState = JSAppStates::Uninitialized;
         }
 
         JSAppSharedPtr JSApp::CloneAppForSnapshotting()
         {
-            JSAppSharedPtr newApp = CreateSnapshotAppInstance();
-            if( newApp->CloneAppForSnapshot(shared_from_this())== false)
+            JSAppSharedPtr newApp = JSAppCreatorRegistry::CreateApp(GetClassType());
+            if (newApp->CloneAppForSnapshot(shared_from_this()) == false)
             {
                 LOG_ERROR(Utils::format("Faield to clone app {} for snapshotting", m_Name));
                 return nullptr;
@@ -190,7 +208,6 @@ namespace v8App
         bool JSApp::MakeSnapshot(Serialization::WriteBuffer &inBuffer, void *inData)
         {
             JSAppSharedPtr snapApp;
-            bool createdApp = false;
 
             if (m_IsSnapshotter == false)
             {
@@ -198,12 +215,7 @@ namespace v8App
                 return false;
             }
 
-            if (GetSnapshotCreator() == nullptr)
-            {
-                LOG_ERROR("The snapshot creator must be set before before calling MakeSnapshot");
-                return false;
-            }
-
+            inBuffer << m_AppVersion;
             inBuffer << m_Name;
 
             // main runtie is written first
@@ -224,42 +236,103 @@ namespace v8App
                     return false;
                 }
             }
+            return true;
         }
 
-        bool JSApp::RestoreSnapshot(Serialization::ReadBuffer &inBufffer, void *inData)
+        JSAppSnapDataSharedPtr JSApp::LoadSnapshotData(Serialization::ReadBuffer &inBuffer)
+        {
+            JSAppSnapDataSharedPtr snapData = CreateSnapData();
+
+            inBuffer >> snapData->m_AppVersion;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading app version");
+                return {};
+            }
+            inBuffer >> snapData->m_Name;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading app name");
+                return {};
+            }
+
+            JSRuntime runtimeLoader;
+            JSRuntimeSnapDataSharedPtr runtime = runtimeLoader.LoadSnapshotData(inBuffer);
+            if (runtime == nullptr)
+            {
+                LOG_ERROR("Failed to load the main runtime data");
+                return {};
+            }
+            snapData->m_RuntimesSnapData.push_back(runtime);
+
+            runtime = nullptr;
+            size_t numRuntimes;
+            inBuffer >> numRuntimes;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading number of runtimes");
+                return {};
+            }
+
+            for (size_t idx = 0; idx < numRuntimes; idx++)
+            {
+                runtime = runtimeLoader.LoadSnapshotData(inBuffer);
+                if (runtime == nullptr)
+                {
+                    LOG_ERROR(Utils::format("Failed to load the index {} runtime data", idx));
+                    return {};
+                }
+                snapData->m_RuntimesSnapData.push_back(runtime);
+                snapData->m_RuntimesSnapIndexes.AddNamedIndex(idx, runtime->m_RuntimeName);
+                runtime = nullptr;
+            }
+
+            return snapData;
+        }
+
+        bool JSApp::RestoreSnapshot(JSAppSnapDataSharedPtr inSnapData)
         {
             return false;
         }
 
-        JSAppSharedPtr JSApp::CreateSnapshotAppInstance()
+        JSRuntimeSharedPtr JSApp::CreateJSRuntimeFromName(std::string inRuntimeName, std::string inSnapRuntimeName,
+                                                          JSRuntimeSnapshotAttributes inSnapAttribute,
+                                                          IdleTaskSupport inEnableIdleTasks)
         {
-            return std::make_shared<JSApp>(m_Name + "-snapshotter", m_AppProviders);
+
+            if (inSnapRuntimeName.empty())
+            {
+                LOG_ERROR("Passed snap runtime name was empty for CreateJSRuntime");
+                return nullptr;
+            }
+
+            size_t runtimeIndex = GetSnapshotProvider()->GetIndexForRuntimeName(inSnapRuntimeName);
+            return CreateJSRuntimeFromIndex(inRuntimeName, runtimeIndex, inSnapAttribute, inEnableIdleTasks);
         }
 
-        JSRuntimeSharedPtr JSApp::CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks, bool inSupportsSnapshot)
+        JSRuntimeSharedPtr JSApp::CreateJSRuntimeFromIndex(std::string inRuntimeName, size_t inSnapRuntimeIndex,
+                                                           JSRuntimeSnapshotAttributes inSnapAttribute,
+                                                           IdleTaskSupport inEnableIdleTasks)
         {
-            if (inName.empty())
+            if (inRuntimeName.empty())
             {
                 LOG_ERROR("Passed runtime name was empty for CreateJSRuntime");
                 return nullptr;
             }
-            if (m_Runtimes.find(inName) != m_Runtimes.end())
+
+            if (m_Runtimes.find(inRuntimeName) != m_Runtimes.end())
             {
-                LOG_ERROR(Utils::format("A runtime with name '{}' already exists", inName));
+                LOG_ERROR(Utils::format("A runtime with name '{}' already exists", inRuntimeName));
                 return nullptr;
             }
-            size_t runtimeIndex = m_RuntimesSnapIndexes.GetIndexForName(inName);
-            // if we failed to find a index with that name use the main snapshot
-            if (runtimeIndex == m_RuntimesSnapIndexes.GetMaxSupportedIndexes())
-            {
-                runtimeIndex = 0;
-            }
-            JSRuntimeSharedPtr runtime = CreateJSRuntime(inName, inEnableIdleTasks, inSupportsSnapshot, runtimeIndex);
+
+            JSRuntimeSharedPtr runtime = CreateJSRuntime(inRuntimeName, inEnableIdleTasks, inSnapRuntimeIndex, inSnapAttribute);
             if (runtime != nullptr)
             {
-                auto it = m_Runtimes.insert(std::make_pair(inName, runtime));
+                auto it = m_Runtimes.insert(std::make_pair(inRuntimeName, runtime));
                 if (it.second)
                 {
+                    m_DestroyOrder.push_back(runtime);
                     return runtime;
                 }
             }
@@ -281,22 +354,10 @@ namespace v8App
 
         void JSApp::DisposeRuntime(JSRuntimeSharedPtr inRuntime)
         {
-            if (GetRuntimeProvider() == nullptr)
+            if (inRuntime != nullptr)
             {
-                LOG_ERROR("Runtime provder was null wheb calling DisposeRuntime");
-                return;
+                DisposeRuntime(inRuntime->GetName());
             }
-            if (inRuntime->GetName() == (m_Name + "-main"))
-            {
-                return;
-            }
-            auto it = m_Runtimes.find(inRuntime->GetName());
-            if (it == m_Runtimes.end())
-            {
-                return;
-            }
-            GetRuntimeProvider()->DisposeRuntime(inRuntime);
-            m_Runtimes.erase(it);
         }
 
         void JSApp::DisposeRuntime(std::string inRuntimeName)
@@ -316,22 +377,52 @@ namespace v8App
                 return;
             }
             GetRuntimeProvider()->DisposeRuntime(it->second);
+            auto vIt = std::find(m_DestroyOrder.begin(), m_DestroyOrder.end(), it->second);
+             if (vIt != m_DestroyOrder.end())
+            {
+                m_DestroyOrder.erase(vIt);
+            }
             m_Runtimes.erase(it);
         }
 
         JSRuntimeSharedPtr JSApp::CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks,
-                                                  bool inSupportsSnapshotting, size_t inRuntimeIndex)
+                                                  size_t inRuntimeIndex, JSRuntimeSnapshotAttributes inSnapAttrib)
         {
-            // depending on whether the app is a snapshotter depends pn if the runtime is inited for it
-            JSRuntimeSharedPtr runtime = GetRuntimeProvider()->CreateRuntime(shared_from_this(), inName, inEnableIdleTasks, m_IsSnapshotter, inRuntimeIndex);
+            JSRuntimeSharedPtr runtime = GetRuntimeProvider()->CreateRuntime();
 
-            if (runtime->Initialize(inSupportsSnapshotting) == false)
+            if (runtime->Initialize(shared_from_this(), inName, inRuntimeIndex, inSnapAttrib, m_IsSnapshotter, inEnableIdleTasks) == false)
             {
                 GetRuntimeProvider()->DisposeRuntime(runtime);
                 return nullptr;
             }
 
             return runtime;
+        }
+
+        bool JSApp::SetAndCheckAppProviders(AppProviders &inAppProviders)
+        {
+            // make sure that the providers all setup and not null
+            SetSnapshotCreator(inAppProviders.m_SnapshotCreator);
+            SetSnapshotProvider(inAppProviders.m_SnapshotProvider);
+            SetRuntimeProvider(inAppProviders.m_RuntimeProvider);
+            SetContextProvider(inAppProviders.m_ContextProvider);
+
+            if (m_AppProviders.m_SnapshotProvider == nullptr)
+            {
+                LOG_ERROR("The snapshot provider must be set before calling Initialize");
+                return false;
+            }
+            if (m_AppProviders.m_RuntimeProvider == nullptr)
+            {
+                LOG_ERROR("The runtime provider must be set before calling Initialize");
+                return false;
+            }
+            if (m_AppProviders.m_ContextProvider == nullptr)
+            {
+                LOG_ERROR("The context provider must be set before calling Initialize");
+                return false;
+            }
+            return true;
         }
 
         bool JSApp::CloneAppForSnapshot(JSAppSharedPtr inClonee)
@@ -370,7 +461,7 @@ namespace v8App
                     return false;
                 }
             }
-            m_Initialized = true;
+            m_AppState = JSAppStates::Initialized;
             return true;
         }
     }

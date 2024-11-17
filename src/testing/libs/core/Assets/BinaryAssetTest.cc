@@ -24,7 +24,7 @@ namespace v8App
             BinaryAsset binary(tmp);
 
             EXPECT_TRUE(binary.GetContent().empty());
-            std::vector<uint8_t> content{1, 2, 3};
+            std::vector<char> content{1, 2, 3};
             EXPECT_TRUE(binary.SetContent(content));
             EXPECT_EQ(content, binary.GetContent());
         }
@@ -35,8 +35,8 @@ namespace v8App
             std::filesystem::remove(tmp);
             BinaryAsset binary(tmp);
 
-            std::vector<uint8_t> content{1, 2, 3};
-            std::vector<uint8_t> empty;
+            std::vector<char> content{1, 2, 3};
+            std::vector<char> empty;
             EXPECT_TRUE(binary.SetContent(content));
             EXPECT_TRUE(binary.WriteAsset());
 

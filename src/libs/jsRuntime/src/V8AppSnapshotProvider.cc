@@ -9,6 +9,7 @@
 
 #include "Serialization/ReadBuffer.h"
 #include "Serialization/TypeSerializer.h"
+#include "Assets/BinaryAsset.h"
 
 #include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8CppObjInfo.h"
@@ -16,30 +17,24 @@
 #include "JSRuntime.h"
 #include "JSApp.h"
 #include "V8AppSnapshotProvider.h"
+#include "JSRuntimeVersion.h"
 
 namespace v8App
 {
     namespace JSRuntime
     {
-        bool V8AppSnapshotProvider::LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
+        bool V8AppSnapshotProvider::LoadSnapshotData(std::filesystem::path inSnapshotPath)
         {
-            if (m_Loaded == false)
+            if (m_Loaded && m_SnapshotPath == inSnapshotPath)
             {
-                if (LoadDataFile(inApp, inSnapshotPath))
-                {
-                    m_Loaded = true;
-                }
+                return true;
             }
 
-            return m_Loaded;
-        }
-
-        bool V8AppSnapshotProvider::LoadDataFile(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath)
-        {
             if (inSnapshotPath.empty() == false)
             {
                 m_SnapshotPath = inSnapshotPath;
             }
+
             if (m_SnapshotPath.empty())
             {
                 Log::LogMessage msg = {
@@ -47,15 +42,8 @@ namespace v8App
                 LOG_ERROR(msg);
                 return false;
             }
-            std::filesystem::path absPath = inApp->GetAppRoot()->MakeAbsolutePathToAppRoot(m_SnapshotPath);
-            if (absPath.empty())
-            {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Specified snapshot path may have escaped the app root. File:{}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
-                return false;
-            }
-            if (std::filesystem::exists(absPath) == false)
+
+            if (std::filesystem::exists(m_SnapshotPath) == false)
             {
                 Log::LogMessage msg = {
                     {Log::MsgKey::Msg, Utils::format("Passed snapshot path doesn't exist {}", m_SnapshotPath)}};
@@ -63,34 +51,102 @@ namespace v8App
                 return false;
             }
 
-            m_SnapshotPath = absPath;
+            m_Loaded = false;
+            Assets::BinaryAsset m_AssetFile;
+            m_AssetFile.SetPath(m_SnapshotPath);
 
-            std::ifstream snapData(absPath, std::ios_base::binary | std::ios_base::ate);
-            if (snapData.is_open() == false || snapData.fail())
+            if (m_AssetFile.ReadAsset() == false)
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to open the snapshot file {}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
+                LOG_ERROR(Utils::format("Failed to read the snapshot file {}", m_SnapshotPath));
                 return false;
             }
-            int dataLength = snapData.tellg();
-            snapData.seekg(0, std::ios::beg);
-            std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
-            snapData.read(buf.get(), dataLength);
-            if (snapData.fail())
+
+            Serialization::ReadBuffer rBuffer(m_AssetFile.GetContent().data(), m_AssetFile.GetContent().size());
+
+            uint32_t v8AppMagicNumber = 0;
+            uint32_t major_ver = 0;
+            uint32_t minor_ver = 0;
+            uint32_t patch_ver = 0;
+            uint32_t build_ver = 0;
+
+            // just resue the var to make sure the first 4 bytes are 0
+            rBuffer >> v8AppMagicNumber;
+            if (v8AppMagicNumber != 0)
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, Utils::format("Failed to read the snapshot file {}", m_SnapshotPath)}};
-                LOG_ERROR(msg);
+                LOG_ERROR("Magic Number in file is not 0");
                 return false;
             }
-            m_Snapshots.insert(std::make_pair("v8", V8StartupData{buf.release(), dataLength}));
+            // check the next 4 are our magic number
+            // TODO: figure out our magic number
+            rBuffer >> v8AppMagicNumber;
+            if (v8AppMagicNumber != 0)
+            {
+                LOG_ERROR("Magic Number in file is not 0");
+                return false;
+            }
+
+            rBuffer >> major_ver;
+            rBuffer >> minor_ver;
+            rBuffer >> patch_ver;
+            rBuffer >> build_ver;
+
+            // TODO add a table of some sort that has version comapatiblitly
+            if (major_ver != JSRUNTIME_MAJOR_VERSION || minor_ver != JSRUNTIME_MINOR_VERSION || patch_ver != JSRUNTIME_PATCH_LEVEL)
+            {
+                LOG_ERROR(Utils::format("Files runtime version of {}.{].{} doesn't match apps version {}.{].{}}", major_ver, minor_ver, patch_ver, JSRUNTIME_MAJOR_VERSION, JSRUNTIME_MINOR_VERSION, JSRUNTIME_PATCH_LEVEL));
+                return false;
+            }
+            std::string platformArch;
+            rBuffer >> platformArch;
+            // TODO: add platform check
+
+            std::string appClassType;
+
+            rBuffer >> appClassType;
+
+            JSAppSharedPtr app = JSAppCreatorRegistry::CreateApp(appClassType);
+            if (app == nullptr)
+            {
+                LOG_ERROR(Utils::format("Failed to find JSApp type {} registered with the JSAppCreator", appClassType));
+                return false;
+            }
+            m_SnapData = app->LoadSnapshotData(rBuffer);
+            if (m_SnapData == nullptr)
+            {
+                LOG_ERROR(Utils::format("Failed to load the snapshot data for JSAppType {}.", appClassType));
+                return false;
+            }
+
             return true;
+        }
+
+        const V8StartupData *V8AppSnapshotProvider::GetSnapshotData(size_t inIndex)
+        {
+            if (inIndex < 0 || m_SnapData->m_RuntimesSnapData.size() < inIndex)
+            {
+                return nullptr;
+            }
+            return &m_SnapData->m_RuntimesSnapData[inIndex]->m_StartupData;
+        }
+
+        size_t V8AppSnapshotProvider::GetIndexForRuntimeName(std::string inRuntimeName)
+        {
+            size_t runtimeIndex = m_SnapData->m_RuntimesSnapIndexes.GetIndexForName(inRuntimeName);
+            if(runtimeIndex == m_SnapData->m_RuntimesSnapIndexes.GetMaxSupportedIndexes())
+            {
+                return 0;
+            }
+            return runtimeIndex;
         }
 
         const intptr_t *V8AppSnapshotProvider::GetExternalReferences()
         {
             return CppBridge::CallbackRegistry::GetReferences().data();
+        }
+
+        JSAppSharedPtr V8AppSnapshotProvider::CreateApp()
+        {
+            return JSAppSharedPtr();
         }
 
         void V8AppSnapshotProvider::DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload)

@@ -30,7 +30,11 @@ namespace v8App
              * Load the snapshot data file.
              * Subclasses can overrride to pull additional data out that they may have added to the file
              */
-            virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath) override;
+            virtual bool LoadSnapshotData(std::filesystem::path inSnapshotPath = std::filesystem::path()) override;
+            /**
+             * Always default 0 since there is only ever one runtime snapshot
+             */
+            virtual size_t GetIndexForRuntimeName(std::string inRuntimeName) override { return 0; };
 
             /**
              * Gets the v8 startup data that the isolate needs

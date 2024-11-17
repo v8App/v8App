@@ -6,6 +6,7 @@
 #define __TEST_SNAPSHOT_PROVIDER__
 
 #include "IJSSnapshotProvider.h"
+#include "CppBridge/CallbackRegistry.h"
 
 namespace v8App
 {
@@ -14,10 +15,15 @@ namespace v8App
         class TestSnapshotProvider : public IJSSnapshotProvider
         {
         public:
-            TestSnapshotProvider() { m_Loaded = true; }
-            virtual bool LoadSnapshotData(JSAppSharedPtr inApp, std::filesystem::path inSnapshotPath = std::filesystem::path()) override;
+            TestSnapshotProvider();
+            virtual bool LoadSnapshotData(std::filesystem::path inSnapshotPath = std::filesystem::path()) override;
             virtual const V8StartupData *GetSnapshotData(size_t inIndex = 0) override;
-            virtual const intptr_t *GetExternalReferences() override { return nullptr; }
+            virtual size_t GetIndexForRuntimeName(std::string inRuntimeName) override { return 0; };
+
+            virtual const intptr_t *GetExternalReferences() override
+            {
+                return CppBridge::CallbackRegistry::GetReferences().data();
+            }
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override {};
             virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload) override {};
 

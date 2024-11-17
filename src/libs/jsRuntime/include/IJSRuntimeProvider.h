@@ -20,11 +20,7 @@ namespace v8App
             IJSRuntimeProvider() = default;
             virtual ~IJSRuntimeProvider() = default;
 
-            virtual JSRuntimeSharedPtr CreateRuntime(JSAppSharedPtr inApp, std::string inName,
-                                                     IdleTaskSupport inEnbaleIdleTasks,
-                                                     bool inSetupForSnapshot = false,
-                                                     size_t inRuntimeIndex = 0,
-                                                     bool inSupportsSnapshots = false) = 0;
+            virtual JSRuntimeSharedPtr CreateRuntime() = 0;
             /**
              * Override to dispose of the JSRuntime
              */

@@ -10,10 +10,13 @@
 
 #include "Assets/AppAssetRoots.h"
 #include "Containers/NamedIndexes.h"
+#include "Utils/VersionString.h"
 
 #include "CodeCache.h"
 #include "V8Types.h"
 #include "ISnapshotObject.h"
+#include "JSAppCreatorRegistry.h"
+#include "JSAppSnapData.h"
 
 namespace v8App
 {
@@ -22,8 +25,21 @@ namespace v8App
         class JSApp : public std::enable_shared_from_this<JSApp>, public ISnapshotObject
         {
         public:
-            JSApp(std::string inName, AppProviders inAppProviders);
+            inline static const char *kDefaulV8tRuntimeName{"v8-default"};
+            inline static size_t kDefaultV8RutimeIndex = 0;
+
+            JSApp();
             virtual ~JSApp();
+
+            /**
+             * Initalizes stuff that can't be doe in the constrcutor like shared_from_this.
+             */
+            virtual bool Initialize(std::string inAppName, std::filesystem::path inAppRoot, AppProviders inAppPorviders, bool setupForSnapshot = false);
+
+            /**
+             * Initializes an app from loaded snapshot data
+             */
+            virtual bool ResotreInitialize(std::filesystem::path inAppRoot, AppProviders inAppProviders);
 
             /**
              * Gets the snapshot creator for the app
@@ -68,11 +84,6 @@ namespace v8App
             void SetContextProvider(IJSContextProviderSharedPtr inProvider);
 
             /**
-             * Initalizes stuff that can't be doe in the constrcutor like shared_from_this.
-             */
-            bool Initialize(std::filesystem::path inAppRoot, bool setupForSnapshot = false, AppProviders inAppPorviders = AppProviders());
-
-            /**
              * Destorys any resources that require explicit destruction
              */
             void DisposeApp();
@@ -85,7 +96,10 @@ namespace v8App
             /**
              * Create a new isolate that runs separate from the app's main runtime
              */
-            JSRuntimeSharedPtr CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled, bool inSupportsSnapshot = false);
+            JSRuntimeSharedPtr CreateJSRuntimeFromName(std::string inRuntimeName, std::string inSnapRuntimeName = kDefaulV8tRuntimeName, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
+                                               IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
+            JSRuntimeSharedPtr CreateJSRuntimeFromIndex(std::string inRuntimeName, size_t inSanpRuntimeIndex = kDefaultV8RutimeIndex, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
+                                               IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
             /**
              * Gets the specified JSRuntime by it's name. You can fetch the main runtime as well
              * by it's name which is <app_name>-main
@@ -121,7 +135,8 @@ namespace v8App
             /**
              * Whether the app has neem initialized or not yet
              */
-            bool IsInitialized() { return m_Initialized; }
+            bool IsInitialized() { return m_AppState >= JSAppStates::Initialized; }
+            bool IsRunning() { return m_AppState == JSAppStates::Running; }
 
             /**
              * Is this runtime for creatign a snapshot
@@ -130,45 +145,75 @@ namespace v8App
 
             JSAppSharedPtr CloneAppForSnapshotting();
 
-            virtual bool MakeSnapshot(Serialization::WriteBuffer& inBuffer, void* inData = nullptr);
-            virtual bool RestoreSnapshot(Serialization::ReadBuffer& inBufffer, void *inData = nullptr);
+            /**
+             * Creates a snapshot of the data writing it to the passed buffer
+             */
+            virtual bool MakeSnapshot(Serialization::WriteBuffer &inBuffer, void *inData = nullptr);
+            /**
+             * Loads the snap data from the file into the Snap Data object
+             */
+            virtual JSAppSnapDataSharedPtr LoadSnapshotData(Serialization::ReadBuffer &inBufffer);
+            /**
+             * Restores the app from the snap data
+             */
+            virtual bool RestoreSnapshot(JSAppSnapDataSharedPtr inSnapdata);
+            /**
+             * Subclasses should override and return their snap data object if they have otehr data they
+             * need snapshotted
+             */
+            virtual JSAppSnapDataSharedPtr CreateSnapData() { return std::make_shared<JSAppSnapData>(); }
+
+            Utils::VersionString &GetAppVersion() { return m_AppVersion; }
+
+            static JSAppSharedPtr AppCreator() { return std::make_shared<JSApp>(); }
+
+            virtual std::string GetClassType() { return s_ClassType; }
 
         protected:
             /**
-             * Used by the snapshot system to clone the app by creating the correct app type.
-             * Subclasses should override it to return the correct app class
+             * base class static subclasses should use the macro to overide
              */
-            virtual JSAppSharedPtr CreateSnapshotAppInstance();
+            inline static const std::string s_ClassType{"JSApp"};
+
             /**
              * Use by subclasses to do theiir actual init and setup
              */
             virtual bool AppInit() { return true; }
 
             /**
+             * Sets and checks the app providers for init and restore init
+             */
+            bool SetAndCheckAppProviders(AppProviders &inAppProviders);
+
+            /**
              * Create the JSRuntime
              */
             JSRuntimeSharedPtr CreateJSRuntime(std::string inName, IdleTaskSupport inEnableIdleTasks,
-                                               bool setupForSnapshot, size_t inRuntimeIndex);
+                                               size_t inRuntimeIndex, JSRuntimeSnapshotAttributes inSnapAttrib);
 
             /*
              * Allows subclasses to do any additional work for cloning the app for snapshotting
              */
             virtual bool CloneAppForSnapshot(JSAppSharedPtr inClonee);
 
-            //Snoapshot serialized properties
-            //****************************************/
-            /** The name of the app */
             std::string m_Name;
 
             /** The JS rutime for the this app */
             JSRuntimeSharedPtr m_MainRuntime;
 
+            /** Other runtimes created that are not main */
             using JSRuntimesMap = std::map<std::string, JSRuntimeSharedPtr>;
-
             JSRuntimesMap m_Runtimes;
 
+            /**
+             * Holds the order of runtime creation so that when snapshotting
+             * we can reverse the order do to the v8::SanpshotCreator automaticlly 
+             * entering the isolate when it's created and we need to reverse the 
+             * destory order so they exit in reverse or we get an error
+             */
+            std::vector<JSRuntimeSharedPtr> m_DestroyOrder;
 
-            //Non Snoapshot properties
+            // Non Snoapshot properties
             //****************************************/
             /** The struct that holds the varois app providers */
             AppProviders m_AppProviders;
@@ -183,12 +228,20 @@ namespace v8App
             Assets::AppAssetRootsSharedPtr m_AppAssets;
 
             /** Is this instance initialized*/
-            bool m_Initialized = false;
+            JSAppStates m_AppState{JSAppStates::Uninitialized};
 
-            Containers::NamedIndexes m_RuntimesSnapIndexes;
-
+            Utils::VersionString m_AppVersion;
         };
+
+        REGISTER_JSAPP_CREATOR(JSApp, JSApp::AppCreator)
     }
 }
+
+/**
+ * Macros to define the static class type variable and getter for subclasses
+ */
+#define REGISTER_JSAPP_CLASS_TYPE(classType)                      \
+    inline static const std::string s_CT_##classType{#classType}; \
+    virtual std::string GetClassType() override { return s_CT_##classType; }
 
 #endif //_JS_APP_H_

@@ -9,18 +9,9 @@ namespace v8App
 {
     namespace JSRuntime
     {
-        JSRuntimeSharedPtr V8RuntimeProvider::CreateRuntime(JSAppSharedPtr inApp, std::string inName,
-                                                            IdleTaskSupport inEnableIdleTasks,
-                                                            bool inSetupForSnapshot,
-                                                            size_t inRuntimeIndex,
-                                                            bool inSupportsSnapshots)
+        JSRuntimeSharedPtr V8RuntimeProvider::CreateRuntime()
         {
-            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(inApp, inEnableIdleTasks, inName, inSetupForSnapshot, inRuntimeIndex);
-            if(runtime->Initialize(inSupportsSnapshots) == false)
-            {
-                return nullptr;
-            }
-
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
             return runtime;
         }
 

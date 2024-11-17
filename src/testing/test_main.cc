@@ -23,6 +23,7 @@ std::unique_ptr<Runfiles> s_Runfiles;
 std::filesystem::path s_TestDir;
 
 #ifdef USE_JSRUNTIME
+std::filesystem::path s_SnapPath;
 v8App::JSRuntime::V8StartupData s_V8StartupData{nullptr, 0};
 #endif
 
@@ -157,17 +158,17 @@ int main(int argc, char **argv)
     }
 
     std::string icuData = s_Runfiles->Rlocation(icu_name);
-    std::string snapshotData = s_Runfiles->Rlocation(snapshot_name);
+    s_SnapPath = s_Runfiles->Rlocation(snapshot_name);
 
     EXPECT_NE("", icuData);
-    EXPECT_NE("", snapshotData);
+    EXPECT_NE("", s_SnapPath);
 
     v8::V8::InitializeICU(icuData.c_str());
 
-    std::ifstream sData(snapshotData, std::ios_base::binary | std::ios_base::ate);
+    std::ifstream sData(s_SnapPath, std::ios_base::binary | std::ios_base::ate);
     if (sData.is_open() == false || sData.fail())
     {
-        std::cout << "Failed to open " << snapshotData << std::endl;
+        std::cout << "Failed to open " << s_SnapPath << std::endl;
         std::exit(1);
     }
     int dataLength = sData.tellg();

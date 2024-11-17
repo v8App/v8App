@@ -43,8 +43,8 @@ namespace v8App
                 providers.m_ContextProvider = std::make_shared<V8ContextProvider>();
                 providers.m_RuntimeProvider = std::make_shared<V8RuntimeProvider>();
 
-                m_App = std::make_shared<JSApp>(suiteName, providers);
-                m_App->Initialize(s_TestDir, false);
+                m_App = std::make_shared<JSApp>();
+                m_App->Initialize(suiteName, s_TestDir, providers, false);
             }
 
             void TearDown() override

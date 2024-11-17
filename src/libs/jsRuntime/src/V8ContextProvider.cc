@@ -51,7 +51,7 @@ namespace v8App
             }
 
             //if the context index is not 0 then no need to run the entry point
-            if(context->GetSnapshotIndex() != 0)
+            if(context->GetSnapshotIndex() > -1)
             {
                 return context;
             }
