@@ -107,18 +107,21 @@ namespace v8App
              */
             std::filesystem::path GetSnapshotEntrypoint() { return (m_SnapEntryPoint.empty()) ? m_EntryPoint : m_SnapEntryPoint; }
 
-            bool RunModule(std::filesystem::path inModulePath);
+            V8LValue RunModule(std::filesystem::path inModulePath);
             V8LValue RunScript(std::string inScript);
 
             /**
              * Returns whether the context has been initialized
              */
             bool IsInitialized() { return m_Initialized; }
+
+            void SerializeContextData(Serialization::WriteBuffer& inBuffer);
+            void DeserializeContextData(V8LContext inContext, Serialization::ReadBuffer& inBuffer);
         protected:
             /**
              * Runs the entry point script for the snapshot
              */
-            bool RunEntryPoint(bool inSnapshottting);
+            V8LValue RunEntryPoint(bool inSnapshottting);
 
             /**
              * Clones the context for snapshotting using the specified runtime
@@ -155,6 +158,12 @@ namespace v8App
              * Create the v8 context from the given snapshot index.
              */
             bool CreateContext();
+
+            /**
+             * creates and attaches the weak ptr yo the context
+             */
+            void AttachWeakPtr(V8LContext inContext);
+
             /**
              * Disposes the resources for the js context
              */
@@ -163,7 +172,7 @@ namespace v8App
             void MoveContext(JSContext &&inContext);
 
             /**
-             * Teh runtime this context is associated with
+             * The runtime this context is associated with
              */
             JSRuntimeSharedPtr m_Runtime;
             /**

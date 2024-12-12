@@ -23,7 +23,7 @@ namespace v8App
     {
         using V8SnapshotCreaterProviderTest = V8Fixture;
 
-        class TestSnapObject : public ISnapshotObject
+        class V8TestSnapObject : public ISnapshotObject
         {
             virtual bool MakeSnapshot(Serialization::WriteBuffer &inBuffer, void *inData = nullptr) {}
             virtual bool RestoreSnapshot(Serialization::ReadBuffer &inBufffer, void *inData = nullptr) {}
@@ -53,7 +53,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
 
             // snap object isn't a runtime or app
-            TestSnapObject testSnapObject;
+            V8TestSnapObject testSnapObject;
             EXPECT_FALSE(creator.CreateSnapshot(testSnapObject, snapshotFile));
             expected = {
                 {Log::MsgKey::Msg, "CreateSnapshot epxects to be passed a JSRuntime or JSApp object"},

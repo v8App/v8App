@@ -67,7 +67,7 @@ namespace v8App
             EXPECT_EQ(2056, indexes2.GetMaxSupportedIndexes());
             EXPECT_EQ(2, indexes2.GetNumberOfIndexes());
 
-            // test streaning form teh buffer
+            // test streaning form the buffer
             Serialization::WriteBuffer wBuffer2;
             wBuffer2 << indexes;
 

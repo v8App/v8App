@@ -49,16 +49,15 @@ namespace v8App
                 /**
                  * Creates the jsObject and sets up it's internal fields
                  */
-                V8LObject CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo);
+                V8LObject CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo, V8LObject inObject, bool deserializing);
+                /**
+                 * Hides the trace method and allows us to keep the object private
+                 */
+                void TraceBase(cppgc::Visitor *visitor) const {}// visitor->Trace(m_Object); }
 
             private:
-                /**
-                 * First callback for when the object is being GC'ed resetting the global v8 object held and marking the class as destorying
-                 */
-                static void FirstWeakCallback(const v8::WeakCallbackInfo<V8CppObjectBase> &inInfo);
-
                 bool m_Dead = false;
-                V8GObject m_Object;
+                v8::TracedReference<V8Object> m_Object;
 
                 V8CppObjectBase(const V8CppObjectBase &) = delete;
                 V8CppObjectBase &operator=(const V8CppObjectBase &) = delete;

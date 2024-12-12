@@ -68,7 +68,7 @@ namespace v8App
 
             static int TestGlobalRegisterValue = 0;
 
-            void TestNamespaceFunctionRegistration(JSContextSharedPtr inContext, V8LObject &inGlobal)
+            void TestNamespaceFunctionRegistration(JSRuntimeSharedPtr inRuntime)
             {
                 TestGlobalRegisterValue = 5;
             }
@@ -105,14 +105,14 @@ namespace v8App
                 EXPECT_EQ(0, TestGlobalRegisterValue);
                 V8LObject global;
 
-                CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr(), global, "test");
+                CallbackRegistry::RunNamespaceSetupFunctions(JSRuntimeSharedPtr(), "test");
                 EXPECT_EQ(5, TestGlobalRegisterValue);
 
                 TestGlobalRegisterValue = 0;
-                CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr(), global);
+                CallbackRegistry::RunNamespaceSetupFunctions(JSRuntimeSharedPtr());
                 EXPECT_EQ(0, TestGlobalRegisterValue);
 
-                CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr(), global, "test2");
+                CallbackRegistry::RunNamespaceSetupFunctions(JSRuntimeSharedPtr(), "test2");
                 EXPECT_EQ(5, TestGlobalRegisterValue);
             }
 

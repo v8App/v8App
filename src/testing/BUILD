@@ -50,6 +50,33 @@ v8App_binary(
     ],
 )
 
+v8App_binary(
+    name = "cppgc-obj-sample",
+    srcs = [
+        "cppgc-obj-sample.cc",
+    ],
+    copts = [
+        "-Ithird_party/v8/include",
+    ],
+    data = [
+        "//src/testing:build-test-env-file",
+        "//third_party/v8:icu_dat",
+        "//third_party/v8:snapshot_blob",
+    ],
+    env = {
+        "V8_ICU_DATA": "$(rlocationpath //third_party/v8:icu_dat)",
+        "V8_SNAPSHOT_BIN": "$(rlocationpath //third_party/v8:snapshot_blob)",
+    },
+    linkopts = [
+        "-lz",
+        "-lstdc++",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//third_party/v8",
+    ],
+)
+
 #Used with VSCode to export the locations to an env file that we
 #can then import with launch config
 genrule(

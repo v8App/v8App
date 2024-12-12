@@ -12,50 +12,39 @@ namespace v8App
     {
         namespace CppBridge
         {
-            void V8CppObjectBase::FirstWeakCallback(const v8::WeakCallbackInfo<V8CppObjectBase> &inInfo)
+            V8LObject V8CppObjectBase::CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo, V8LObject inObject, bool deserializing)
             {
-                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(inInfo.GetIsolate());
-                V8CppObjectBase *baseObject = inInfo.GetParameter();
-                baseObject->m_Dead = true;
-                baseObject->m_Object.Reset();
-                if(runtime != nullptr)
-                {
-                    runtime->UnregisterSnapshotHandlerCloser(baseObject);
-                }
-            }
-
-            V8LObject V8CppObjectBase::CreateAndSetupJSObject(V8LContext inContext, V8CppObjInfo *inInfo)
-            {
-                JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
-                if (jsContext == nullptr)
+                V8Isolate *isolate = inContext->GetIsolate();
+                if (isolate == nullptr)
                 {
                     return V8LObject();
                 }
-                JSRuntimeSharedPtr runtime = jsContext->GetJSRuntime();
-                if(runtime == nullptr)
+                JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
+                if (runtime == nullptr)
                 {
                     return V8LObject();
                 }
 
-                //TODO: Look at removing this as we may be able to use the object passed in FunctionCallbackInfo.This()
-                V8LObjTpl objTpl = runtime->GetObjectTemplate(inInfo);
-                if (objTpl.IsEmpty())
+                // TODO: Look at removing this as we may be able to use the object passed in FunctionCallbackInfo.This()
+                if (deserializing == false)
                 {
-                    return V8LObject();
-                }
-                V8LObject jsObject;
-                if (objTpl->NewInstance(inContext).ToLocal(&jsObject) == false)
-                {
-                    return V8LObject();
+                    V8LFuncTpl objTpl = runtime->GetClassFunctionTemplate(inInfo);
+                    if (objTpl.IsEmpty())
+                    {
+                        return V8LObject();
+                    }
+                    if (objTpl->PrototypeTemplate()->NewInstance(inContext).ToLocal(&inObject) == false)
+                    {
+                        return V8LObject();
+                    }
                 }
                 int indexes[] = {(int)V8CppObjDataIntField::CppHeapID, (int)V8CppObjDataIntField::ObjInfo, (int)V8CppObjDataIntField::ObjInstance};
                 void *values[] = {runtime->GetCppHeapID(), inInfo, this};
-
-                jsObject->SetAlignedPointerInInternalFields((int)V8CppObjDataIntField::MaxInternalFields, indexes, values);
-                m_Object.Reset(runtime->GetIsolate(), jsObject);
+                inObject->SetAlignedPointerInInternalFields((int)V8CppObjDataIntField::MaxInternalFields, indexes, values);
+                m_Object.Reset(runtime->GetIsolate(), inObject);
                 runtime->RegisterSnapshotHandleCloser(this);
 
-                return jsObject;
+                return inObject;
             }
         }
     }

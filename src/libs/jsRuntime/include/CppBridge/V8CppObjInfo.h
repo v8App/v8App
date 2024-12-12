@@ -25,16 +25,21 @@ namespace v8App
              * Serialize/Deserialize function pointers for snapshots
              */
             using DeserializeCppObject = V8CppObjectBase *(*)(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer);
-            using SerializeCppObject = void (*)(Serialization::WriteBuffer &inBuffer, V8CppObjectBase *inCppObject);
+            using SerializeCppObject = void (*)(Serialization::WriteBuffer &inBuffer, void *inCppObject);
 
             /**
              * Provides a static type name for the NativeObject to be used to look up
-             * Serializers and object templates
+             * Serializers and object templates, nd the JS name for the class.
+             * By Default's the typename passed in which wuould usually be the Cpp class name.
+             * 
+             * If you wish to change it set it in the class registration function before
+             * setting up the object template, when registered on the context's global thats
+             * the name that will be used.
              */
             struct V8CppObjInfo
             {
                 V8CppObjInfo(std::string inTypeName, SerializeCppObject inSerializer, DeserializeCppObject inDeserializer)
-                    : m_TypeName(inTypeName), m_Serializer(inSerializer), m_Deserializer(inDeserializer) {}
+                    : m_TypeName(inTypeName), m_JsClassName(inTypeName), m_Serializer(inSerializer), m_Deserializer(inDeserializer) {}
                 /**
                  * Gets the Object info form the Object
                  */
@@ -53,6 +58,12 @@ namespace v8App
                  * The type name of the native obj usually the class name
                  */
                 std::string m_TypeName;
+
+                /**
+                 * The name to register the constructor in JS
+                 */
+                std::string m_JsClassName;
+
                 /**
                  * Serializer to serilize the object during snapshot
                  */

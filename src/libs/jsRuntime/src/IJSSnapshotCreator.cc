@@ -23,7 +23,7 @@ namespace v8App
             IJSSnapshotCreator *provider = static_cast<IJSSnapshotCreator *>(inData);
             if (provider != nullptr)
             {
-                provider->SerializeInternalField(inHolder, inIndex);
+                return provider->SerializeInternalField(inHolder, inIndex);
             }
             return {nullptr, 0};
         }
@@ -33,7 +33,7 @@ namespace v8App
             IJSSnapshotCreator *provider = static_cast<IJSSnapshotCreator *>(inData);
             if (provider != nullptr)
             {
-                provider->SerializeContextInternalField(inHolder, inIndex);
+                return provider->SerializeContextInternalField(inHolder, inIndex);
             }
             return {nullptr, 0};
         }

@@ -35,6 +35,16 @@ namespace v8App
              * Always default 0 since there is only ever one runtime snapshot
              */
             virtual size_t GetIndexForRuntimeName(std::string inRuntimeName) override { return 0; };
+            /**
+             * The Stadnard V8 Sanpshot just has the default context
+             */
+            virtual size_t GetIndexForContextName(std::string inName, std::string inRuntimeName) override { return 0; };
+            virtual size_t GetIndexForContextName(std::string inName, size_t inRuntimeIndex) override { return 0; };
+            /**
+             * V8 Snapshot provider has no otehr contexts than the defualt V8 one which is 
+             * always 0
+             */
+            virtual size_t RealContextIndex(size_t inNamedIndex) override { return 0; };
 
             /**
              * Gets the v8 startup data that the isolate needs
@@ -52,7 +62,7 @@ namespace v8App
              * Deserializers for the snapshot
              */
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override {};
-            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload) override {};
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext* inJSContext) override {};
 
         protected:
             /**

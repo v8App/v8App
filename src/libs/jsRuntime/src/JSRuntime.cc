@@ -21,6 +21,7 @@
 #include "IJSSnapshotCreator.h"
 #include "IJSSnapshotProvider.h"
 #include "JSRuntimeSnapData.h"
+#include "JSUtilities.h"
 
 namespace v8App
 {
@@ -134,35 +135,116 @@ namespace v8App
             }
         }
 
-        void JSRuntime::SetObjectTemplate(void *inInfo, v8::Local<v8::ObjectTemplate> inTemplate)
+        void JSRuntime::SetFunctionTemplate(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate)
         {
             CHECK_NOT_NULL(m_Isolate.get());
-            m_ObjectTemplates[inInfo] = v8::Global<v8::ObjectTemplate>(m_Isolate.get(), inTemplate);
+            FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inJSFuncName);
+            if (it == m_FunctionTemplates.end())
+            {
+                m_FunctionTemplates[inJSFuncName] = v8::Global<V8FuncTpl>(m_Isolate.get(), inTemplate);
+            }
+            else
+            {
+                if (it->second != inTemplate)
+                {
+                    LOG_WARN(Utils::format("{} has lready been registerd with a different function template", inJSFuncName));
+                }
+            }
         }
 
-        v8::Local<v8::ObjectTemplate> JSRuntime::GetObjectTemplate(void *inInfo)
+        void JSRuntime::SetClassFunctionTemplate(std::string inNamespace, CppBridge::V8CppObjInfo *inInfo, v8::Local<V8FuncTpl> inTemplate)
+        {
+            CHECK_NOT_NULL(m_Isolate.get());
+
+            //if they pass an empty string make it global
+            if(inNamespace == "")
+            {
+                inNamespace = "global";
+            }
+            ObjectTemplateMap::iterator it = m_ObjectTemplates.find(inInfo);
+            if (it == m_ObjectTemplates.end())
+            {
+                m_ObjectTemplates[inInfo] = v8::Global<V8FuncTpl>(m_Isolate.get(), inTemplate);
+            }
+            NamespaceObjectInfoMap::iterator nit = m_NamespaceObjInfo.find(inNamespace);
+            if (nit == m_NamespaceObjInfo.end())
+            {
+                m_NamespaceObjInfo[inNamespace].push_back(inInfo);
+            }
+            else
+            {
+                auto vit = std::find(nit->second.begin(), nit->second.end(), inInfo);
+                if (vit == nit->second.end())
+                {
+                    m_NamespaceObjInfo[inNamespace].push_back(inInfo);
+                }
+            }
+        }
+
+        v8::Local<V8FuncTpl> JSRuntime::GetClassFunctionTemplate(CppBridge::V8CppObjInfo *inInfo)
         {
             CHECK_NOT_NULL(m_Isolate.get());
             ObjectTemplateMap::iterator it = m_ObjectTemplates.find(inInfo);
             if (it == m_ObjectTemplates.end())
             {
-                return v8::Local<v8::ObjectTemplate>();
+                return v8::Local<V8FuncTpl>();
             }
             return it->second.Get(m_Isolate.get());
+        }
+
+        void JSRuntime::RegisterNamespaceFunctionsOnGlobal(std::string inNamespace, V8LContext inContext, V8LObject inGlobal)
+        {
+            // Register all teh normal functions on the global
+            for (auto const &it : m_FunctionTemplates)
+            {
+                V8LFuncTpl tpl =it.second.Get(m_Isolate.get());
+                inGlobal->Set(inContext,
+                              JSUtilities::StringToV8(m_Isolate.get(), it.first),
+                              tpl->GetFunction(inContext).ToLocalChecked());
+            }
+            if(inNamespace == "")
+            {
+                inNamespace = "global";
+            }
+            
+            std::vector<std::string> namespaces { "global" };
+            if (inNamespace != "global")
+            {
+                namespaces.push_back(inNamespace);
+            }
+
+            for (std::string name : namespaces)
+            {
+                // now register all the cpp functions on the global
+                NamespaceObjectInfoMap::iterator nit = m_NamespaceObjInfo.find(name);
+                if (nit == m_NamespaceObjInfo.end())
+                {
+                    // don't complain about the global namespace
+                    if(name == "global")
+                    {
+                        continue;
+                    }
+                    LOG_ERROR(Utils::format("Tried to register function templates on non existant namespace: {}", inNamespace));
+                    return;
+                }
+                for (auto info : m_NamespaceObjInfo[inNamespace])
+                {
+                    V8LFuncTpl tpl = m_ObjectTemplates[info].Get(m_Isolate.get());
+                    inGlobal->Set(inContext,
+                                  JSUtilities::StringToV8(m_Isolate.get(), info->m_JsClassName),
+                                  tpl->GetFunction(inContext).ToLocalChecked());
+                }
+            }
         }
 
         JSContextSharedPtr JSRuntime::CreateContext(std::string inName, std::filesystem::path inEntryPoint, std::string inNamespace,
                                                     std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
         {
-            if (GetContextProvider() == nullptr)
+            if (GetContextProvider() == nullptr || m_App->GetSnapshotProvider() == nullptr)
             {
                 return nullptr;
             }
-            size_t contextIndex = m_ContextNamespaces.GetIndexForName(ResolveContextName(inName, inNamespace, inSnapMethod));
-            if (contextIndex == m_ContextNamespaces.GetMaxSupportedIndexes())
-            {
-                contextIndex = 0;
-            }
+            size_t contextIndex = m_App->GetSnapshotProvider()->GetIndexForContextName(inName, m_SnapshotIndex);
             JSContextSharedPtr context = GetContextProvider()->CreateContext(shared_from_this(), inName,
                                                                              inNamespace, inEntryPoint, inSnapEntryPoint,
                                                                              inSupportsSnapshot, inSnapMethod, contextIndex);
@@ -241,6 +323,11 @@ namespace v8App
                 {
                     it.second.Reset();
                 }
+                for (auto &it : m_FunctionTemplates)
+                {
+                    it.second.Reset();
+                }
+                m_NamespaceObjInfo.clear();
                 m_Contextes.clear();
                 JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr)));
                 delete weakPtr;
@@ -275,6 +362,7 @@ namespace v8App
             inBuffer << m_IdleEnabled;
 
             Containers::NamedIndexes contextIndexes;
+            IJSSnapshotCreatorSharedPtr snapCreator = m_App->GetSnapshotCreator();
 
             {
                 V8IsolateScope iScope(m_Isolate.get());
@@ -283,10 +371,11 @@ namespace v8App
                     V8LContext defaultContext = V8Context::New(m_Isolate.get());
 
                     // we always add a v8 context to the snapshot so nothing is ever assigned
-                    m_Creator->SetDefaultContext(defaultContext);
+                    m_Creator->SetDefaultContext(defaultContext, snapCreator->GetInternalSerializerCallaback(),
+                                                 snapCreator->GetContextSerializerCallback());
                 }
 
-                if (contextIndexes.AddNamedIndex(JSApp::kDefaultV8RutimeIndex, JSApp::kDefaulV8tRuntimeName) == false)
+                if (contextIndexes.AddNamedIndex(JSRuntime::kDefaultV8ContextIndex, JSRuntime::kDefaultV8ContextName) == false)
                 {
                     return false;
                 }
@@ -301,7 +390,9 @@ namespace v8App
                     V8LContext v8Context = context->GetLocalContext();
                     // we add one since for us index 0 is the default context and the above added default context is
                     //  not factored into the indexes for v8 that AddContext returns
-                    size_t index = m_Creator->AddContext(v8Context) + 1;
+                    size_t index = m_Creator->AddContext(v8Context, snapCreator->GetInternalSerializerCallaback(),
+                                                         snapCreator->GetContextSerializerCallback()) +
+                                   1;
                     if (contextIndexes.AddNamedIndex(index, name) == false)
                     {
                         LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));
@@ -392,6 +483,15 @@ namespace v8App
                 }
             }
 
+            if (m_FunctionTemplates.empty() == false)
+            {
+
+                for (auto it = m_FunctionTemplates.begin(); it != m_FunctionTemplates.end(); it++)
+                {
+                    it->second.Reset();
+                }
+            }
+
             m_ObjectTemplates.clear();
             for (auto callback : m_HandleClosers)
             {
@@ -473,7 +573,7 @@ namespace v8App
             params.snapshot_blob = m_App->GetSnapshotProvider()->GetSnapshotData(m_SnapshotIndex);
             if (params.snapshot_blob == nullptr)
             {
-                LOG_ERROR(Utils::format("Failed to get teh snapshot data for index {} form the snapshot provider", m_SnapshotIndex));
+                LOG_ERROR(Utils::format("Failed to get the snapshot data for index {} form the snapshot provider", m_SnapshotIndex));
                 return false;
             }
             params.external_references = m_App->GetSnapshotProvider()->GetExternalReferences();
@@ -516,6 +616,15 @@ namespace v8App
             {
                 return nullptr;
             }
+
+            // clone all of the registered namspaces
+            for (auto it : m_NamespaceObjInfo)
+            {
+                V8Isolate::Scope iScope(runtime->GetIsolate());
+                V8HandleScope hScope(runtime->GetIsolate());
+                CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(runtime, it.first);
+            }
+
             for (auto it : m_Contextes)
             {
                 if (it.second->SupportsSnapshots() == false)
@@ -534,21 +643,6 @@ namespace v8App
                 }
             }
             return runtime;
-        }
-
-        bool JSRuntime::AddContextesToSnapshot()
-        {
-            if (m_Creator == nullptr)
-            {
-                return false;
-            }
-            IJSSnapshotCreatorSharedPtr snapCreator = m_App->GetSnapshotCreator();
-            for (auto it : m_Contextes)
-            {
-                size_t index = m_Creator->AddContext(it.second->GetLocalContext(), snapCreator->GetInternalSerializerCallaback(),
-                                                     snapCreator->GetContextSerializerCallback());
-                m_ContextNamespaces.AddNamedIndex(index, it.second->GetNamespace());
-            }
         }
 
         V8TaskRunnerSharedPtr JSRuntimeIsolateHelper::GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority)

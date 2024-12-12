@@ -62,7 +62,7 @@ namespace v8App
                     }
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
                     V8LContext context = isolate->GetCurrentContext();
-                    V8CppObjHandle<TestUnnamed> instance = TestUnnamed::NewObj(runtime, context);
+                    V8CppObjHandle<TestUnnamed> instance = TestUnnamed::NewObj(runtime, context, inInfo.This(), false);
                     constructerCreatedObjectUnnamed = instance.Get();
                     inInfo.GetReturnValue().Set(ConvertToV8(isolate, instance));
                 }
@@ -88,16 +88,15 @@ namespace v8App
 
             IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(TestUnnamed)
             {
-
-                V8ObjectTemplateBuilder builder(inContext->GetIsolate(), inGlobal, "TestUnamed");
-                V8LObjTpl tpl =
-                    builder.SetConstuctor("testUnamed", &TestUnnamed::Constructor, inContext->GetLocalContext())
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), "TestUnnamed");
+                V8LFuncTpl tpl =
+                    builder.SetConstuctor("TestUnnamed", &TestUnnamed::Constructor)
                         .SetProperty("value", &TestUnnamed::GetValue, &TestUnnamed::SetValue)
                         .SetMethod("testMember", &TestUnnamed::TestMethod)
                         .SetMethod("testStaticMember", &TestUnnamed::TestStatic)
                         .SetMethod("testNonMember", &TestNonMember)
                         .Build();
-                inContext->GetJSRuntime()->SetObjectTemplate(&TestUnnamed::s_V8CppObjInfo, tpl);
+                inRuntime->SetClassFunctionTemplate("global", &TestUnnamed::s_V8CppObjInfo, tpl);
             }
 
             REGISTER_CLASS_FUNCS_GLOBAL(TestUnnamed);
@@ -120,7 +119,7 @@ namespace v8App
 
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
                     V8LContext context = isolate->GetCurrentContext();
-                    V8CppObjHandle<TestNamed> instance = TestNamed::NewObj(runtime, context);
+                    V8CppObjHandle<TestNamed> instance = TestNamed::NewObj(runtime, context, inInfo.This(), false);
                     constructerCreatedObjectNamed = instance.Get();
                     inInfo.GetReturnValue().Set(ConvertToV8(isolate, instance));
                 }
@@ -140,13 +139,13 @@ namespace v8App
 
             IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(TestNamed)
             {
-                V8ObjectTemplateBuilder builder(inContext->GetIsolate(), inGlobal, "TestNamed");
-                V8LObjTpl tpl =
-                    builder.SetConstuctor("testNamed", &TestNamed::Constructor, inContext->GetLocalContext())
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), "TestNamed");
+                V8LFuncTpl tpl =
+                    builder.SetConstuctor("TestNamed", &TestNamed::Constructor)
                         .SetMethod("testMember", &TestNamed::TestMethod)
                         .SetMethod("testNonMember", &TestNonMember)
                         .Build();
-                inContext->GetJSRuntime()->SetObjectTemplate(&TestNamed::s_V8CppObjInfo, tpl);
+                inRuntime->SetClassFunctionTemplate("global", &TestNamed::s_V8CppObjInfo, tpl);
             }
 
             REGISTER_CLASS_FUNCS_GLOBAL(TestNamed);
@@ -167,7 +166,7 @@ namespace v8App
 
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
                     V8LContext context = isolate->GetCurrentContext();
-                    V8CppObjHandle<TestMismatch> instance = TestMismatch::NewObj(runtime, context);
+                    V8CppObjHandle<TestMismatch> instance = TestMismatch::NewObj(runtime, context, inInfo.This(), false);
                     inInfo.GetReturnValue().Set(ConvertToV8(isolate, instance));
                 }
             };
@@ -177,11 +176,11 @@ namespace v8App
 
             IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(TestMismatch)
             {
-                V8ObjectTemplateBuilder builder(inContext->GetIsolate(), inGlobal, "TestMismatch");
-                V8LObjTpl tpl =
-                    builder.SetConstuctor(&TestMismatch::Constructor, inContext->GetLocalContext())
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), "TestMismatch");
+                V8LFuncTpl tpl =
+                    builder.SetConstuctor(&TestMismatch::Constructor)
                         .Build();
-                inContext->GetJSRuntime()->SetObjectTemplate(&TestMismatch::s_V8CppObjInfo, tpl);
+                inRuntime->SetClassFunctionTemplate("global", &TestMismatch::s_V8CppObjInfo, tpl);
             }
 
             IMPL_V8CPPOBJ_REGISTER_CLASS_FUNCS(TestMismatch)
@@ -196,8 +195,9 @@ namespace v8App
                 V8IsolateScope iScope(m_Isolate);
                 V8HandleScope scope(m_Isolate);
                 V8ContextScope cScope(m_Context->GetLocalContext());
+                V8LObject testObject = V8Object::New(m_Isolate);
 
-                V8CppObjHandle<TestUnnamed> object = TestUnnamed::NewObj(m_Runtime, m_Context->GetLocalContext());
+                V8CppObjHandle<TestUnnamed> object = TestUnnamed::NewObj(m_Runtime, m_Context->GetLocalContext(), testObject, false);
 
                 // test conerting to v8
                 V8LValue wrapper = ConvertToV8(m_Isolate, object);
@@ -221,7 +221,8 @@ namespace v8App
                 EXPECT_EQ(nullptr, unwrapped);
 
                 // test wrong native object class
-                V8CppObjHandle<TestMismatch> instance = TestMismatch::NewObj(m_Runtime, m_Context->GetLocalContext());
+                testObject = v8::Object::New(m_Isolate);
+                V8CppObjHandle<TestMismatch> instance = TestMismatch::NewObj(m_Runtime, m_Context->GetLocalContext(), testObject, false);
                 V8LValue wrongType = ConvertToV8(m_Isolate, instance);
                 EXPECT_FALSE(wrapper.IsEmpty());
                 EXPECT_FALSE(ConvertFromV8(m_Isolate, wrongType, &unwrapped));
@@ -234,8 +235,9 @@ namespace v8App
                 V8HandleScope scope(m_Isolate);
                 V8ContextScope cScope(m_Context->GetLocalContext());
                 V8TryCatch tryCatch(m_Isolate);
+                V8LObject testObject = V8Object::New(m_Isolate);
 
-                V8CppObjHandle<TestUnnamed> object = TestUnnamed::NewObj(m_Runtime, m_Context->GetLocalContext());
+                V8CppObjHandle<TestUnnamed> object = TestUnnamed::NewObj(m_Runtime, m_Context->GetLocalContext(), testObject, false);
                 object->SetValue(100);
                 EXPECT_EQ(100, object->GetValue());
 
@@ -305,8 +307,9 @@ namespace v8App
                 JSContextSharedPtr jsContext = m_App->GetMainRuntime()->CreateContext("InvocationErrorOnUnnamedObjectMethods", "");
                 V8LContext context = jsContext->GetLocalContext();
                 V8ContextScope cScope(context);
+                V8LObject testObject = V8Object::New(m_Isolate);
 
-                V8CppObjHandle<TestUnnamed> object = TestUnnamed::NewObj(m_Runtime, context);
+                V8CppObjHandle<TestUnnamed> object = TestUnnamed::NewObj(m_Runtime, context, testObject, false);
 
                 V8LObject v8Object = object.ToV8().As<v8::Object>();
                 V8LValue memberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testMember")).ToLocalChecked();
@@ -345,8 +348,9 @@ namespace v8App
                 JSContextSharedPtr jsContext = m_App->GetMainRuntime()->CreateContext("InvocationErrorsOnNamedObjectMethods", "");
                 V8LContext context = jsContext->GetLocalContext();
                 V8ContextScope cScope(context);
+                V8LObject testObject = V8Object::New(m_Isolate);
 
-                V8CppObjHandle<TestNamed> object = TestNamed::NewObj(m_Runtime, m_Context->GetLocalContext());
+                V8CppObjHandle<TestNamed> object = TestNamed::NewObj(m_Runtime, m_Context->GetLocalContext(), testObject, false);
 
                 V8LObject v8Object = object.ToV8().As<v8::Object>();
                 V8LValue memberMethod = v8Object->Get(context, JSUtilities::StringToV8(m_Isolate, "testMember")).ToLocalChecked();
@@ -380,7 +384,7 @@ namespace v8App
                 V8ContextScope cScope(context);
 
                 const char source[] = R"script(
-                        let obj = new testUnamed();
+                        let obj = new TestUnnamed();
                 )script";
                 V8LString v8Source = JSUtilities::StringToV8(m_Isolate, source);
                 EXPECT_FALSE(v8Source.IsEmpty());
@@ -427,7 +431,7 @@ namespace v8App
                 V8ContextScope cScopt(context);
 
                 const char source[] = R"script(
-                        let obj = new testNamed();
+                        let obj = new TestNamed();
                 )script";
                 V8LString v8Source = JSUtilities::StringToV8(m_Isolate, source);
                 EXPECT_FALSE(v8Source.IsEmpty());

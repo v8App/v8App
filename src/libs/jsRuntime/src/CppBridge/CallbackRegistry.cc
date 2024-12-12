@@ -37,7 +37,7 @@ namespace v8App
                 return instance->m_Registry;
             }
 
-            void CallbackRegistry::AddNamespaceSetupFunction(GlobalTemplateRegisterFunction inRegister, std::vector<std::string> inNamespaces)
+            void CallbackRegistry::AddNamespaceSetupFunction(ObjTemplateRegisterFunction inRegister, std::vector<std::string> inNamespaces)
             {
                 if (inNamespaces.size() == 0)
                 {
@@ -51,11 +51,11 @@ namespace v8App
                 }
             }
 
-            void CallbackRegistry::RunNamespaceSetupFunctions(JSContextSharedPtr inContext, V8LObject &inGlobal, std::string inNamespace)
+            void CallbackRegistry::RunNamespaceSetupFunctions(JSRuntimeSharedPtr inRuntime, std::string inNamespace)
             {
                 CallbackRegistry *instance = GetInstance();
                 std::vector<std::string> namespaces{CallbackRegistry::GlobalNamespace};
-                if(inNamespace != "")
+                if(inNamespace != "global" && inNamespace != "")
                 {
                     namespaces.push_back(inNamespace);
                 }
@@ -67,7 +67,7 @@ namespace v8App
                     }
                     for (auto func : instance->m_RegisterFunctions[name])
                     {
-                        func(inContext, inGlobal);
+                        func(inRuntime);
                     }
                 }
             }

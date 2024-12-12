@@ -89,6 +89,8 @@ namespace v8App
             V8Isolate *isolate = GetIsolate();
             if (isolate != nullptr)
             {
+                V8Isolate::Scope iScope(isolate);
+                V8HandleScope hScope(isolate);
                 if (m_Context.IsEmpty() == false)
                 {
                     V8LContext context = m_Context.Get(isolate);
@@ -213,20 +215,22 @@ namespace v8App
                 uuids::uuid uuid = uuids::uuid_system_generator{}();
                 V8LString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
                 context->SetSecurityToken(v8Uuid);
+                m_Runtime->RegisterNamespaceFunctionsOnGlobal(m_Namespace, context, context->Global());
+
+                AttachWeakPtr(context);
             }
             else
             {
                 // Coming from a snapshot we don't have to create the global template
-                // We reduce the index since we increased it by 1 since we use 0 for the
-                // the default context
                 context = V8Context::FromSnapshot(isolate,
-                                                  m_SnapIndex,
+                                                  provider->RealContextIndex(m_SnapIndex),
                                                   provider->GetInternalDeserializerCallback(),
                                                   nullptr,
                                                   V8MBLValue(),
                                                   nullptr,
-                                                  provider->GetContextDeserializerCallaback())
+                                                  provider->GetContextDeserializerCallaback(this))
                               .ToLocalChecked();
+                // The weak ptr gets attached during deserialization
             }
 
             if (tryCatch.HasCaught())
@@ -235,8 +239,6 @@ namespace v8App
                 return false;
             }
 
-            JSContextWeakPtr *weakPtr = new JSContextWeakPtr(weak_from_this());
-            context->SetAlignedPointerInEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr), weakPtr);
             m_Modules = std::make_shared<JSContextModules>(shared_from_this());
 
             m_Context.Reset(isolate, context);
@@ -250,27 +252,31 @@ namespace v8App
             return true;
         }
 
-        bool JSContext::RunModule(std::filesystem::path inModulePath)
+        void JSContext::AttachWeakPtr(V8LContext inContext)
         {
+            JSContextWeakPtr *weakPtr = new JSContextWeakPtr(weak_from_this());
+            inContext->SetAlignedPointerInEmbedderData(int(JSContext::DataSlot::kJSContextWeakPtr), weakPtr);
+        }
+
+        V8LValue JSContext::RunModule(std::filesystem::path inModulePath)
+        {
+            V8Isolate *isolate = m_Runtime->GetIsolate();
             JSModuleInfoSharedPtr module = m_Modules->LoadModule(inModulePath);
             if (module == nullptr)
             {
-                return false;
+                JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, Utils::format("Failed to load the module: {}", inModulePath));
+                return V8LValue();
             }
             if (m_Modules->InstantiateModule(module) == false)
             {
-                return false;
+                JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, Utils::format("Failed to instantiate the module: {}", inModulePath));
+                return V8LValue();
             }
-            if (m_Modules->RunModule(module) == false)
-            {
-                return false;
-            }
-            return true;
+            return m_Modules->RunModule(module);
         }
 
         V8LValue JSContext::RunScript(std::string inScript)
         {
-
             V8Isolate *isolate = m_Runtime->GetIsolate();
 
             V8IsolateScope iScope(isolate);
@@ -286,15 +292,15 @@ namespace v8App
                 Log::LogMessage msg;
                 msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
                 LOG_ERROR(msg);
+                tryCatch.ReThrow();
                 return V8LValue();
             }
 
             V8MLScript maybeScript = v8::Script::Compile(v8Context, source);
             if (tryCatch.HasCaught())
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);
+                LOG_ERROR(JSUtilities::GetStackTrace(v8Context, tryCatch));
+                tryCatch.ReThrow();
                 return V8LValue();
             }
 
@@ -302,24 +308,35 @@ namespace v8App
             script = maybeScript.FromMaybe(V8LScript());
             if (script.IsEmpty())
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);
+                LOG_ERROR(JSUtilities::GetStackTrace(v8Context, tryCatch));
+                tryCatch.ReThrow();
                 return V8LValue();
             }
 
             V8LValue result;
             if (script->Run(v8Context).ToLocal(&result) == false)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
-                LOG_ERROR(msg);
+                LOG_ERROR(JSUtilities::GetStackTrace(v8Context, tryCatch));
+                tryCatch.ReThrow();
                 return V8LValue();
             }
             return eScope.Escape(result);
         }
 
-        bool JSContext::RunEntryPoint(bool inSnapshotting)
+        void JSContext::SerializeContextData(Serialization::WriteBuffer &inBuffer)
+        {
+            inBuffer << m_Name;
+            inBuffer << m_Namespace;
+        }
+
+        void JSContext::DeserializeContextData(V8LContext inContext, Serialization::ReadBuffer &inBuffer)
+        {
+            AttachWeakPtr(inContext);
+            inBuffer >> m_Name;
+            inBuffer >> m_Namespace;
+        }
+
+        V8LValue JSContext::RunEntryPoint(bool inSnapshotting)
         {
             std::filesystem::path entryPoint;
             if (inSnapshotting)
@@ -334,7 +351,7 @@ namespace v8App
             // if no entry point then return
             if (entryPoint == "")
             {
-                return true;
+                return V8LValue();
             }
 
             return RunModule(entryPoint);
@@ -361,16 +378,13 @@ namespace v8App
             V8LContext v8Context = context->GetLocalContext();
             V8ContextScope cScope(v8Context);
 
-            V8LObject globalObj = v8Context->Global();
-            CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(context, globalObj, m_Namespace);
-
             // if we only are doing the namespace then skip the script execution
             if (m_SnapMethod == SnapshotMethod::kNamespaceOnly)
             {
                 return context;
             }
 
-            if (context->RunEntryPoint(true) == false)
+            if (context->RunEntryPoint(true).IsEmpty())
             {
                 return nullptr;
             }

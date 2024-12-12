@@ -640,7 +640,7 @@ namespace v8App
 
             // passed nullptr
             JSModuleInfoSharedPtr info;
-            EXPECT_FALSE(jsModules->RunModule(info));
+            EXPECT_TRUE(jsModules->RunModule(info).IsEmpty());
             Log::LogMessage expected = {
                 {Log::MsgKey::Msg, "RunModule passed a null module ptr"},
                 {Log::MsgKey::LogLevel, "Error"}};
@@ -648,7 +648,7 @@ namespace v8App
 
             // info hasn't had module loaded
             info = std::make_shared<JSModuleInfo>(m_Context);
-            EXPECT_FALSE(jsModules->RunModule(info));
+            EXPECT_TRUE(jsModules->RunModule(info).IsEmpty());
             expected = {
                 {Log::MsgKey::Msg, "RunModule passed module info's module is empty"},
                 {Log::MsgKey::LogLevel, "Error"}};
@@ -658,7 +658,7 @@ namespace v8App
             info = jsModules->LoadModule(srcPath);
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
-            EXPECT_TRUE(jsModules->RunModule(info));
+            EXPECT_FALSE(jsModules->RunModule(info).IsEmpty());
         }
 
         TEST_F(JSContextModulesTest, RunModuleJSDynamic)
@@ -678,7 +678,7 @@ namespace v8App
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
-            EXPECT_TRUE(jsModules->RunModule(info));
+            EXPECT_FALSE(jsModules->RunModule(info).IsEmpty());
         }
 
         TEST_F(JSContextModulesTest, RunModuleJSON)
@@ -696,7 +696,7 @@ namespace v8App
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
-            EXPECT_TRUE(jsModules->RunModule(info));
+            EXPECT_FALSE(jsModules->RunModule(info).IsEmpty());
         }
 
         TEST_F(JSContextModulesTest, GenerateCodeCache)

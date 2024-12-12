@@ -18,7 +18,7 @@
 #include "V8AppPlatform.h"
 #include "V8RuntimeProvider.h"
 #include "V8ContextProvider.h"
-
+#include "CppBridge/V8CppObjInfo.h"
 #include "test_main.h"
 
 namespace v8App
@@ -30,7 +30,7 @@ namespace v8App
             bool m_Bool;
         };
 
-        TEST(JSRuntimeDeathTest, SetObjectTemplate)
+        TEST(JSRuntimeDeathTest, SetClassFunctionTemplate)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
@@ -38,13 +38,13 @@ namespace v8App
 
                 JSRuntimeSharedPtr runtimePtr = std::make_shared<JSRuntime>();
 
-                V8LObjTpl objTemplate;
-                struct TemplateInfo info;
-                runtimePtr->SetObjectTemplate(&info, objTemplate);
+                V8LFuncTpl objTemplate;
+                CppBridge::V8CppObjInfo info("test", nullptr, nullptr);
+                runtimePtr->SetClassFunctionTemplate("test", &info, objTemplate);
                 std::exit(0); }, "");
         }
 
-        TEST(JSRuntimeDeathTest, GetObjectTemplate)
+        TEST(JSRuntimeDeathTest, GetClassFunctionTemplate)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
@@ -52,8 +52,8 @@ namespace v8App
 
                 std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>();
 
-                struct TemplateInfo info;
-                runtimePtr->GetObjectTemplate(&info);
+                CppBridge::V8CppObjInfo info("test", nullptr, nullptr);
+                runtimePtr->GetClassFunctionTemplate(&info);
                 std::exit(0); }, "");
         }
 

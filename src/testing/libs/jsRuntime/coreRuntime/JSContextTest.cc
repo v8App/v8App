@@ -190,7 +190,7 @@ namespace v8App
         }
 
         /**
-         * RunModule is tested in the runtime set of tests with JSCOntextModulesTest
+         * RunModule is tested in the runtime set of tests with JSContextModulesTest
          */
 
         TEST_F(JSContextTest, RunScript)

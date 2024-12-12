@@ -38,7 +38,7 @@ namespace v8App
             }
 
             Serialization::WriteBuffer buffer;
-            uint32_t v8AppMagicNumber = 0; //TODO: comeup with a magic number
+            uint32_t v8AppMagicNumber = 0; // TODO: comeup with a magic number
 
             // V8's magic number is at the start we want it to be 0 so we can tell it's ours
             buffer << (uint32_t)0;
@@ -48,7 +48,7 @@ namespace v8App
             buffer << (uint32_t)JSRUNTIME_PATCH_LEVEL;
             buffer << (uint32_t)JSRUNTIME_BUILD_NUM;
 
-            buffer << "PlatformArch"; //TODO: Turn into some macro or function to return a string for the arch and platform
+            buffer << "PlatformArch"; // TODO: Turn into some macro or function to return a string for the arch and platform
 
             buffer << app->GetClassType();
 
@@ -79,7 +79,7 @@ namespace v8App
             Serialization::WriteBuffer wBuffer;
 
             // Index 0 is hte object info but we can't do anythign with it without the actual cpp object
-            if (inIndex < (int)V8CppObjDataIntField::ObjInstance)
+            if (inIndex == (int)V8CppObjDataIntField::ObjInfo)
             {
                 CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
                 if (info == nullptr)
@@ -98,10 +98,12 @@ namespace v8App
             if (inIndex == (int)V8CppObjDataIntField::ObjInstance)
             {
                 CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
-                CppBridge::V8CppObjectBase *instance = static_cast<CppBridge::V8CppObjectBase *>(inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance));
                 if (info->m_Serializer != nullptr)
                 {
+                    void *instance = inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance);
+                    CppBridge::V8CppObjectBase *temp = reinterpret_cast<CppBridge::V8CppObjectBase *>(instance);
                     info->m_Serializer(wBuffer, instance);
+
                     if (wBuffer.HasErrored())
                     {
                         // should thorw and error here
@@ -117,8 +119,12 @@ namespace v8App
         {
             if (inIndex == (int)JSContext::DataSlot::kJSContextWeakPtr)
             {
+                Serialization::WriteBuffer wBuffer;
+
                 JSContext *jsContext = static_cast<JSContext *>(inHolder->GetAlignedPointerFromEmbedderData(inIndex));
-                // TODO serialize the context
+                jsContext->SerializeContextData(wBuffer);
+
+                return {wBuffer.GetDataNew(), (int)wBuffer.BufferSize()};
             }
             return {nullptr, 0};
         }

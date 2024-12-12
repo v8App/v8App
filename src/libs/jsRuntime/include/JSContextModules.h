@@ -62,7 +62,7 @@ namespace v8App
              */
             JSModuleInfoSharedPtr LoadModule(std::filesystem::path inModulePath);
             bool InstantiateModule(JSModuleInfoSharedPtr inModule);
-            bool RunModule(JSModuleInfoSharedPtr inModule);
+            V8LValue RunModule(JSModuleInfoSharedPtr inModule);
 
             /**
              * Finds the module by the specified module specifier ie name
@@ -85,6 +85,8 @@ namespace v8App
              * Sets up the callbacks for v8 to do imports
              */
             static void SetupModulesCallbacks(V8Isolate *inIsolate);
+
+            bool 
 
             /**
              * Genrates the code cache for the modules that have been instantiated

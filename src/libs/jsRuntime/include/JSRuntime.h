@@ -18,6 +18,7 @@
 #include "V8Types.h"
 #include "ISnapshotObject.h"
 #include "JSRuntimeSnapData.h"
+#include "CppBridge/V8CppObjInfo.h"
 
 namespace v8App
 {
@@ -85,13 +86,22 @@ namespace v8App
             void ProcessIdleTasks(double inTimeLeft);
 
             /**
-             * Stores the Object tamplate for the isolate
+             * Sets the function template for normal functions bound to the global object
              */
-            void SetObjectTemplate(void *inInfo, v8::Local<v8::ObjectTemplate> inTemplate);
+            void SetFunctionTemplate(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate);
+            /**
+             * Stores the fucntion tamplate for a cpp class for the isolate
+             */
+            void SetClassFunctionTemplate(std::string inNamespace, CppBridge::V8CppObjInfo *inInfo, v8::Local<V8FuncTpl> inTemplate);
             /**
              * Gets an object template for the isolate
              */
-            v8::Local<v8::ObjectTemplate> GetObjectTemplate(void *inInfo);
+            v8::Local<V8FuncTpl> GetClassFunctionTemplate(CppBridge::V8CppObjInfo *inInfo);
+
+            /**
+             * Registers all of the function templates on the global for the given namespace
+             */
+            void RegisterNamespaceFunctionsOnGlobal(std::string inNamespace, V8LContext inContext, V8LObject inGlobal);
 
             /**
              * Creates a JSContext with the specified namespace.
@@ -204,15 +214,9 @@ namespace v8App
              */
             JSRuntimeSharedPtr CloneRuntimeForSnapshotting(JSAppSharedPtr inApp);
 
-            /**
-             * Go through the contextes and adds them to the snapshot creator
-             * and records their indexes for serialization
-             */
-            bool AddContextesToSnapshot();
-
             /** Wheter idle tasks are enabled */
             IdleTaskSupport m_IdleEnabled;
-            /** Teh JSApp */
+            /** The JSApp */
             JSAppSharedPtr m_App;
             /** the name of the runtime */
             std::string m_Name;
@@ -239,13 +243,24 @@ namespace v8App
              */
             std::shared_ptr<ForegroundTaskRunner> m_TaskRunner;
 
-            using ObjectTemplateMap = std::map<void *, v8::Global<v8::ObjectTemplate>>;
+            using FunctionTemplateMap = std::map<std::string, v8::Global<V8FuncTpl>>;
+            using ObjectTemplateMap = std::map<CppBridge::V8CppObjInfo *, v8::Global<V8FuncTpl>>;
+            using NamespaceObjectInfoMap = std::map<std::string, std::vector<CppBridge::V8CppObjInfo *>>;
 
             /**
-             * The object templates for the isolate
+             * Holds all the functions that are registered on the global object
+             */
+            FunctionTemplateMap m_FunctionTemplates;
+            /**
+             * The object templates for the isolate with no namespaces
              */
             ObjectTemplateMap m_ObjectTemplates;
-
+            /**
+             * The object templates mapped to a namespace.
+             * This helps track what namespaces are used in the runtime
+             * So we can restore their templates on restoration
+             */
+            NamespaceObjectInfoMap m_NamespaceObjInfo;
             /**
              * The v8 SnapshotCreator
              */

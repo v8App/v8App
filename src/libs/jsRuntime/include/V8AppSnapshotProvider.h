@@ -55,6 +55,13 @@ namespace v8App
             virtual const V8StartupData *GetSnapshotData(size_t inIndex = 0) override;
             virtual size_t GetIndexForRuntimeName(std::string inRuntimeName) override;
 
+            virtual size_t GetIndexForContextName(std::string inName, std::string inRuntimeName) override;
+            virtual size_t GetIndexForContextName(std::string inName, size_t inRuntimeIndex) override;
+            /**
+             * V8App adds 1 to the real index of the contexts since V8 starts at 0 for non default ones
+             */
+            virtual size_t RealContextIndex(size_t inNamedIndex) override { return inNamedIndex - 1; };
+
             virtual const intptr_t *GetExternalReferences() override;
 
             // creates the app from the snapshot data
@@ -64,7 +71,7 @@ namespace v8App
              * Deserializers for the snapshot
              */
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override;
-            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload) override;
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext* inJSContext) override;
 
         protected:
             JSAppSnapDataSharedPtr m_SnapData;

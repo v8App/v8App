@@ -223,24 +223,24 @@ namespace v8App
             EXPECT_EQ(40, idleTaskInt2);
         }
 
-        TEST_F(JSRuntimeTest, SetGetObjectTemplate)
+        TEST_F(JSRuntimeTest, SetGetClassFunctionTemplate)
         {
-            std::string runtimeName = "testJSRuntimeSetGetObjectTemplate";
+            std::string runtimeName = "testJSRuntimeSetGetClassFunctionTemplate";
             JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
             ASSERT_TRUE(runtime->Initialize(m_App, runtimeName));
 
             V8IsolateScope isolateScope(runtime->GetIsolate());
             V8HandleScope scope(runtime->GetIsolate());
 
-            V8LObjTpl objTemplate = V8ObjTpl::New(runtime->GetIsolate());
+            V8LFuncTpl objTemplate = V8FuncTpl::New(runtime->GetIsolate());
             EXPECT_FALSE(objTemplate.IsEmpty());
 
-            struct TemplateInfo info;
+            struct CppBridge::V8CppObjInfo info("test", nullptr, nullptr);
 
-            EXPECT_TRUE(runtime->GetObjectTemplate(&info).IsEmpty());
+            EXPECT_TRUE(runtime->GetClassFunctionTemplate(&info).IsEmpty());
 
-            runtime->SetObjectTemplate(&info, objTemplate);
-            EXPECT_FALSE(runtime->GetObjectTemplate(&info).IsEmpty());
+            runtime->SetClassFunctionTemplate("test", &info, objTemplate);
+            EXPECT_FALSE(runtime->GetClassFunctionTemplate(&info).IsEmpty());
         }
 
         TEST_F(JSRuntimeTest, GetCreateContext)

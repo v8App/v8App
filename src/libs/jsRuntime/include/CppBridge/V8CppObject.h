@@ -7,6 +7,7 @@
 
 #include "v8/cppgc/allocation.h"
 #include "v8/cppgc/garbage-collected.h"
+#include "v8/cppgc/persistent.h"
 
 #include "CppBridge/V8TypeConverter.h"
 #include "CppBridge/V8CppObjBase.h"
@@ -87,21 +88,21 @@ namespace v8App
                  * If you have the JSContext so you can just use it
                  */
                 template <typename... Args>
-                static V8CppObjHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, JSContextSharedPtr inContext, Args &&...inArgs)
+                static V8CppObjHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, JSContextSharedPtr inContext, V8LObject inTarget, bool deserializing, Args &&...inArgs)
                 {
                     if (inContext == nullptr)
                     {
                         return V8CppObjHandle<T>();
                     }
                     V8LContext context = inContext->GetLocalContext();
-                    return NewObj(inRuntime, context, std::forward<Args>(inArgs)...);
+                    return NewObj(inRuntime, context, inTarget, deserializing, std::forward<Args>(inArgs)...);
                 }
 
                 /**
                  * Have the local context
                  */
                 template <typename... Args>
-                static V8CppObjHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, V8LContext inContext, Args &&...inArgs)
+                static V8CppObjHandle<T> NewObj(JSRuntimeSharedPtr inRuntime, V8LContext inContext, V8LObject inTarget, bool deserializing, Args &&...inArgs)
                 {
                     if (inRuntime == nullptr)
                     {
@@ -113,12 +114,13 @@ namespace v8App
                         return V8CppObjHandle<T>();
                     }
                     T *gcObject = cppgc::MakeGarbageCollected<T>(heap->GetAllocationHandle(), std::forward<Args>(inArgs)...);
-                    V8LObject jsObject = gcObject->CreateAndSetupJSObject(inContext, &T::s_V8CppObjInfo);
-                    if (jsObject.IsEmpty())
+                    inTarget = gcObject->CreateAndSetupJSObject(inContext, &T::s_V8CppObjInfo, inTarget, deserializing);
+                    if (inTarget.IsEmpty())
                     {
                         return V8CppObjHandle<T>();
                     }
-                    return V8CppObjHandle<T>(jsObject, gcObject);
+                    gcObject->m_CppHolder = gcObject;
+                    return V8CppObjHandle<T>(inTarget, gcObject);
                 }
 
                 /**
@@ -128,7 +130,14 @@ namespace v8App
                  * visitor->Trace(<some ccpgc variable);
                  * V8CppObject::Trace(visitor);
                  */
-                virtual void Trace(cppgc::Visitor *visitor) const {}
+                virtual void Trace(cppgc::Visitor *visitor) const { V8CppObjectBase::TraceBase(visitor); }
+
+            protected:
+                /**
+                 * We need to hold a heap persisten handle to keep the object
+                 * around or else it'll get GCed
+                 */
+                cppgc::Persistent<T> m_CppHolder;
 
             private:
                 V8CppObject(const V8CppObject &) = delete;
@@ -161,10 +170,10 @@ namespace v8App
 #define DEF_V8CPP_OBJ_FUNCTIONS(ClassName)                                                                                                  \
     virtual std::string GetTypeName() override { return s_V8CppObjInfo.m_TypeName; }                                                        \
     static CppBridge::V8CppObjectBase *DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer); \
-    static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8CppObjectBase *inCppObject);                          \
-    static inline CppBridge::V8CppObjInfo s_V8CppObjInfo{#ClassName, &ClassName::SerializeCppObject, &ClassName::DeserializeCppObject};     \
+    static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, void *inCppObject);                                                \
     static void RegisterClassFunctions();                                                                                                   \
-    static void RegisterGlobalTemplate(JSContextSharedPtr inContext, V8LObject &inGlobal);
+    static void RegisterGlobalTemplate(JSRuntimeSharedPtr inRuntime);                                                                       \
+    static inline CppBridge::V8CppObjInfo s_V8CppObjInfo{#ClassName, &ClassName::SerializeCppObject, &ClassName::DeserializeCppObject};     
 
 /**
  * Macro to implement the deserialize function
@@ -176,18 +185,18 @@ namespace v8App
  * Macro to implement the serializer function
  */
 #define IMPL_V8CPPOBJ_SERIALIZER(ClassName) \
-    void ClassName::SerializeCppObject(Serialization::WriteBuffer &inBuffer, CppBridge::V8CppObjectBase *inCppObject)
+    void ClassName::SerializeCppObject(Serialization::WriteBuffer &inBuffer, void *inCppObject)
 
 /**
- * Macro to implement the serializer function
+ * Macro to implement the register function for the class methods
  */
 #define IMPL_V8CPPOBJ_REGISTER_CLASS_FUNCS(ClassName) \
     void ClassName::RegisterClassFunctions()
 
 /**
- * Macro to implement the serializer function
+ * Macro to implement the register the object template for the global object
  */
 #define IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(ClassName) \
-    void ClassName::RegisterGlobalTemplate(JSContextSharedPtr inContext, V8LObject &inGlobal)
+    void ClassName::RegisterGlobalTemplate(JSRuntimeSharedPtr inRuntime)
 
 #endif //__V8_NATIVE_OBJECT_H__

@@ -22,7 +22,7 @@ namespace v8App
          * uint32 Build Version
          * JSApp Data
          */
-        class V8AppSnapshotCreator : public IJSSnapshotCreator
+        class V8AppSnapshotCreator : public IJSSnapshotCreator, std::enable_shared_from_this<V8AppSnapshotCreator>
         {
         public:            
             V8AppSnapshotCreator() = default;

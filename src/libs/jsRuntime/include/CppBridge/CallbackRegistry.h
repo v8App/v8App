@@ -30,7 +30,7 @@ namespace v8App
              * The sginature of the function to that can be regiseterd so functions and object templates can be
              * registered on the isolate
              */
-            using GlobalTemplateRegisterFunction = void (*)(JSContextSharedPtr inContext, V8LObject &inGlobal);
+            using ObjTemplateRegisterFunction = void (*)(JSRuntimeSharedPtr inRuntime);
 
             /**
              * Singleton for handling all of the function registration used for looking up real function calls and passing the
@@ -111,18 +111,18 @@ namespace v8App
                 }
 
                 /**
-                 * Adds a global template registration function that register functions/objects templates
-                 * These get called by JSRuntime when setting up the isolates global template.
-                 * Pass a namespace or seriaes of namespaces that the function should be run in when a context with that
+                 * Adds a object template registration function that register functions/objects templates
+                 * These get called by JSRuntime when setting up the context's global template.
+                 * Pass a namespace or series of namespaces that the function should be run in when a context with that
                  * namespace is created. The namespace global will always be run on all the time.
-                 * If no namespaces are passed then the registration function is added to the global namespace
+                 * If no namespaces is passed then the registration function is added to the global namespace
                  */
-                static void AddNamespaceSetupFunction(GlobalTemplateRegisterFunction inRegister, std::vector<std::string> inNamespaces = {});
+                static void AddNamespaceSetupFunction(ObjTemplateRegisterFunction inRegister, std::vector<std::string> inNamespaces = {"global"});
                 /**
                  * Runs the registered callbacks on the provided isolate for the global and given namespace.
                  * If no snapespace is passed then just the global ones are run
                  */
-                static void RunNamespaceSetupFunctions(JSContextSharedPtr inRuntime, V8LObject &inGlobal, std::string inNamespace = "");
+                static void RunNamespaceSetupFunctions(JSRuntimeSharedPtr inRuntime, std::string inNamespace = "global");
                 /**
                  * Checks to see if the specified namespace exists in the registry
                  */
@@ -145,7 +145,7 @@ namespace v8App
 
                 std::vector<intptr_t> m_Registry;
                 std::map<size_t, CallbackHolderBase *> m_CallbackHolders;
-                std::map<std::string, std::vector<GlobalTemplateRegisterFunction>> m_RegisterFunctions;
+                std::map<std::string, std::vector<ObjTemplateRegisterFunction>> m_RegisterFunctions;
                 std::map<std::string, V8CppObjInfo *> m_ObjectInfos;
             };
         }
@@ -203,6 +203,7 @@ namespace v8App
     void Registration::CONCAT_REG(register_funcs_, ClassName)()                                    \
     {                                                                                              \
         ClassName::RegisterClassFunctions();                                                       \
+        CppBridge::CallbackRegistry::RegisterObjectInfo(&ClassName::s_V8CppObjInfo);                                                  \
         CppBridge::CallbackRegistry::AddNamespaceSetupFunction(&ClassName::RegisterGlobalTemplate, FuncNamespaces); \
     }
 

@@ -147,40 +147,38 @@ namespace v8App
             return true;
         }
 
-        bool JSContextModules::RunModule(JSModuleInfoSharedPtr inModule)
+        V8LValue JSContextModules::RunModule(JSModuleInfoSharedPtr inModule)
         {
+            V8Isolate *isolate = m_Context->GetIsolate();
+            //We should probably actually raise an error or excpetion to propgate up to the caller
             if (inModule == nullptr)
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "RunModule passed a null module ptr"},
-                };
-                LOG_ERROR(msg);
-                return false;
+                LOG_ERROR("RunModule passed a null module ptr");
+                JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, "Failed to run module becuase a nullptr was passed for it");
+                return V8LValue();
             }
             V8LModule module = inModule->GetLocalModule();
             if (module.IsEmpty())
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "RunModule passed module info's module is empty"},
-                };
-                LOG_ERROR(msg);
-                return false;
+                LOG_ERROR("RunModule passed module info's module is empty");
+                JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, Utils::format("Failed to run module: {}", inModule->GetName()));
+                return V8LValue();
             }
-            V8Isolate *isolate = m_Context->GetIsolate();
             V8TryCatch tryCatch(m_Context->GetIsolate());
 
             // TODO: handle the returned value
-            module->Evaluate(m_Context->GetLocalContext());
+            V8LValue result = module->Evaluate(m_Context->GetLocalContext()).ToLocalChecked();
             if (tryCatch.HasCaught())
             {
                 Log::LogMessage message = {
                     {Log::MsgKey::Msg, "Failed to run the module"},
                     {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch)}};
                 LOG_ERROR(message);
-                return false;
+                tryCatch.ReThrow();
+                return V8LValue();
             }
 
-            return true;
+            return result;
         }
 
         JSModuleInfoSharedPtr JSContextModules::GetModuleBySpecifier(std::string inSpecifier)

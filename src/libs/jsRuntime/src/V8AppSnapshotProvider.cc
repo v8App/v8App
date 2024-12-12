@@ -132,11 +132,28 @@ namespace v8App
         size_t V8AppSnapshotProvider::GetIndexForRuntimeName(std::string inRuntimeName)
         {
             size_t runtimeIndex = m_SnapData->m_RuntimesSnapIndexes.GetIndexForName(inRuntimeName);
-            if(runtimeIndex == m_SnapData->m_RuntimesSnapIndexes.GetMaxSupportedIndexes())
+            if (runtimeIndex == m_SnapData->m_RuntimesSnapIndexes.GetMaxSupportedIndexes())
             {
                 return 0;
             }
             return runtimeIndex;
+        }
+
+        size_t V8AppSnapshotProvider::GetIndexForContextName(std::string inName, std::string inRuntimeName)
+        {
+            size_t runtimeIndex = GetIndexForRuntimeName(inRuntimeName);
+            return GetIndexForContextName(inName, runtimeIndex);
+        }
+
+        size_t V8AppSnapshotProvider::GetIndexForContextName(std::string inName, size_t inRuntimeIndex)
+        {
+            JSRuntimeSnapDataSharedPtr runtimeData = m_SnapData->m_RuntimesSnapData[inRuntimeIndex];
+            size_t contextIndex = runtimeData->m_ContextIndexes.GetIndexForName(inName);
+            if (contextIndex == runtimeData->m_ContextIndexes.GetMaxSupportedIndexes())
+            {
+                return 0;
+            }
+            return contextIndex;
         }
 
         const intptr_t *V8AppSnapshotProvider::GetExternalReferences()
@@ -174,7 +191,7 @@ namespace v8App
             if (inIndex == (int)V8CppObjDataIntField::ObjInstance)
             {
                 CppBridge::V8CppObjInfo *objInfo = static_cast<CppBridge::V8CppObjInfo *>(inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInfo));
-                if (objInfo == nullptr)
+                if (objInfo == nullptr || objInfo->m_Deserializer == nullptr)
                 {
                     // should probably throw an error
                     return;
@@ -189,9 +206,11 @@ namespace v8App
             }
         }
 
-        void V8AppSnapshotProvider::DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload)
+        void V8AppSnapshotProvider::DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext* inJSContext)
         {
-            // todo deserialize the context
+            Serialization::ReadBuffer rBuffer(inPayload.data, inPayload.raw_size);
+
+            inJSContext->DeserializeContextData(inHolder, rBuffer);
         }
     }
 }

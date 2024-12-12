@@ -17,13 +17,19 @@ namespace v8App
                                                             std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
                                                             SnapshotMethod inSnapMethod, size_t inContextIndex)
         {
+            V8Isolate::Scope iScope(inRuntime->GetIsolate());
+            V8HandleScope hScope(inRuntime->GetIsolate());
+            V8TryCatch tryCatch(inRuntime->GetIsolate());
+
             // if the namespace is empty, ie default v8 context, and it doesn't exist then error
             // TODO: need to move the bridge out of the ccontext
             if (inNamespace != "" && CppBridge::CallbackRegistry::DoesNamespaceExistInRegistry(inNamespace) == false)
             {
-                // TODO: log message
+                LOG_ERROR(Utils::format("Context Namespace doesn't exust, Namespace:{}", inNamespace));
                 return nullptr;
             }
+            // register all the namespace's function templates
+            CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(inRuntime, inNamespace);
 
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, inName, inNamespace, inEntryPoint, inContextIndex,
                                                                      inSnapEntryPoint, inSupportsSnapshot, inSnapMethod);
@@ -33,16 +39,6 @@ namespace v8App
                 return nullptr;
             }
 
-            V8Isolate * isolate = inRuntime->GetIsolate();
-
-            V8IsolateScope iScope(isolate);
-            V8HandleScope hScope(isolate);
-            V8LContext v8Context = context->GetLocalContext();
-            V8ContextScope cScope(v8Context);
-
-            V8LObject globalObj = v8Context->Global();
-            CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(context, globalObj, inNamespace);
-
             // if the runtime this is created for is a snapshotter and the method is namespace only
             // then return
             if (inRuntime->IsSnapshotRuntime() && inSnapMethod == SnapshotMethod::kNamespaceOnly)
@@ -50,13 +46,13 @@ namespace v8App
                 return context;
             }
 
-            //if the context index is not 0 then no need to run the entry point
-            if(context->GetSnapshotIndex() > -1)
+            // if the context index is not 0 then no need to run the entry point
+            if (context->GetSnapshotIndex() > -1)
             {
                 return context;
             }
-
-            if (context->RunEntryPoint(false) == false)
+            context->RunEntryPoint(false).IsEmpty();
+            if (tryCatch.HasCaught())
             {
                 context->DisposeContext();
                 return nullptr;

@@ -43,7 +43,6 @@ namespace v8App
                 virtual ~TestV8CppObject()
                 {
                     TestV8CppObject::objInstance = nullptr;
-                    TestV8CppObject::secondCallback = true;
                 }
 
                 DEF_V8CPP_OBJ_FUNCTIONS(TestV8CppObject);
@@ -52,7 +51,9 @@ namespace v8App
                 {
                     JSRuntimeSharedPtr runtime = JSRuntime::GetJSRuntimeFromV8Isolate(isolate);
                     V8LContext context = isolate->GetCurrentContext();
-                    V8CppObjHandle<TestV8CppObject> instance = TestV8CppObject::NewObj(runtime, context);
+                    V8LObject testObject = V8Object::New(isolate);
+
+                    V8CppObjHandle<TestV8CppObject> instance = TestV8CppObject::NewObj(runtime, context, testObject, false);
                     objInstance = instance.Get();
                     return instance.ToV8().As<v8::Object>();
                 }
@@ -60,8 +61,9 @@ namespace v8App
                 void SetValue(int inValue) { m_Value = inValue; }
                 int GetValue() { return m_Value; }
 
+                void ClearPersistent() { m_CppHolder.Clear(); }
+
                 static inline TestV8CppObject *objInstance = nullptr;
-                static inline bool secondCallback = false;
 
             protected:
                 int m_Value = 5;
@@ -84,12 +86,12 @@ namespace v8App
 
             IMPL_V8CPPOBJ_REGISTER_CLASS_GLOBAL_TEMPLATE(TestV8CppObject)
             {
-                V8ObjectTemplateBuilder builder(inContext->GetIsolate(), inGlobal, "TestV8CppObject");
-                V8LObjTpl tpl =
-                    builder.SetConstuctor(&TestV8CppObject::Constructor, inContext->GetLocalContext())
+                V8ObjectTemplateBuilder builder(inRuntime->GetIsolate(), "TestV8CppObject");
+                V8LFuncTpl tpl =
+                    builder.SetConstuctor(&TestV8CppObject::Constructor)
                         .SetProperty("value", &TestV8CppObject::GetValue, &TestV8CppObject::SetValue)
                         .Build();
-                inContext->GetJSRuntime()->SetObjectTemplate(&TestV8CppObject::s_V8CppObjInfo, tpl);
+                inRuntime->SetClassFunctionTemplate("", &TestV8CppObject::s_V8CppObjInfo, tpl);
             }
 
             REGISTER_CLASS_FUNCS_GLOBAL(TestV8CppObject);
@@ -119,6 +121,10 @@ namespace v8App
                     testV8CppObject.value = 100;
                 )";
 
+                    const char csource2[] = R"(
+                    testV8CppObject = undefined;
+                )";
+
                     V8TryCatch try_catch(isolate);
 
                     V8LString source1 = JSUtilities::StringToV8(isolate, csource1);
@@ -134,9 +140,19 @@ namespace v8App
 
                     EXPECT_EQ(100, TestV8CppObject::objInstance->GetValue());
 
+                    V8LString source2 = JSUtilities::StringToV8(isolate, csource2);
+
+                    V8LScript script2 = v8::Script::Compile(context, source2).ToLocalChecked();
+
+                    if (script2->Run(context).ToLocal(&result) == false)
+                    {
+                        std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
+                        ASSERT_TRUE(false);
+                    }
+                     TestV8CppObject::objInstance->ClearPersistent();
+
                     isolate->RequestGarbageCollectionForTesting(V8Isolate::GarbageCollectionType::kFullGarbageCollection);
                     EXPECT_EQ(nullptr, TestV8CppObject::objInstance);
-                    EXPECT_TRUE(TestV8CppObject::secondCallback);
                 }
             }
         }
