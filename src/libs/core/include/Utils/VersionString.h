@@ -35,27 +35,27 @@ namespace v8App
             void SetMajor(int inMajor)
             {
                 m_Major = inMajor;
-                m_Version = "";
+                GenerateVersionString();
             }
             void SetMinor(int inMinor)
             {
                 m_Minor = inMinor;
-                m_Version = "";
+                GenerateVersionString();
             }
             void SetPatch(int inPatch)
             {
                 m_Patch = inPatch;
-                m_Version = "";
+                GenerateVersionString();
             }
             void SetPreRelease(std::string inPreRelease)
             {
                 m_PreRelease = inPreRelease;
-                m_Version = "";
+                GenerateVersionString();
             }
             void SetBuild(std::string inBuild)
             {
                 m_Build = inBuild;
-                m_Version = "";
+                GenerateVersionString();
             }
 
             bool SetVersionString(std::string inVersion);
@@ -70,12 +70,14 @@ namespace v8App
              * Returns the already built version string or if empty tries and build it.
              * If Major, Minor or Patch are -1 then an empty string is returned
              */
-            std::string GetVersionString();
+            std::string GetVersionString() const;
 
         private:
             void ParseVersionString();
             int ConvertStringToInt(const std::string &inInt) const;
             bool IsNumber(const std::string &inValue) const;
+
+            void GenerateVersionString();
 
             std::string m_Version;
             bool m_Valid{false};
@@ -91,7 +93,8 @@ namespace v8App
     template <>
     struct Serialization::TypeSerializer<Utils::VersionString>
     {
-        static bool Serialize(Serialization::BaseBuffer &inBuffer, Utils::VersionString &inValue);
+        static bool SerializeRead(Serialization::ReadBuffer &inBuffer, Utils::VersionString &inValue);
+        static bool SerializeWrite(Serialization::WriteBuffer &inBuffer, const Utils::VersionString &inValue);
     };
 }
 #endif //__VERSIONS_H__

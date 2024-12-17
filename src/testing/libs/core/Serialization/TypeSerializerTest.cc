@@ -16,9 +16,14 @@ namespace v8App
          * Helper to make it simplier to call the serializer
          */
         template <typename T>
-        bool CallSerializer(BaseBuffer &inBuffer, T &inValue)
+        bool CallSerializerRead(ReadBuffer &inBuffer, T &inValue)
         {
-            return TypeSerializer<T>::Serialize(inBuffer, inValue);
+            return TypeSerializer<T>::SerializeRead(inBuffer, inValue);
+        }
+        template <typename T>
+        bool CallSerializerWrite(WriteBuffer &inBuffer,const  T &inValue)
+        {
+            return TypeSerializer<T>::SerializeWrite(inBuffer, inValue);
         }
 
         namespace internal
@@ -142,14 +147,14 @@ namespace v8App
 
             bool testData = true;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testData));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testData));
 
             EXPECT_EQ(true, (bool)*(wBuffer->GetData()));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             testData = false;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testData));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testData));
             EXPECT_TRUE(testData);
         }
 
@@ -159,14 +164,14 @@ namespace v8App
 
             bool testData = true;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testData));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testData));
 
             EXPECT_EQ(true, (bool)*(wBuffer->GetData()));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             testData = false;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testData));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testData));
             EXPECT_TRUE(testData);
         }
 
@@ -178,14 +183,14 @@ namespace v8App
             int16_t value = -21829;
             int16_t testSInt = value;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
 
             EXPECT_EQ(testSInt, *((int16_t *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
 
             // test unsigned
@@ -193,28 +198,27 @@ namespace v8App
             uint16_t uValue = 43707;
             uint16_t testUCompare = uValue;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testUCompare, *((uint16_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUCompare, uValue);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const int16_t testCInt = -21829;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCInt));
             EXPECT_EQ(testSInt, *((int16_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCInt));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
         }
 
@@ -228,13 +232,13 @@ namespace v8App
             int16_t testSwapped = value;
             SwapBytes(testSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testSwapped, *((int16_t *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
 
             // test unsigned
@@ -244,28 +248,27 @@ namespace v8App
             uint16_t testUSwapped = uValue;
             SwapBytes(testUSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testUSwapped, *((uint16_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUInt, uValue);
 
             // test const
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const int16_t testCInt = -21829;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCInt));
             EXPECT_EQ(testSwapped, *((int16_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCInt));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
         }
 
@@ -278,13 +281,13 @@ namespace v8App
             int32_t testSInt = value;
             int32_t testCompare = -1430541637;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testCompare, *((int32_t *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
 
             // test unsigned
@@ -292,28 +295,27 @@ namespace v8App
             uint32_t testUInt = 43707;
             uint32_t testUCompare = testUInt;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testUInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testUInt));
             EXPECT_EQ(testUCompare, *((uint32_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             testUInt = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testUInt));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testUInt));
             EXPECT_EQ(testUCompare, testUInt);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const int32_t testCInt = testSInt;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCInt));
             EXPECT_EQ(testCompare, *((int32_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCInt));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
         }
 
@@ -327,13 +329,13 @@ namespace v8App
             int32_t testSwapped = value;
             SwapBytes(testSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testSwapped, *((int32_t *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
 
             // test unsigned
@@ -343,28 +345,27 @@ namespace v8App
             uint32_t testUSwapped = uValue;
             SwapBytes(testUSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testUSwapped, *((uint32_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUInt, uValue);
 
             // test const
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const int32_t testCInt = testSInt;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCInt));
             EXPECT_EQ(testSwapped, *((int32_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCInt));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
         }
 
@@ -376,13 +377,13 @@ namespace v8App
             int64_t value = -6144129543616877893LL;
             int64_t testSInt = value;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testSInt, *((int64_t *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
 
             // test unsigned
@@ -390,28 +391,27 @@ namespace v8App
             uint64_t uValue = 12302614530092673723ULL;
             uint64_t testUInt = uValue;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testUInt, *((uint64_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUInt, uValue);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const int64_t testCInt = testSInt;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCInt));
             EXPECT_EQ(testSInt, *((int64_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCInt));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
         }
 
@@ -425,13 +425,13 @@ namespace v8App
             int64_t testSwapped = value;
             SwapBytes(testSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(-4923916900608853078LL, *((int64_t *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
 
             // test unsigned
@@ -441,27 +441,26 @@ namespace v8App
             uint64_t testUSwapped = uValue;
             SwapBytes(testUSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testUSwapped, *((uint64_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUInt, uValue);
 
             // test const
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const int64_t testCInt = testSInt;
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCInt));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCInt));
             EXPECT_EQ(testSwapped, *((int64_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCInt));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testSInt, value);
         }
 
@@ -474,28 +473,27 @@ namespace v8App
             float testFloat = testValue;
             float testCompare = 0xAABBAABB;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testValue));
             EXPECT_EQ(testCompare, *((float *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             testValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testValue));
             EXPECT_EQ(testFloat, testValue);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const float testCFloat = 0xAABBAABB;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCFloat));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCFloat));
             EXPECT_EQ(testFloat, *((float *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCFloat));
             // use the non const to see that we can read the const we wrote into it
             testValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testValue));
             EXPECT_EQ(testFloat, testValue);
         }
 
@@ -509,28 +507,27 @@ namespace v8App
             float swappedFloat = value;
             SwapBytes(swappedFloat);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(swappedFloat, *((float *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testFloat, value);
 
             // test const
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const float testCFloat = testFloat;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCFloat));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCFloat));
             EXPECT_EQ(swappedFloat, *((float *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCFloat));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testFloat, value);
         }
 
@@ -542,28 +539,27 @@ namespace v8App
             double testDouble = testValue;
             double testCompare = 100;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testValue));
             EXPECT_EQ(testCompare, *((double *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             testValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testValue));
             EXPECT_EQ(testDouble, testValue);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const double testCDouble = testDouble;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCDouble));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCDouble));
             EXPECT_EQ(testDouble, *((double *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCDouble));
             // use the non const to see that we can read the const we wrote into it
             testValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, testValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, testValue));
             EXPECT_EQ(testDouble, testValue);
         }
 
@@ -576,28 +572,27 @@ namespace v8App
             double testSwapped = value;
             SwapBytes(testSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testSwapped, *((double *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testDouble, value);
 
             // test const
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const double testCDouble = testDouble;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCDouble));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCDouble));
             EXPECT_EQ(testSwapped, *((double *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCDouble));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testDouble, value);
         }
 
@@ -610,13 +605,13 @@ namespace v8App
             char testChar = value;
             char testCompare = 'A';
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testCompare, *((char *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testChar, value);
 
             // test unssigned
@@ -624,28 +619,27 @@ namespace v8App
             unsigned char uValue = 'A';
             unsigned char testUChar = 'A';
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testCompare, *((unsigned char *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUChar, uValue);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const char testCChar = testChar;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCChar));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCChar));
             EXPECT_EQ(testChar, *((const char *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCChar));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testChar, value);
         }
 
@@ -658,13 +652,13 @@ namespace v8App
             char testChar = value;
             char testCompare = 'A';
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testCompare, *((char *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testChar, value);
 
             // test unssigned
@@ -672,28 +666,27 @@ namespace v8App
             unsigned char uValue = 'A';
             unsigned char testUChar = uValue;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testUChar, *((unsigned char *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             uValue = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, uValue));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, uValue));
             EXPECT_EQ(testUChar, uValue);
 
             // test const value
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const char testCChar = testChar;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCChar));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCChar));
             EXPECT_EQ(testChar, *((const char *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCChar));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testChar, value);
         }
 
@@ -704,28 +697,27 @@ namespace v8App
             wchar_t value = L'A';
             wchar_t testWChar = value;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testWChar, *((wchar_t *)(wBuffer->GetData())));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testWChar, value);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const wchar_t uValue = testWChar;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, uValue));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, uValue));
             EXPECT_EQ(testWChar, *((wchar_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, uValue));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testWChar, value);
         }
 
@@ -739,28 +731,27 @@ namespace v8App
             wchar_t testSwapped = value;
             SwapBytes(testSwapped);
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, value));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, value));
             EXPECT_EQ(testSwapped, *((wchar_t *)(wBuffer->GetData())));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testWChar, value);
 
             // test const
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const wchar_t testCWChar = testWChar;
 
-            EXPECT_TRUE(CallSerializer(*wBuffer, testCWChar));
+            EXPECT_TRUE(CallSerializerWrite(*wBuffer, testCWChar));
             EXPECT_EQ(testSwapped, *((wchar_t *)(wBuffer->GetData())));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(CallSerializer(*rBuffer, testCWChar));
             // use the non const to see that we can read the const we wrote into it
             value = 0;
-            EXPECT_TRUE(CallSerializer(*rBuffer, value));
+            EXPECT_TRUE(CallSerializerRead(*rBuffer, value));
             EXPECT_EQ(testWChar, value);
         }
 
@@ -775,30 +766,29 @@ namespace v8App
             size_t len = std::strlen(value) + 1;
             size_t size_t_size = sizeof(size_t);
 
-            EXPECT_TRUE(TypeSerializer<char *>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(len, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars, (wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             std::memset(value, 0, len);
-            EXPECT_TRUE(TypeSerializer<char *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const char *testCChars = "Hello";
 
-            EXPECT_TRUE(TypeSerializer<const char *>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(len, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars, (wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const char *>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             std::memset(value, 0, len);
-            EXPECT_TRUE(TypeSerializer<char *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
         }
 
@@ -815,30 +805,29 @@ namespace v8App
             SwapBytes(swappedLen);
             size_t size_t_size = sizeof(size_t);
 
-            EXPECT_TRUE(TypeSerializer<char *>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(swappedLen, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars, (wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             std::memset(value, 0, len);
-            EXPECT_TRUE(TypeSerializer<char *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const char *testCChars = "Hello";
 
-            EXPECT_TRUE(TypeSerializer<const char *>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(swappedLen, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars, (wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const char *>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             std::memset(value, 0, len);
-            EXPECT_TRUE(TypeSerializer<char *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<char *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
         }
 
@@ -856,30 +845,29 @@ namespace v8App
 
             std::memcpy(testChars, value, len * sizeof(wchar_t));
 
-            EXPECT_TRUE(TypeSerializer<wchar_t *>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(len, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testChars, (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             std::memset(value, 0, len * sizeof(wchar_t));
-            EXPECT_TRUE(TypeSerializer<wchar_t *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const wchar_t *testCChars = L"Hello";
 
-            EXPECT_TRUE(TypeSerializer<const wchar_t *>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(len, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testChars, (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const wchar_t *>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             std::memset(value, 0, len * sizeof(wchar_t));
-            EXPECT_TRUE(TypeSerializer<wchar_t *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
         }
 
@@ -905,30 +893,29 @@ namespace v8App
                 SwapBytes(testSwapped[i]);
             }
 
-            EXPECT_TRUE(TypeSerializer<wchar_t *>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(swappedLen, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testSwapped, (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             std::memset(value, 0, len * sizeof(wchar_t));
-            EXPECT_TRUE(TypeSerializer<wchar_t *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const wchar_t *testCChars = L"Hello";
 
-            EXPECT_TRUE(TypeSerializer<const wchar_t *>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(swappedLen, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testSwapped, (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const wchar_t *>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             std::memset(value, 0, len * sizeof(wchar_t));
-            EXPECT_TRUE(TypeSerializer<wchar_t *>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<wchar_t *>::SerializeRead(*rBuffer, value));
             EXPECT_STREQ(testChars, value);
         }
 
@@ -943,30 +930,29 @@ namespace v8App
             size_t len = value.size()+1;
             size_t size_t_size = sizeof(size_t);
 
-            EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(len, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars.c_str(), (wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const std::string testCChars = testChars;
 
-            EXPECT_TRUE(TypeSerializer<const std::string>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(len, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars.c_str(), (wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const std::string>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
         }
 
@@ -983,30 +969,29 @@ namespace v8App
             size_t swappedLen = len;
             SwapBytes(swappedLen);
 
-            EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(swappedLen, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars.c_str(), (wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const std::string testCChars = testChars;
 
-            EXPECT_TRUE(TypeSerializer<const std::string>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(swappedLen, *((size_t *)(wBuffer->GetData())));
             EXPECT_STREQ(testChars.c_str(), (wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const std::string>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::string>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::string>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
         }
 
@@ -1022,30 +1007,29 @@ namespace v8App
             size_t len = value.size()+1;
             size_t size_t_size = sizeof(size_t);
 
-            EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(len, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testChars.c_str(), (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<ReadBuffer> rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<WriteBuffer>();
             const std::wstring testCChars = testChars;
 
-            EXPECT_TRUE(TypeSerializer<const std::wstring>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(len, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testChars.c_str(), (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<ReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const std::wstring>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
         }
 
@@ -1069,30 +1053,29 @@ namespace v8App
                 SwapBytes(testSwapped[i]);
             }
 
-            EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*wBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeWrite(*wBuffer, value));
             EXPECT_EQ(swappedLen, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testSwapped.c_str(), (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             std::unique_ptr<SwappingReadBuffer> rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
 
             // test const value
             wBuffer = std::make_unique<SwappingWriteBuffer>();
             const std::wstring testCChars = testChars;
 
-            EXPECT_TRUE(TypeSerializer<const std::wstring>::Serialize(*wBuffer, testCChars));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeWrite(*wBuffer, testCChars));
             EXPECT_EQ(swappedLen, *((size_t *)wBuffer->GetData()));
             EXPECT_STREQ(testSwapped.c_str(), (wchar_t *)(wBuffer->GetData() + size_t_size));
 
             rBuffer = std::make_unique<SwappingReadBuffer>(wBuffer->GetData(), wBuffer->BufferSize());
 
-            EXPECT_FALSE(TypeSerializer<const std::wstring>::Serialize(*rBuffer, testCChars));
             // use the non const to see that we can read the const we wrote into it
             value.clear();
-            EXPECT_TRUE(TypeSerializer<std::wstring>::Serialize(*rBuffer, value));
+            EXPECT_TRUE(TypeSerializer<std::wstring>::SerializeRead(*rBuffer, value));
             EXPECT_EQ(testChars, value);
         }
 

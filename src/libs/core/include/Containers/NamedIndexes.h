@@ -43,11 +43,11 @@ namespace v8App
             /**
              * Serializes the name index info into the specified buffer
              */
-            bool DeserializeNameIndexes(Serialization::BaseBuffer &inBuffer);
+            bool DeserializeNameIndexes(Serialization::ReadBuffer &inBuffer);
             /**
              * Desrializes the name index info from the specified buffer
              */
-            bool SerializeNameIndexes(Serialization::BaseBuffer &inBuffer);
+            bool SerializeNameIndexes(Serialization::WriteBuffer &inBuffer) const;
             /**
              * Addes an index for the namae.
              * If the name or index already exists then returns false
@@ -71,7 +71,8 @@ namespace v8App
     template <>
     struct Serialization::TypeSerializer<Containers::NamedIndexes>
     {
-        static bool Serialize(Serialization::BaseBuffer &inBuffer, Containers::NamedIndexes &inValue);
+        static bool SerializeRead(Serialization::ReadBuffer &inBuffer, Containers::NamedIndexes &inValue);
+        static bool SerializeWrite(Serialization::WriteBuffer &inBuffer, const Containers::NamedIndexes &inValue);
     };
 }
 

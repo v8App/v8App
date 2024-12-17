@@ -8,7 +8,8 @@
 #include <type_traits>
 #include <string>
 
-#include "Serialization/BaseBuffer.h"
+#include "Serialization/ReadBuffer.h"
+#include "Serialization/WriteBuffer.h"
 
 namespace v8App
 {
@@ -52,37 +53,20 @@ namespace v8App
         template <typename T>
         struct TypeSerializer
         {
-            static bool Serialize(BaseBuffer &inBuffer, T &inValue)
+            static bool SerializeRead(ReadBuffer &inBuffer, T &inValue)
                 requires IsFixedSizedType<T>
             {
-                if (inBuffer.IsWriter())
-                {
-                    T swapped = inValue;
-                    if (inBuffer.IsByteSwapping())
-                    {
-                        SwapBytes(swapped);
-                    }
-                    inBuffer.SerializeWrite(&swapped, sizeof(T));
-                }
-                else
-                {
                     inBuffer.SerializeRead(&inValue, sizeof(T));
                     if (inBuffer.IsByteSwapping())
                     {
                         SwapBytes(inValue);
                     }
-                }
                 return true;
             }
 
-            static bool Serialize(BaseBuffer &inBuffer, T &inValue)
-                requires IsFixedSizedType<T> && IsConstType<T>
+            static bool SerializeWrite(WriteBuffer &inBuffer, const T &inValue)
+                requires IsFixedSizedType<T>
             {
-                // cant serialize read into a const value
-                if (inBuffer.IsReader())
-                {
-                    return false;
-                }
                 T swapped = inValue;
                 if (inBuffer.IsByteSwapping())
                 {
@@ -102,59 +86,35 @@ namespace v8App
         template <>
         struct TypeSerializer<wchar_t *>
         {
-            static bool Serialize(BaseBuffer &inBuffer, wchar_t *inValue);
-        };
-
-        template <>
-        struct TypeSerializer<const wchar_t *>
-        {
-            static bool Serialize(BaseBuffer &inBuffer, const wchar_t *inValue);
+            static bool SerializeRead(ReadBuffer &inBuffer, wchar_t *inValue);
+            static bool SerializeWrite(WriteBuffer &inBuffer, const wchar_t *inValue);
         };
 
         template <>
         struct TypeSerializer<char *>
         {
-            static bool Serialize(BaseBuffer &inBuffer, char *inValue);
-        };
-
-        template <>
-        struct TypeSerializer<const char *>
-        {
-            static bool Serialize(BaseBuffer &inBuffer, const char *inValue);
+            static bool SerializeRead(ReadBuffer &inBuffer, char *inValue);
+            static bool SerializeWrite(WriteBuffer &inBuffer, const char *inValue);
         };
 
         template <>
         struct TypeSerializer<std::string>
         {
-            static bool Serialize(BaseBuffer &inBuffer, std::string &inValue);
-        };
-
-        template <>
-        struct TypeSerializer<const std::string>
-        {
-            static bool Serialize(BaseBuffer &inBuffer, const std::string &inValue);
+            static bool SerializeRead(ReadBuffer &inBuffer, std::string &inValue);
+            static bool SerializeWrite(WriteBuffer &inBuffer, const std::string &inValue);
         };
 
         template <>
         struct TypeSerializer<std::wstring>
         {
-            static bool Serialize(BaseBuffer &inBuffer, std::wstring &inValue);
+            static bool SerializeRead(ReadBuffer &inBuffer, std::wstring &inValue);
+            static bool SerializeWrite(WriteBuffer &inBuffer, const std::wstring &inValue);
         };
 
-        template <>
-        struct TypeSerializer<const std::wstring>
-        {
-            static bool Serialize(BaseBuffer &inBuffer, const std::wstring &inValue);
-        };
-
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, wchar_t *inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, const wchar_t *inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, char *inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, const char *inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, std::string &inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, const std::string &inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, std::wstring &inValue);
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, const std::wstring&inValue);
+        BaseBuffer &operator<<(WriteBuffer &inBuffer, const wchar_t *inValue);
+        BaseBuffer &operator<<(WriteBuffer &inBuffer, const char *inValue);
+        BaseBuffer &operator<<(WriteBuffer &inBuffer, const std::string &inValue);
+        BaseBuffer &operator<<(WriteBuffer &inBuffer, const std::wstring&inValue);
 
         /**
          * Templated function to serialize/deserilize a value from a buffer
@@ -162,23 +122,19 @@ namespace v8App
          * take care of the direction of the data.
          */
         template <typename T>
-        BaseBuffer &operator<<(BaseBuffer &inBuffer, T inValue)
+        BaseBuffer &operator<<(WriteBuffer &inBuffer, T inValue)
         {
-            if (TypeSerializer<T>::Serialize(inBuffer, inValue) == false)
+            if (TypeSerializer<T>::SerializeWrite(inBuffer, inValue) == false)
             {
                 inBuffer.SetError();
             }
             return inBuffer;
         }
  
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, wchar_t *inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, const wchar_t *inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, char *inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, const char *inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, std::string &inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, const std::string &inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, std::wstring &inValue);
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, const std::wstring&inValue);
+        BaseBuffer &operator>>(ReadBuffer &inBuffer, wchar_t *inValue);
+        BaseBuffer &operator>>(ReadBuffer &inBuffer, char *inValue);
+        BaseBuffer &operator>>(ReadBuffer &inBuffer, std::string &inValue);
+        BaseBuffer &operator>>(ReadBuffer &inBuffer, std::wstring &inValue);
 
         /**
          * Templated function to serialize/deserilize a value from a buffer
@@ -186,9 +142,9 @@ namespace v8App
          * take care of the direction of the data.
          */
         template <typename T>
-        BaseBuffer &operator>>(BaseBuffer &inBuffer, T &inValue)
+        BaseBuffer &operator>>(ReadBuffer &inBuffer, T &inValue)
         {
-            if ( TypeSerializer<T>::Serialize(inBuffer, inValue) == false)
+            if ( TypeSerializer<T>::SerializeRead(inBuffer, inValue) == false)
             {
                 inBuffer.SetError();
             }
