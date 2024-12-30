@@ -19,19 +19,31 @@ namespace v8App
             Terminate();
         }
 
-        void WorkerTaskRunner::PostTask(V8TaskUniquePtr inTask)
+        void WorkerTaskRunner::PostTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation& inLocation)
         {
             Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]{task->Run();});
             m_Tasks.PostTask(std::move(task));
         }
 
-        void WorkerTaskRunner::PostDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds)
+        void WorkerTaskRunner::PostNonNestableTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation& inLocation)
+        {
+            Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]{task->Run();});
+            m_Tasks.PostTask(std::move(task));
+        }
+
+        void WorkerTaskRunner::PostDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation& inLocation)
         {
            Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]{task->Run();});
             m_Tasks.PostDelayedTask(inDelaySeconds, std::move(task));
          }
 
-        void WorkerTaskRunner::PostIdleTask(V8IdleTaskUniquePtr inTask)
+        void WorkerTaskRunner::PostNonNestableDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation& inLocation)
+        {
+           Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]{task->Run();});
+            m_Tasks.PostDelayedTask(inDelaySeconds, std::move(task));
+         }
+
+        void WorkerTaskRunner::PostIdleTaskImpl(V8IdleTaskUniquePtr inTask, const V8SourceLocation& inLocation)
         {
             UNIMPLEMENTED();
         }

@@ -30,9 +30,10 @@ namespace v8App
             {
                 kJSContextWeakPtr = 0
             };
-
+            JSContext() {}
+            
             JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
-                      size_t inContextIndex, std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                      size_t inContextIndex, bool inSupportsSnapshot = true,
                       SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
             ~JSContext();
 
@@ -101,11 +102,6 @@ namespace v8App
              * Gets the entry point script
              */
             std::filesystem::path GetEntrypoint() { return m_EntryPoint; }
-            /**
-             * Gets the snapshot entry point script. If one hasn't been set
-             * then it returns the main entry point script
-             */
-            std::filesystem::path GetSnapshotEntrypoint() { return (m_SnapEntryPoint.empty()) ? m_EntryPoint : m_SnapEntryPoint; }
 
             V8LValue RunModule(std::filesystem::path inModulePath);
             V8LValue RunScript(std::string inScript);
@@ -117,6 +113,9 @@ namespace v8App
 
             void SerializeContextData(Serialization::WriteBuffer& inBuffer);
             void DeserializeContextData(V8LContext inContext, Serialization::ReadBuffer& inBuffer);
+
+            bool MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, v8App::Serialization::WriteBuffer& inBuffer);
+            JSContextSnapDataSharedPtr LoadSnapshotData(v8App::Serialization::ReadBuffer& inBuffer);
         protected:
             /**
              * Runs the entry point script for the snapshot
@@ -205,12 +204,6 @@ namespace v8App
              * The entry point script for the context
              */
             std::filesystem::path m_EntryPoint;
-            /**
-             * The entrypoint if snapshotting. If you want to code a specific entrypoint
-             * for snapshotting then use this otherwise you can detect in the above
-             * script that the context is preparing to be snapshotted
-             */
-            std::filesystem::path m_SnapEntryPoint;
 
             /**
              * Indicates if this context is snapshottable. The app may not want all it's created

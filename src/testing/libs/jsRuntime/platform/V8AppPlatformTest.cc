@@ -176,26 +176,6 @@ namespace v8App
             allocator.release();
         }
 
-        TEST(V8AppPlatformTest, GetSetZoneBackingAllocator)
-        {
-            TestV8AppPlatform platform;
-            V8ZoneBackingAllocator *constrcuted = platform.GetZoneBackingAllocator();
-            EXPECT_NE(constrcuted, nullptr);
-
-            V8ZoneBackingAllocatorUniquePtr allocator = std::make_unique<V8ZoneBackingAllocator>();
-            platform.SetZoneBlockingAllocator(allocator.get());
-            EXPECT_EQ(platform.GetZoneBackingAllocator(), constrcuted);
-
-            platform.SetInited(true);
-            platform.SetZoneBlockingAllocator(allocator.get());
-            EXPECT_EQ(platform.GetZoneBackingAllocator(), allocator.get());
-
-            platform.SetZoneBlockingAllocator(nullptr);
-            EXPECT_EQ(platform.GetZoneBackingAllocator(), allocator.get());
-
-            allocator.release();
-        }
-
         TEST(V8AppPlatformTest, MonotonicallyIncreasingTime)
         {
             TestV8AppPlatform platform;

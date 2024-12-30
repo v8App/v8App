@@ -26,8 +26,8 @@ namespace v8App
              * Override to create a v8 context
              */
             virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespce,
-            std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, 
-                      SnapshotMethod inSnapMethod, size_t inContextIndex) = 0;
+                                                     std::filesystem::path inEntryPoint, bool inSupportsSnapshot,
+                                                     SnapshotMethod inSnapMethod, size_t inContextIndex) = 0;
             /**
              * Override to dispose of the v8 context
              */

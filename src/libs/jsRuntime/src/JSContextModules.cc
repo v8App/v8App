@@ -73,9 +73,7 @@ namespace v8App
             V8Isolate *isolate = m_Context->GetIsolate();
             if (isolate == nullptr)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, Utils::format("LoadModule got a null isolate loading {}", inModulePath));
-                LOG_ERROR(msg);
+                LOG_ERROR(Utils::format("LoadModule got a null isolate loading {}", inModulePath));
                 return nullptr;
             }
 
@@ -86,15 +84,26 @@ namespace v8App
             V8TryCatch tryCatch(isolate);
             V8ContextScope contextScope(m_Context->GetLocalContext());
 
-            JSModuleInfo::AttributesInfo attributesInfo;
-            if (".json" == inModulePath.extension().string())
+            JSModuleAttributesInfo attributesInfo;
+            std::string ext =inModulePath.extension().string();
+            if (JSModuleAttributesInfo::kExtJS == ext || JSModuleAttributesInfo::kExtModuleJS == ext)
             {
-                attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
+                attributesInfo.m_Type = JSModuleType::kJavascript;
+            }
+            else if (JSModuleAttributesInfo::kExtNative == ext)
+            {
+                attributesInfo.m_Type = JSModuleType::kNative;
+            }
+            else if (JSModuleAttributesInfo::kExtJSON == ext)
+            {
+                attributesInfo.m_Type = JSModuleType::kJSON;
             }
             else
             {
-                attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
+                LOG_ERROR(Utils::format("Unsupported extension for LoadModule: {}", inModulePath.extension().string()));
+                return nullptr;
             }
+
             JSModuleInfoSharedPtr info = BuildModuleInfo(attributesInfo, inModulePath, appRoot->GetAppRoot());
             if (info == nullptr)
             {
@@ -113,19 +122,13 @@ namespace v8App
         {
             if (inModule == nullptr)
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "InstantiateModule passed a null module ptr"},
-                };
-                LOG_ERROR(msg);
+                LOG_ERROR("InstantiateModule passed a null module ptr");
                 return false;
             }
             V8LModule module = inModule->GetLocalModule();
             if (module.IsEmpty())
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "InstantiateModule passed module info's module is empty"},
-                };
-                LOG_ERROR(msg);
+                LOG_ERROR("InstantiateModule passed module info's module is empty");
                 return false;
             }
             V8Isolate *isolate = m_Context->GetIsolate();
@@ -150,7 +153,7 @@ namespace v8App
         V8LValue JSContextModules::RunModule(JSModuleInfoSharedPtr inModule)
         {
             V8Isolate *isolate = m_Context->GetIsolate();
-            //We should probably actually raise an error or excpetion to propgate up to the caller
+            // We should probably actually raise an error or excpetion to propgate up to the caller
             if (inModule == nullptr)
             {
                 LOG_ERROR("RunModule passed a null module ptr");
@@ -200,7 +203,7 @@ namespace v8App
 
         std::string JSContextModules::GetSpecifierByModule(V8LModule inModule)
         {
-            JSModuleInfoSharedPtr info = GetModuleInfoByModule(inModule, JSModuleInfo::ModuleType::kInvalid);
+            JSModuleInfoSharedPtr info = GetModuleInfoByModule(inModule, JSModuleType::kInvalid);
             if (info == nullptr)
             {
                 return std::string();
@@ -210,7 +213,7 @@ namespace v8App
 
         V8LValue JSContextModules::GetJSONByModule(V8LModule inModule)
         {
-            JSModuleInfoSharedPtr info = GetModuleInfoByModule(inModule, JSModuleInfo::ModuleType::kJSON);
+            JSModuleInfoSharedPtr info = GetModuleInfoByModule(inModule, JSModuleType::kJSON);
             if (info == nullptr)
             {
                 return V8LValue();
@@ -236,7 +239,7 @@ namespace v8App
             for (auto it : m_ModuleMap)
             {
 
-                if (it.first.second == JSModuleInfo::ModuleType::kJSON)
+                if (it.first.second != JSModuleType::kJavascript)
                 {
                     continue;
                 }
@@ -264,7 +267,65 @@ namespace v8App
             }
         }
 
-        bool JSContextModules::AddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType)
+        bool JSContextModules::MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, Serialization::WriteBuffer &inBuffer)
+        {
+            V8Isolate *isolate = m_Context->GetIsolate();
+            V8IsolateScope iScope(isolate);
+            V8HandleScope hScope(isolate);
+
+            inBuffer << m_ModuleMap.size();
+            for (auto &it : m_ModuleMap)
+            {
+                JSModuleInfo::SnapshotData data = it.second->CreateSnapshotData(inCreator);
+                inBuffer << data;
+                if (inBuffer.HasErrored())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool JSContextModules::LoadSnapshotData(Serialization::ReadBuffer &inBuffer, JSContextSnapData &inContextSnapData)
+        {
+            // Make sure the map is clear
+            m_ModuleMap.clear();
+            size_t numModules;
+            inBuffer >> numModules;
+            if (inBuffer.HasErrored())
+            {
+                return false;
+            }
+            for (size_t idx = 0; idx < numModules; idx++)
+            {
+                JSModuleInfo::SnapshotData data;
+                inBuffer >> data;
+                if (inBuffer.HasErrored())
+                {
+                    return false;
+                }
+                inContextSnapData.m_Modules.push_back(data);
+            }
+
+            return true;
+        }
+
+        bool JSContextModules::RestoreModules(const std::vector<JSModuleInfo::SnapshotData> &inModInfoSnapData)
+        {
+            for (auto &data : inModInfoSnapData)
+            {
+                JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
+                info->RestoreV8Module(data);
+                auto it = m_ModuleMap.insert(std::make_pair(std::make_pair(info->GetModulePath(), info->GetAttributesInfo().m_Type), info));
+                if (it.second == false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool JSContextModules::AddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleType inModuleType)
         {
             V8Isolate *isolate = GetIsolate();
             if (isolate == nullptr)
@@ -278,18 +339,18 @@ namespace v8App
             return true;
         }
 
-        JSModuleInfoSharedPtr JSContextModules::GetModuleInfoByModule(V8LModule inModule, JSModuleInfo::ModuleType inType)
+        JSModuleInfoSharedPtr JSContextModules::GetModuleInfoByModule(V8LModule inModule, JSModuleType inType)
         {
             V8GModule globMod(m_Context->GetIsolate(), inModule);
             for (auto it : m_ModuleMap)
             {
                 if (it.second->GetLocalModule()->GetIdentityHash() == globMod.Get(m_Context->GetIsolate())->GetIdentityHash())
                 {
-                    if (inType == JSModuleInfo::ModuleType::kInvalid)
+                    if (inType == JSModuleType::kInvalid)
                     {
                         return it.second;
                     }
-                    else if (it.second->GetAttributesInfo().m_Type == inType)
+                    else if (it.second->GetType() == inType)
                     {
                         return it.second;
                     }
@@ -298,83 +359,7 @@ namespace v8App
             return nullptr;
         }
 
-        JSModuleInfo::AttributesInfo JSContextModules::GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LFixedArray inAttributes)
-        {
-            V8Isolate *isolate = inContext->GetIsolate();
-            JSModuleInfo::AttributesInfo returnInfo;
-            returnInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            returnInfo.m_TypeString = "js";
-            V8LContext context = inContext->GetLocalContext();
-
-            if (isolate == nullptr)
-            {
-                // TODO:: Log message
-                returnInfo.m_Type = JSModuleInfo::ModuleType::kInvalid;
-                returnInfo.m_TypeString = "";
-                return returnInfo;
-            }
-            int arrayLen = inAttributes->Length();
-            //we take advantage of the fact that the attributes are pairs if source offset is added it's a triplet
-            const int kEntrySize = arrayLen % 2 ? 3 : 2;
-
-            for (int i = 0; i < arrayLen; i += kEntrySize)
-            {
-                V8LString v8Key = inAttributes->Get(context, i).As<V8String>();
-                std::string key = JSUtilities::V8ToString(isolate, v8Key);
-                // for some reason we can end up with a blank key
-                if (key == "")
-                {
-                    continue;
-                    ;
-                }
-                if (key == "type" || key == "module")
-                {
-                    V8LString v8Value = inAttributes->Get(context, i + 1).As<V8String>();
-                    std::string value = JSUtilities::V8ToString(isolate, v8Value);
-                    if (key == "type")
-                    {
-                        returnInfo.m_TypeString = value;
-                        if (value == "json")
-                        {
-                            returnInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-                        }
-                        else if (value == "js")
-                        {
-                            returnInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-                        }
-                        else if (value == "native")
-                        {
-                            returnInfo.m_Type = JSModuleInfo::ModuleType::kNative;
-                        }
-                        else
-                        {
-                            Log::LogMessage message = {
-                                {Log::MsgKey::Msg, Utils::format("Unknown type attribute: {}", value)},
-                            };
-                            LOG_WARN(message);
-
-                            returnInfo.m_Type = JSModuleInfo::ModuleType::kInvalid;
-                            returnInfo.m_TypeString = "";
-                        }
-                    }
-                    else if (key == "module")
-                    {
-                        returnInfo.m_Module = value;
-                    }
-                }
-                else
-                {
-                    Log::LogMessage message = {
-                        {Log::MsgKey::Msg, Utils::format("Unknown attribute: {}", key)},
-                    };
-                    LOG_WARN(message);
-                }
-            }
-
-            return returnInfo;
-        }
-
-        JSModuleInfoSharedPtr JSContextModules::BuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
+        JSModuleInfoSharedPtr JSContextModules::BuildModuleInfo(JSModuleAttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
         {
             // TODO:Review this for changes to use generic_string() of path for a consistent path separator
             std::filesystem::path absImportPath = inImportPath;
@@ -402,8 +387,16 @@ namespace v8App
                 }
                 else
                 {
-                    std::filesystem::path modPath = appRoots->FindModuleLatestVersionRootPath(inAttributesInfo.m_Module);
-
+                    std::filesystem::path modPath;
+                    if (inAttributesInfo.m_Version.IsVersionString())
+                    {
+                        modPath = appRoots->FindModuleVersionRootPath(
+                            std::filesystem::path(inAttributesInfo.m_Module) / std::filesystem::path(inAttributesInfo.m_Version.GetVersionString()));
+                    }
+                    else
+                    {
+                        modPath = appRoots->FindModuleLatestVersionRootPath(inAttributesInfo.m_Module);
+                    }
                     if (modPath.empty())
                     {
                         JSUtilities::ThrowV8Error(ioslate, JSUtilities::V8Errors::SyntaxError,
@@ -432,7 +425,7 @@ namespace v8App
                 {
                     JSUtilities::ThrowV8Error(ioslate, JSUtilities::V8Errors::TypeError,
                                               Utils::format("File type doesn't match specified type {}. Importpath: {}",
-                                                            inAttributesInfo.m_TypeString, inImportPath));
+                                                            JSModuleInfo::ModuleTypeToString(inAttributesInfo.m_Type), inImportPath));
                     return nullptr;
                 }
                 moduleInfo->SetPath(absImportPath);
@@ -447,7 +440,7 @@ namespace v8App
                 {
                     JSUtilities::ThrowV8Error(ioslate, JSUtilities::V8Errors::TypeError,
                                               Utils::format("File type doesn't match specified type {}. Importpath: {}",
-                                                            inAttributesInfo.m_TypeString, inImportPath));
+                                                            JSModuleInfo::ModuleTypeToString(inAttributesInfo.m_Type), inImportPath));
                     return nullptr;
                 }
 
@@ -518,7 +511,7 @@ namespace v8App
                 {
                     JSUtilities::ThrowV8Error(ioslate, JSUtilities::V8Errors::TypeError,
                                               Utils::format("File type doesn't match specified type {}. Importpath: {}",
-                                                            inAttributesInfo.m_TypeString, inImportPath));
+                                                            JSModuleInfo::ModuleTypeToString(inAttributesInfo.m_Type), inImportPath));
                     return nullptr;
                 }
                 moduleInfo->SetPath(absImportPath);
@@ -531,10 +524,10 @@ namespace v8App
         }
 
         V8MBLPromise JSContextModules::HostImportModuleDynamically(V8LContext inContext,
-                                                                          V8LData inDefinedOptions,
-                                                                          V8LValue inResourceName,
-                                                                          V8LString inSpecifier,
-                                                                          V8LFixedArray importoAttributes)
+                                                                   V8LData inDefinedOptions,
+                                                                   V8LValue inResourceName,
+                                                                   V8LString inSpecifier,
+                                                                   V8LFixedArray importoAttributes)
         {
             V8Isolate *isolate = inContext->GetIsolate();
             V8MBLPromiseResolver maybeResolver = V8PromiseResolver::New(inContext);
@@ -559,15 +552,16 @@ namespace v8App
             }
             JSContextModulesSharedPtr jsModules = jsContext->GetJSModules();
 
-            JSModuleInfo::AttributesInfo attributesInfo = jsModules->GetModuleAttributesInfo(jsContext, importoAttributes);
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.GetModuleAttributesInfo(jsContext, importoAttributes);
             std::filesystem::path resourceName = std::filesystem::path(JSUtilities::V8ToString(isolate, inResourceName));
             resourceName.remove_filename();
             std::filesystem::path specifier = std::filesystem::path(JSUtilities::V8ToString(isolate, inSpecifier));
             JSModuleInfoSharedPtr info = jsModules->BuildModuleInfo(attributesInfo, specifier, resourceName);
 
-            if (attributesInfo.m_Type == JSModuleInfo::ModuleType::kInvalid)
+            if (attributesInfo.m_Type == JSModuleType::kInvalid)
             {
-                resolver->Reject(inContext, JSUtilities::StringToV8(isolate, Utils::format("Import '{}' had an invalid type of '{}'", specifier, attributesInfo.m_TypeString))).ToChecked();
+                resolver->Reject(inContext, JSUtilities::StringToV8(isolate, Utils::format("Import '{}' had an invalid type of '{}'", specifier, JSModuleInfo::ModuleTypeToString(attributesInfo.m_Type)))).ToChecked();
                 return resolver->GetPromise();
             }
             internal::ModuleCallbackData *data = new internal::ModuleCallbackData(jsContext, info, resolver);
@@ -580,25 +574,19 @@ namespace v8App
             std::unique_ptr<internal::ModuleCallbackData> importData(static_cast<internal::ModuleCallbackData *>(inData));
             if (importData == nullptr)
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "Failed to get the import data for importing module"}};
-                LOG_ERROR(msg);
+                LOG_ERROR("Failed to get the import data for importing module");
                 return;
             }
             if (importData->m_Context == nullptr)
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "context shared point was null for importing module"}};
-                LOG_ERROR(msg);
+                LOG_ERROR("context shared point was null for importing module");
                 return;
             }
             JSContextSharedPtr jsContext = importData->m_Context;
             V8Isolate *isolate = jsContext->GetIsolate();
             if (importData->m_Resolver.IsEmpty())
             {
-                Log::LogMessage msg = {
-                    {Log::MsgKey::Msg, "promise resolver was empty for importing module"}};
-                LOG_ERROR(msg);
+                LOG_ERROR("promise resolver was empty for importing module");
                 return;
             }
 
@@ -706,18 +694,14 @@ namespace v8App
             JSContextSharedPtr jsContext = JSContext::GetJSContextFromV8Context(inContext);
             if (jsContext == nullptr)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, "Failed to get the JSContext from the v8Context");
-                LOG_ERROR(msg);
+                LOG_ERROR("Failed to get the JSContext from the v8Context");
                 resolver->Reject(inContext, v8::Undefined(isolate));
                 return resolver->GetPromise();
             }
             JSContextModulesSharedPtr jsModule = jsContext->GetJSModules();
             if (jsModule == nullptr)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, "Failed to get the JSContextModules from the JSCotext");
-                LOG_ERROR(msg);
+                LOG_ERROR("Failed to get the JSContextModules from the JSCotext");
                 resolver->Reject(inContext, v8::Undefined(isolate));
                 return resolver->GetPromise();
             }
@@ -725,9 +709,7 @@ namespace v8App
             V8LValue parsedJSON = jsModule->GetJSONByModule(inModule);
             if (parsedJSON.IsEmpty())
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, "Failed to find the module in the map");
-                LOG_ERROR(msg);
+                LOG_ERROR("Failed to find the module in the map");
                 resolver->Reject(inContext, v8::Undefined(isolate));
                 return resolver->GetPromise();
             }
@@ -740,8 +722,10 @@ namespace v8App
                                                                         parsedJSON);
             if (tryCatch.HasCaught())
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(inContext, tryCatch));
+                Log::LogMessage msg{
+                    {Log::MsgKey::Msg, "Got an error trying to set the JSON module export"},
+                    {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(inContext, tryCatch)}
+                };
                 LOG_ERROR(msg);
                 resolver->Reject(inContext, v8::Undefined(isolate));
                 return resolver->GetPromise();
@@ -749,9 +733,7 @@ namespace v8App
 
             if (result.IsNothing() || result.FromJust() == false)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, "Failed to set the default export for the json module");
-                LOG_ERROR(msg);
+                LOG_ERROR("Failed to set the default export for the json module");
                 resolver->Reject(inContext, v8::Undefined(isolate));
                 return resolver->GetPromise();
             }
@@ -798,8 +780,9 @@ namespace v8App
 
             std::filesystem::path specifier = jsModule->GetSpecifierByModule(inReferrer);
 
-            JSModuleInfo::AttributesInfo attributesInfo = jsModule->GetModuleAttributesInfo(jsContext, inAttributes);
-            if (attributesInfo.m_Type == JSModuleInfo::ModuleType::kInvalid)
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.GetModuleAttributesInfo(jsContext, inAttributes);
+            if (attributesInfo.m_Type == JSModuleType::kInvalid)
             {
                 return V8MBLModule();
             }
@@ -827,19 +810,17 @@ namespace v8App
             Assets::AppAssetRootsSharedPtr appRoot = inContext->GetJSRuntime()->GetApp()->GetAppRoot();
             JSContextModulesSharedPtr jsModule = inContext->GetJSModules();
 
-            JSModuleInfo::ModuleType moduleType = inModuleInfo->GetAttributesInfo().m_Type;
+            JSModuleType moduleType = inModuleInfo->GetAttributesInfo().m_Type;
             std::filesystem::path importPath = inModuleInfo->GetModulePath();
             V8LModule module;
 
-            if (moduleType == JSModuleInfo::ModuleType::kJavascript)
+            if (moduleType == JSModuleType::kJavascript)
             {
                 V8ScriptSourceUniquePtr source = app->GetCodeCache()->LoadScriptFile(importPath, isolate);
                 if (source == nullptr)
                 {
                     JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, Utils::format("Failed to load the module file: {}", importPath));
-                    Log::LogMessage msg;
-                    msg.emplace(Log::MsgKey::Msg, Utils::format("Failed to load the module file: {}", importPath));
-                    LOG_ERROR(msg);
+                    LOG_ERROR(Utils::format("Failed to load the module file: {}", importPath));
                     return nullptr;
                 }
                 V8TryCatch tryCatch(isolate);
@@ -852,15 +833,17 @@ namespace v8App
                 if (tryCatch.HasCaught())
                 {
                     tryCatch.ReThrow();
-                    Log::LogMessage msg;
-                    msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(context, tryCatch));
+                    Log::LogMessage msg{
+                        {Log::MsgKey::Msg, Utils::format("Got an error compiling module {}", importPath)},
+                        {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(context, tryCatch)}
+                    };
                     LOG_ERROR(msg);
                     return nullptr;
                 }
                 module = maybeModule.ToLocalChecked();
                 inModuleInfo->SetV8Module(module);
             }
-            else if (moduleType == JSModuleInfo::ModuleType::kJSON)
+            else if (moduleType == JSModuleType::kJSON)
             {
                 V8LString jsonStr;
                 {
@@ -869,9 +852,7 @@ namespace v8App
                     if (file.ReadAsset() == false)
                     {
                         JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::Error, Utils::format("Failed to load the module file: {}", importPath));
-                        Log::LogMessage msg;
-                        msg.emplace(Log::MsgKey::Msg, Utils::format("Failed to load the module file: {}", importPath));
-                        LOG_ERROR(msg);
+                        LOG_ERROR(Utils::format("Failed to load the module file: {}", importPath));
                         return nullptr;
                     }
                     jsonStr = JSUtilities::StringToV8(isolate, file.GetContent());
@@ -881,9 +862,7 @@ namespace v8App
                 if (v8::JSON::Parse(context, jsonStr).ToLocal(&parsedJSON) == false)
                 {
                     tryCatch.ReThrow();
-                    Log::LogMessage msg;
-                    msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(context, tryCatch, importPath.string()));
-                    LOG_ERROR(msg);
+                    LOG_ERROR(JSUtilities::GetStackTrace(context, tryCatch, importPath.string()));
                     return nullptr;
                 }
                 auto exportNames = v8::to_array<V8LString>({JSUtilities::StringToV8(isolate, "default")});
@@ -893,18 +872,13 @@ namespace v8App
             }
             else
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, Utils::format("Uknown module type {}", JSModuleInfo::ModuleTypeToString(moduleType)));
-                LOG_ERROR(msg);
-
+                LOG_ERROR(Utils::format("Uknown module type {}", JSModuleInfo::ModuleTypeToString(moduleType)));
                 UNREACHABLE();
             }
 
             if (jsModule->AddModule(inModuleInfo, importPath.generic_string(), moduleType) == false)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, Utils::format("Failed to add module into map. File: {}", importPath));
-                LOG_ERROR(msg);
+                LOG_ERROR(Utils::format("Failed to add module into map. File: {}", importPath));
                 return nullptr;
             }
 
@@ -915,8 +889,9 @@ namespace v8App
                 V8LString moduleName = request->GetSpecifier();
                 V8LFixedArray v8Attributes = request->GetImportAttributes();
 
-                JSModuleInfo::AttributesInfo attributesInfo = jsModule->GetModuleAttributesInfo(inContext, v8Attributes);
-                if (attributesInfo.m_Type == JSModuleInfo::ModuleType::kInvalid)
+                JSModuleAttributesInfo attributesInfo;
+                attributesInfo.GetModuleAttributesInfo(inContext, v8Attributes);
+                if (attributesInfo.m_Type == JSModuleType::kInvalid)
                 {
                     return nullptr;
                 }

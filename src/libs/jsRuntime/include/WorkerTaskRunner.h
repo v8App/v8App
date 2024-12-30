@@ -36,18 +36,31 @@ namespace v8App
                 std::shared_ptr<TaskRunner> m_Runner;
             };
 
+            /**
+             * Termintate the task
+             */
+            void Terminate();
+
+            /**
+             * Pause the task. Probably can be removed think was added
+             * as part of snapshotting work but not needed
+             */
+            bool SetPaused(bool inPause) { return m_Tasks.SetPaused(inPause); }
+
             // TaskRunner implementation
-            virtual void PostTask(V8TaskUniquePtr inTask) override;
-            virtual void PostDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds) override;
-            virtual void PostIdleTask(V8IdleTaskUniquePtr) override;
+        public:
             bool IdleTasksEnabled() override { return false; };
             virtual bool NonNestableTasksEnabled() const override { return false; }
             virtual bool NonNestableDelayedTasksEnabled() const override { return false; }
+
+        protected:
+            virtual void PostTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation &inLocation) override;
+            virtual void PostNonNestableTaskImpl(V8TaskUniquePtr task, const V8SourceLocation &inLocation) override;
+            virtual void PostDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation &inLocation) override;
+            virtual void PostNonNestableDelayedTaskImpl(V8TaskUniquePtr task, double delay_in_seconds,
+                                                        const V8SourceLocation &inLocation) override;
+            virtual void PostIdleTaskImpl(V8IdleTaskUniquePtr, const V8SourceLocation &inLocation) override;
             // end TaskRunner implementation
-
-            void Terminate();
-
-            bool SetPaused(bool inPause) { return m_Tasks.SetPaused(inPause); }
 
         protected:
             bool m_Terminated = false;

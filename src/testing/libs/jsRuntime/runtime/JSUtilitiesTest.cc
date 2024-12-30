@@ -32,7 +32,7 @@ namespace v8App
 
                 V8LString v8SourceStr = StringToV8(m_Isolate, scriptStr);
                 V8LString origin_name = StringToV8(m_Isolate, "test.js");
-                V8ScriptOrigin origin(m_Isolate, origin_name);
+                V8ScriptOrigin origin(origin_name);
                 V8ScriptSource source(v8SourceStr, origin);
 
                 V8LScript script;

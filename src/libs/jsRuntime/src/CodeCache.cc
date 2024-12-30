@@ -116,7 +116,7 @@ namespace v8App
             {
                 cache = new V8ScriptCachedData(cacheInfo->m_Compiled, cacheInfo->m_CompiledLength, V8ScriptCachedData::BufferNotOwned);
             }
-            V8ScriptOrigin origin(inIsolate, fileStr, 0, 0, false, -1, V8LValue(), false, false, true);
+            V8ScriptOrigin origin(fileStr, 0, 0, false, -1, V8LValue(), false, false, true);
             return std::make_unique<V8ScriptSource>(sourceStr, origin, cache);
         }
 

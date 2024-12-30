@@ -186,7 +186,12 @@ namespace v8App
 
             {
                 runtime = restore->GetMainRuntime();
-                JSContextSharedPtr jsContext = runtime->CreateContext("default", "");
+                JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default2", "default");
+                if(nullptr == jsContext)
+                {
+                    restore->DisposeApp();
+                    ASSERT_FALSE(true);
+                }
                 V8Isolate *isolate = runtime->GetIsolate();
                 V8IsolateScope iScope(isolate);
                 V8HandleScope hScope(isolate);

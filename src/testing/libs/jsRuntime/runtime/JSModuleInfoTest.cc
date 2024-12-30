@@ -7,6 +7,10 @@
 
 #include "V8Fixture.h"
 
+#include "Serialization/ReadBuffer.h"
+#include "Serialization/WriteBuffer.h"
+#include "Utils/Format.h"
+
 #include "JSApp.h"
 #include "JSModuleInfo.h"
 #include "JSUtilities.h"
@@ -23,11 +27,29 @@ namespace v8App
                 V8LContext inContet, V8LString inSpecifier,
                 V8LFixedArray inImportAttributes, V8LModule inReferrer)
             {
-                Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, Utils::format("Unresloved callback called"));
-                LOG_ERROR(msg);
+                LOG_ERROR(Utils::format("Unresloved callback called"));
                 return V8MBLModule();
             }
+        }
+
+        TEST_F(JSModuleInfoTest, ModuleTypeToString)
+        {
+            EXPECT_EQ("Invalid", JSModuleInfo::ModuleTypeToString(JSModuleType::kInvalid));
+            EXPECT_EQ("Javascript", JSModuleInfo::ModuleTypeToString(JSModuleType::kJavascript));
+            EXPECT_EQ("JSON", JSModuleInfo::ModuleTypeToString(JSModuleType::kJSON));
+            EXPECT_EQ("Native", JSModuleInfo::ModuleTypeToString(JSModuleType::kNative));
+            EXPECT_EQ("", JSModuleInfo::ModuleTypeToString(JSModuleType::kNoAttribute));
+            EXPECT_EQ("", JSModuleInfo::ModuleTypeToString(JSModuleType::kMaxModType));
+            EXPECT_EQ("", JSModuleInfo::ModuleTypeToString(static_cast<JSModuleType>(10)));
+        }
+
+        TEST_F(JSModuleInfoTest, StringToModuleType)
+        {
+            EXPECT_EQ(JSModuleType::kInvalid, JSModuleInfo::StringToModuleType("Invalid"));
+            EXPECT_EQ(JSModuleType::kJavascript, JSModuleInfo::StringToModuleType("Javascript"));
+            EXPECT_EQ(JSModuleType::kJSON, JSModuleInfo::StringToModuleType("JSON"));
+            EXPECT_EQ(JSModuleType::kNative, JSModuleInfo::StringToModuleType("Native"));
+            EXPECT_EQ(JSModuleType::kInvalid, JSModuleInfo::StringToModuleType(""));
         }
 
         TEST_F(JSModuleInfoTest, Constructor)
@@ -36,15 +58,18 @@ namespace v8App
             V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
+            EXPECT_EQ(JSModuleType::kInvalid, info.GetType());
             EXPECT_EQ("", info.GetName());
             EXPECT_EQ("", info.GetModulePath().string());
             EXPECT_EQ("", info.GetVersion().GetVersionString());
             EXPECT_TRUE(info.GetLocalModule().IsEmpty());
+            EXPECT_TRUE(info.GetLocalJSON().IsEmpty());
+            EXPECT_TRUE(info.GetUnboundScript().IsEmpty());
 
-            JSModuleInfo::AttributesInfo attributesInfo = info.GetAttributesInfo();
-            EXPECT_EQ(JSModuleInfo::ModuleType::kInvalid, attributesInfo.m_Type);
-            EXPECT_EQ("", attributesInfo.m_TypeString);
+            JSModuleAttributesInfo attributesInfo = info.GetAttributesInfo();
+            EXPECT_EQ(JSModuleType::kNoAttribute, attributesInfo.m_Type);
             EXPECT_EQ("", attributesInfo.m_Module);
+            EXPECT_EQ("", attributesInfo.m_Version.GetVersionString());
         }
 
         TEST_F(JSModuleInfoTest, GetSetPath)
@@ -56,6 +81,16 @@ namespace v8App
             std::filesystem::path path("test/path");
             info.SetPath(path);
             EXPECT_EQ(path.string(), info.GetModulePath().string());
+        }
+
+        TEST_F(JSModuleInfoTest, GetSetType)
+        {
+            V8IsolateScope isolateScope(m_Isolate);
+            V8HandleScope scope(m_Isolate);
+            JSModuleInfo info(m_Context);
+
+            info.SetType(JSModuleType::kJavascript);
+            EXPECT_EQ(JSModuleType::kJavascript, info.GetType());
         }
 
         TEST_F(JSModuleInfoTest, GetSetName)
@@ -136,41 +171,69 @@ namespace v8App
             V8HandleScope scope(m_Isolate);
             JSModuleInfo info(m_Context);
 
-            JSModuleInfo::AttributesInfo attributesInfo;
+            JSModuleAttributesInfo attributesInfo;
+            //we only set a couple of fields for this test
             std::string moduleName = "test";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "Javascript";
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             attributesInfo.m_Module = moduleName;
 
             info.SetAttributesInfo(attributesInfo);
-            JSModuleInfo::AttributesInfo attributesInfo2 = info.GetAttributesInfo();
+            JSModuleAttributesInfo attributesInfo2 = info.GetAttributesInfo();
 
-            EXPECT_EQ(JSModuleInfo::ModuleType::kJavascript, attributesInfo.m_Type);
-            EXPECT_EQ("Javascript", attributesInfo2.m_TypeString);
+            EXPECT_EQ(JSModuleType::kJavascript, attributesInfo.m_Type);
             EXPECT_EQ(moduleName, attributesInfo2.m_Module);
         }
 
-        TEST_F(JSModuleInfoTest, ModuleTypeToString)
+        TEST_F(JSModuleInfoTest, Serialization)
         {
-            EXPECT_EQ("Invalid", JSModuleInfo::ModuleTypeToString(JSModuleInfo::ModuleType::kInvalid));
-            EXPECT_EQ("Javascript", JSModuleInfo::ModuleTypeToString(JSModuleInfo::ModuleType::kJavascript));
-            EXPECT_EQ("JSON", JSModuleInfo::ModuleTypeToString(JSModuleInfo::ModuleType::kJSON));
-            EXPECT_EQ("Native", JSModuleInfo::ModuleTypeToString(JSModuleInfo::ModuleType::kNative));
-            EXPECT_EQ("Unknown ModuleType enum 10, perhaps need to delcare it's macro in ModuleTypeToString", JSModuleInfo::ModuleTypeToString(static_cast<JSModuleInfo::ModuleType>(10)));
-        }
+            JSModuleInfo info(m_Context);
+            JSModuleAttributesInfo aInfo;
+            //just set a couple of the fields
+            aInfo.m_Module = "testModule";
+            aInfo.m_Type = JSModuleType::kJavascript;
 
-        TEST_F(JSModuleInfoTest, AttributeInfoDoesExtensionMatchType)
-        {
-            JSModuleInfo::AttributesInfo info;
+            // We don't set any of the v8 values since we need a SnapshotCreator
+            //  in order for it to work they'll be tested during snapshot creation
+            info.SetType(JSModuleType::kJSON);
+            info.SetName("test");
+            info.SetPath("testPath");
+            info.SetVersion("1.1.1");
+            info.SetAttributesInfo(aInfo);
 
-            info.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            EXPECT_TRUE(info.DoesExtensionMatchType(".js"));
-            EXPECT_TRUE(info.DoesExtensionMatchType(".mjs"));
-            EXPECT_FALSE(info.DoesExtensionMatchType(".txt"));
+            JSModuleInfo::SnapshotData snapData = info.CreateSnapshotData(V8SnapshotCreatorSharedPtr());
+            ASSERT_EQ(JSModuleType::kJSON, snapData.m_Type);
+            ASSERT_EQ("test", snapData.m_ModuleName);
+            ASSERT_EQ("testPath", snapData.m_Path);
+            ASSERT_EQ("1.1.1", snapData.m_Version);
+            ASSERT_EQ("testModule", snapData.m_AtrribInfo.m_Module);
+            ASSERT_EQ(JSModuleType::kJavascript, snapData.m_AtrribInfo.m_Type);
+            //These get fully tested when we test snapshotting
+            ASSERT_EQ(false, snapData.m_SaveModule);
+            ASSERT_EQ(false, snapData.m_SavedJSON);
+            ASSERT_EQ(0, snapData.m_ModuleDataIndex);
+            ASSERT_EQ(0, snapData.m_JSONModuleDataIndex);
 
-            info.m_Type = JSModuleInfo::ModuleType::kJSON;
-            EXPECT_TRUE(info.DoesExtensionMatchType(".json"));
-            EXPECT_FALSE(info.DoesExtensionMatchType(".txt"));
+            Serialization::WriteBuffer wBuffer;
+            wBuffer << snapData;
+            ASSERT_FALSE(wBuffer.HasErrored());
+
+            JSModuleInfo::SnapshotData restored;
+            Serialization::ReadBuffer rBuffer(wBuffer.GetData(), wBuffer.BufferSize());
+
+            rBuffer >> restored;
+            ASSERT_FALSE(rBuffer.HasErrored());
+
+            ASSERT_EQ(JSModuleType::kJSON, restored.m_Type);
+            ASSERT_EQ("test", restored.m_ModuleName);
+            ASSERT_EQ("testPath", restored.m_Path);
+            ASSERT_EQ("1.1.1", restored.m_Version);
+            ASSERT_EQ("testModule", restored.m_AtrribInfo.m_Module);
+            ASSERT_EQ(JSModuleType::kJavascript, restored.m_AtrribInfo.m_Type);
+            //These get fully tested when we test snapshotting
+            ASSERT_EQ(false, restored.m_SaveModule);
+            ASSERT_EQ(false, restored.m_SavedJSON);
+            ASSERT_EQ(0, restored.m_ModuleDataIndex);
+            ASSERT_EQ(0, restored.m_JSONModuleDataIndex);
         }
     }
 }

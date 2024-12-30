@@ -8,12 +8,14 @@
 #include "uuid/uuid.h"
 
 #include "Logging/LogMacros.h"
+#include "Utils/Format.h"
 
 #include "CppBridge/CallbackRegistry.h"
 #include "JSApp.h"
 #include "V8SnapshotProvider.h"
 #include "JSContext.h"
 #include "JSUtilities.h"
+#include "JSContextSnapData.h"
 
 namespace v8App
 {
@@ -21,11 +23,9 @@ namespace v8App
     {
         JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
                              std::filesystem::path inEntryPoint, size_t inContextIndex,
-                             std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
-                             SnapshotMethod inSnapMethod)
+                             bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
             : m_Runtime(inRuntime), m_Name(inName), m_SnapIndex(inContextIndex), m_Namespace(inNamespace),
-              m_EntryPoint(inEntryPoint), m_SnapEntryPoint(inSnapEntryPoint),
-              m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
+              m_EntryPoint(inEntryPoint), m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
         {
             CHECK_NOT_NULL(m_Runtime.get());
             // We use the : a seperator for shadow names
@@ -176,7 +176,6 @@ namespace v8App
             m_SnapIndex = inContext.m_SnapIndex;
             m_Namespace = inContext.m_Namespace;
             m_EntryPoint = inContext.m_EntryPoint;
-            m_SnapEntryPoint = inContext.m_SnapEntryPoint;
             m_SupportsSnapshots = inContext.m_SupportsSnapshots;
             m_SnapMethod = inContext.m_SnapMethod;
         }
@@ -186,13 +185,17 @@ namespace v8App
             IJSSnapshotProviderSharedPtr provider = GetJSApp()->GetSnapshotProvider();
             if (provider == nullptr)
             {
+                LOG_ERROR("The Snapshot provider doesn't appear to be set yet");
                 return false;
             }
             V8Isolate *isolate = m_Runtime->GetIsolate();
             if (isolate == nullptr)
             {
+                LOG_ERROR("THe Runtime doesn't seemed to be initialized as the isolate is null");
                 return false;
             }
+
+            m_Modules = std::make_shared<JSContextModules>(shared_from_this());
 
             V8IsolateScope isolateScope(isolate);
             V8TryCatch tryCatch(isolate);
@@ -206,12 +209,12 @@ namespace v8App
 
                 if (context.IsEmpty())
                 {
-                    // TODO: log error message
+                    LOG_ERROR("Failed to create a new V8 Context");
                     return false;
                 }
 
                 // Set the security token for shadow realms.
-                // TODO: figure out how to determine if context form a snapshot keeps or needs this reset
+                // TODO: figure out how to determine if a context from a snapshot keeps or needs this reset
                 uuids::uuid uuid = uuids::uuid_system_generator{}();
                 V8LString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
                 context->SetSecurityToken(v8Uuid);
@@ -221,9 +224,10 @@ namespace v8App
             }
             else
             {
+                size_t realContextIndex = provider->RealContextIndex(m_SnapIndex);
                 // Coming from a snapshot we don't have to create the global template
                 context = V8Context::FromSnapshot(isolate,
-                                                  provider->RealContextIndex(m_SnapIndex),
+                                                  realContextIndex,
                                                   provider->GetInternalDeserializerCallback(),
                                                   nullptr,
                                                   V8MBLValue(),
@@ -231,6 +235,21 @@ namespace v8App
                                                   provider->GetContextDeserializerCallaback(this))
                               .ToLocalChecked();
                 // The weak ptr gets attached during deserialization
+                JSRuntimeSnapDataSharedPtr snapData = m_Runtime->GetRuntimeSnapData();
+                if(snapData == nullptr)
+                {
+                    LOG_ERROR("Snapshot provider returned a null JSRuntimeSnapData");
+                    return false;
+                }
+                if(realContextIndex >= snapData->m_ContextData.size())
+                {
+                    LOG_ERROR("M_SnapIndex is out of the context snap data");
+                    return false;
+                }
+                if(m_Modules->RestoreModules(snapData->m_ContextData[realContextIndex]->m_Modules) == false)
+                {
+                    return false;
+                }
             }
 
             if (tryCatch.HasCaught())
@@ -239,7 +258,6 @@ namespace v8App
                 return false;
             }
 
-            m_Modules = std::make_shared<JSContextModules>(shared_from_this());
 
             m_Context.Reset(isolate, context);
             m_Initialized = true;
@@ -336,31 +354,48 @@ namespace v8App
             inBuffer >> m_Namespace;
         }
 
+        bool JSContext::MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, v8App::Serialization::WriteBuffer &inBuffer)
+        {
+            inBuffer << m_Name;
+            inBuffer << m_Namespace;
+            if (inBuffer.HasErrored())
+            {
+                return false;
+            }
+            return m_Modules->MakeSnapshot(inCreator, inBuffer);
+        }
+
+        JSContextSnapDataSharedPtr JSContext::LoadSnapshotData(v8App::Serialization::ReadBuffer &inBuffer)
+        {
+            JSContextSnapDataSharedPtr data = std::make_shared<JSContextSnapData>();
+            inBuffer >> data->m_Name;
+            inBuffer >> data->m_Namespace;
+            if (inBuffer.HasErrored())
+            {
+                return nullptr;
+            }
+            m_Modules = std::make_shared<JSContextModules>(shared_from_this());
+            if (m_Modules->LoadSnapshotData(inBuffer, *data) == false)
+            {
+                return nullptr;
+            }
+            return data;
+        }
+
         V8LValue JSContext::RunEntryPoint(bool inSnapshotting)
         {
-            std::filesystem::path entryPoint;
-            if (inSnapshotting)
-            {
-                entryPoint = GetSnapshotEntrypoint();
-            }
-            else
-            {
-                entryPoint = GetEntrypoint();
-            }
-
-            // if no entry point then return
-            if (entryPoint == "")
+            if (m_EntryPoint == "")
             {
                 return V8LValue();
             }
 
-            return RunModule(entryPoint);
+            return RunModule(m_EntryPoint);
         }
 
         JSContextSharedPtr JSContext::CloneForSnapshot(JSRuntimeSharedPtr inRuntime)
         {
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, m_Name, m_Namespace,
-                                                                     m_EntryPoint, m_SnapIndex, m_SnapEntryPoint,
+                                                                     m_EntryPoint, m_SnapIndex,
                                                                      m_SupportsSnapshots, m_SnapMethod);
             // create it's context
             if (context->CreateContext() == false)

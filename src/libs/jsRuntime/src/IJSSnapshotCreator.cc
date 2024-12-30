@@ -13,6 +13,11 @@ namespace v8App
             return v8::SerializeInternalFieldsCallback(&IJSSnapshotCreator::SerializeInternalField_Internal, this);
         }
 
+        v8::SerializeAPIWrapperCallback IJSSnapshotCreator::GetAPIWrapperSerializerCallaback()
+        {
+            return v8::SerializeAPIWrapperCallback(&IJSSnapshotCreator::SerializeAPIWrapperField_Internal, this);
+        }
+
         v8::SerializeContextDataCallback IJSSnapshotCreator::GetContextSerializerCallback()
         {
             return v8::SerializeContextDataCallback(&IJSSnapshotCreator::SerializeContextInternalField_Internal, this);
@@ -24,6 +29,17 @@ namespace v8App
             if (provider != nullptr)
             {
                 return provider->SerializeInternalField(inHolder, inIndex);
+            }
+            return {nullptr, 0};
+        }
+
+        V8StartupData IJSSnapshotCreator::SerializeAPIWrapperField_Internal(V8LObject inHolder, void* inCppObject, void *inData)
+        {
+            IJSSnapshotCreator *provider = static_cast<IJSSnapshotCreator *>(inData);
+            CppBridge::V8CppObjectBase* base = static_cast<CppBridge::V8CppObjectBase*>(inCppObject);
+            if (provider != nullptr && base != nullptr)
+            {
+                return provider->SerializeAPIWrapperField(inHolder, base);
             }
             return {nullptr, 0};
         }

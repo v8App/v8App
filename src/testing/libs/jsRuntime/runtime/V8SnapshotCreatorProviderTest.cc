@@ -11,6 +11,8 @@
 #include "V8Fixture.h"
 #include "TestFiles.h"
 
+#include "Utils/Format.h"
+
 #include "JSApp.h"
 #include "JSRuntime.h"
 #include "V8SnapshotCreator.h"

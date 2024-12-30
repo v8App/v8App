@@ -19,6 +19,16 @@ namespace v8App
              */
             class V8CppObjectBase : public std::enable_shared_from_this<V8CppObjectBase>, public ISnapshotHandleCloser
             {
+            public:
+                /**
+                 * overrided by the V8CppObject to return the V8CppObjInfo typename
+                 */
+                virtual std::string GetTypeName() { return s_BaseInfo.m_TypeName; }
+                /**
+                 * overrided by the V8CppObject to return the V8CppObjInfo type info
+                 */
+                virtual const V8CppObjInfo &GetTypeInfo() { return s_BaseInfo; }
+
             protected:
                 V8CppObjectBase() {};
                 virtual ~V8CppObjectBase() {}
@@ -40,11 +50,6 @@ namespace v8App
                     return V8MBLObject(V8LObject::New(inIsolate, m_Object));
                 }
 
-                /**
-                 * overrided by the V8CppObject to return the V8CppObjInfo typename
-                 */
-                virtual std::string GetTypeName() { return std::string(); }
-
             protected:
                 /**
                  * Creates the jsObject and sets up it's internal fields
@@ -53,9 +58,11 @@ namespace v8App
                 /**
                  * Hides the trace method and allows us to keep the object private
                  */
-                void TraceBase(cppgc::Visitor *visitor) const {}// visitor->Trace(m_Object); }
+                void TraceBase(cppgc::Visitor *visitor) const {} // visitor->Trace(m_Object); }
 
             private:
+                static inline V8CppObjInfo s_BaseInfo{"CppBaseObject", nullptr, nullptr};
+
                 bool m_Dead = false;
                 v8::TracedReference<V8Object> m_Object;
 

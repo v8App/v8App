@@ -64,7 +64,7 @@ namespace v8App
                  * Takes an v8 value and ifi t's an object then attempts to fetch
                  * the cp object form and convert to the type specified
                  */
-                static cppgc::Member<T> GetCppObject(V8LValue inValue)
+                static cppgc::Member<T> GetCppObject(V8Isolate* inisolate, V8LValue inValue)
                 {
                     if (inValue->IsObject() == false)
                     {
@@ -72,16 +72,7 @@ namespace v8App
                     }
 
                     V8LObject jsObject = V8LObject::Cast(inValue);
-                    if (jsObject->InternalFieldCount() < (int)V8CppObjDataIntField::MaxInternalFields)
-                    {
-                        return nullptr;
-                    }
-                    V8CppObjInfo *objInfo = V8CppObjInfo::From(jsObject);
-                    if (objInfo != &T::s_V8CppObjInfo)
-                    {
-                        return nullptr;
-                    }
-                    return static_cast<T *>(static_cast<V8CppObjectBase *>(jsObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance)));
+                    return static_cast<T *>(static_cast<V8CppObjectBase *>(V8Object::Unwrap<v8::CppHeapPointerTag::kDefaultTag>(inisolate, jsObject)));
                 }
 
                 /**
@@ -119,7 +110,6 @@ namespace v8App
                     {
                         return V8CppObjHandle<T>();
                     }
-                    gcObject->m_CppHolder = gcObject;
                     return V8CppObjHandle<T>(inTarget, gcObject);
                 }
 
@@ -131,13 +121,6 @@ namespace v8App
                  * V8CppObject::Trace(visitor);
                  */
                 virtual void Trace(cppgc::Visitor *visitor) const { V8CppObjectBase::TraceBase(visitor); }
-
-            protected:
-                /**
-                 * We need to hold a heap persisten handle to keep the object
-                 * around or else it'll get GCed
-                 */
-                cppgc::Persistent<T> m_CppHolder;
 
             private:
                 V8CppObject(const V8CppObject &) = delete;
@@ -153,9 +136,10 @@ namespace v8App
                     return inValue->GetJSObject(inIsolate);
                 }
 
+                //TODO: Look at acutally passing a member in so it's tracked
                 static bool From(V8Isolate *inIsolate, V8LValue inValue, T **outValue)
                 {
-                    cppgc::Member<T> gcObj = V8CppObject<T>::GetCppObject(inValue);
+                    cppgc::Member<T> gcObj = V8CppObject<T>::GetCppObject(inIsolate, inValue);
                     *outValue = gcObj.Get();
                     return *outValue != nullptr;
                 }
@@ -169,6 +153,7 @@ namespace v8App
  */
 #define DEF_V8CPP_OBJ_FUNCTIONS(ClassName)                                                                                                  \
     virtual std::string GetTypeName() override { return s_V8CppObjInfo.m_TypeName; }                                                        \
+    virtual const CppBridge::V8CppObjInfo& GetTypeInfo() override { return s_V8CppObjInfo; }                                                        \
     static CppBridge::V8CppObjectBase *DeserializeCppObject(V8Isolate *inIsolate, V8LObject inObject, Serialization::ReadBuffer &inBuffer); \
     static void SerializeCppObject(Serialization::WriteBuffer &inBuffer, void *inCppObject);                                                \
     static void RegisterClassFunctions();                                                                                                   \

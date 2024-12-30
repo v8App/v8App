@@ -89,6 +89,7 @@ v8App_test(
         "runtime/ForegroundTaskRunnerTest.cc",
         "runtime/JSContextModulesDeathTest.cc",
         "runtime/JSContextModulesTest.cc",
+        "runtime/JSModuleAttributesInfoTest.cc",
         "runtime/JSModuleInfotest.cc",
         "runtime/JSUtilitiesTest.cc",
         "runtime/NestableQueueTest.cc",

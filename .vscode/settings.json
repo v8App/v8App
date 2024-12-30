@@ -111,7 +111,8 @@
         "scoped_allocator": "cpp",
         "typeindex": "cpp",
         "valarray": "cpp",
-        "gsl_util": "cpp"
+        "gsl_util": "cpp",
+        "print": "cpp"
     },
     "gtest-adapter.debugConfig": [
         "test libJSRuntimeCore Debug",

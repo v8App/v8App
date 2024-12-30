@@ -10,8 +10,10 @@
 #include "gmock/gmock.h"
 
 #include "V8Fixture.h"
+#include "Utils/Format.h"
 
 #include "Assets/TextAsset.h"
+#include "Utils/Format.h"
 
 #include "JSApp.h"
 #include "JSUtilities.h"
@@ -31,15 +33,15 @@ namespace v8App
             JSContextSharedPtr GetJSContext() { return m_Context; }
             void SetJSContext(JSContextSharedPtr inContext) { m_Context = inContext; }
 
-            JSModuleInfoSharedPtr TestBuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
+            JSModuleInfoSharedPtr TestBuildModuleInfo(JSModuleAttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
             {
                 return BuildModuleInfo(inAttributesInfo, inImportPath, inCurrentModPath);
             }
 
             JSModuleInfoSharedPtr TestLoadModuleTree(JSContextSharedPtr inContext, JSModuleInfoSharedPtr inModInfo) { return LoadModuleTree(inContext, inModInfo); }
 
-            bool TestAddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType) { return AddModule(inModule, inFileName, inModuleType); }
-            JSModuleInfoSharedPtr TestGetModuleInfoByModule(V8LModule inModule, JSModuleInfo::ModuleType inType) { return GetModuleInfoByModule(inModule, inType); }
+            bool TestAddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleType inModuleType) { return AddModule(inModule, inFileName, inModuleType); }
+            JSModuleInfoSharedPtr TestGetModuleInfoByModule(V8LModule inModule, JSModuleType inType) { return GetModuleInfoByModule(inModule, inType); }
         };
 
         TEST_F(JSContextModulesTest, ConstrcutorGetIsolate)
@@ -54,7 +56,7 @@ namespace v8App
         {
             TestJSContextModules jsModules(m_Context);
             JSModuleInfoSharedPtr info;
-            JSModuleInfo::AttributesInfo attributesInfo;
+            JSModuleAttributesInfo attributesInfo;
             std::filesystem::path rootPath = m_App->GetAppRoot()->GetAppRoot();
 
             V8Isolate::Scope iScope(m_Isolate);
@@ -85,13 +87,12 @@ namespace v8App
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%JS%/testModule.txt");
             attributesInfo.m_Module = "";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", attributesInfo.m_TypeString, testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", JSModuleInfo::ModuleTypeToString(attributesInfo.m_Type), testPath));
 
             tryCatch.Reset();
             // non module info returned
@@ -142,13 +143,12 @@ namespace v8App
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%RESOURCES%/testModule.txt");
             attributesInfo.m_Module = "";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-            attributesInfo.m_TypeString = "json";
+            attributesInfo.m_Type = JSModuleType::kJSON;
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type json. Importpath: {}", testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type JSON. Importpath: {}", testPath));
 
             tryCatch.Reset();
             // non module info returned
@@ -164,13 +164,12 @@ namespace v8App
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%MODULES%/builModInfo/test.json");
             attributesInfo.m_Module = "";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", attributesInfo.m_TypeString, testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", JSModuleInfo::ModuleTypeToString(attributesInfo.m_Type), testPath));
 
             // module attributed but module not the module
             tryCatch.Reset();
@@ -243,9 +242,8 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             // failed to load script
@@ -270,7 +268,8 @@ namespace v8App
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
                       "Uncaught SyntaxError: Unexpected token '-'");
             expected = {
-                {Log::MsgKey::Msg, Utils::format("Uncaught SyntaxError: Unexpected token '-'\n{}:1:SyntaxError: Unexpected token '-'\n", info->GetModulePath().generic_string())},
+                {Log::MsgKey::Msg, Utils::format("Got an error compiling module {}", info->GetModulePath())},
+                {Log::MsgKey::StackTrace, Utils::format("Uncaught SyntaxError: Unexpected token '-'\n{}:1:SyntaxError: Unexpected token '-'\n", info->GetModulePath().generic_string())},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
@@ -315,9 +314,8 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-            attributesInfo.m_TypeString = "json";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJSON;
             info->SetAttributesInfo(attributesInfo);
 
             // failed to load the json
@@ -389,9 +387,8 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             info->SetPath(appRoot / std::filesystem::path("js/loadModuleImport.mjs"));
@@ -416,9 +413,8 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             info->SetPath(appRoot / std::filesystem::path("js/importModuleDynamic.js"));
@@ -442,9 +438,8 @@ namespace v8App
 
             std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             // unknown asssertion
@@ -474,7 +469,7 @@ namespace v8App
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      "Uncaught TypeError: File type doesn't match specified type json. Importpath: \"./importFile.js\"");
+                      "Uncaught TypeError: File type doesn't match specified type JSON. Importpath: \"./importFile.js\"");
 
             // type js attributes
             tryCatch.Reset();
@@ -491,7 +486,7 @@ namespace v8App
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      "Uncaught TypeError: File type doesn't match specified type native. Importpath: \"./importFile.js\"");
+                      "Uncaught TypeError: File type doesn't match specified type Native. Importpath: \"./importFile.js\"");
 
             // type unknown attributes
             tryCatch.Reset();

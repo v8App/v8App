@@ -4,16 +4,17 @@
             "name": "Release",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/third_party/v8/include",
                 "${workspaceFolder}/src/libs/application/include",
                 "${workspaceFolder}/src/libs/core/include",
                 "${workspaceFolder}/src/libs/jsRuntime/include",
                 "${workspaceFolder}/src/testing",
                 "${workspaceFolder}/src/testing/libs/testUtils",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
-                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
-                "${workspaceFolder}/bazel-v8App"
+                "${workspaceFolder}/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App",
+                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
                 "UNICODE",
@@ -35,10 +36,12 @@
                 "${workspaceFolder}/src/libs/jsRuntime/include",
                 "${workspaceFolder}/src/testing",
                 "${workspaceFolder}/src/testing/libs/testUtils",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
-                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
-                "${workspaceFolder}/bazel-v8App"
+                "${workspaceFolder}/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App",
+                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
                 "V8APP_DEBUG",
@@ -56,16 +59,17 @@
             "name": "Testing Release",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/third_party/v8/include",
                 "${workspaceFolder}/src/libs/application/include",
                 "${workspaceFolder}/src/libs/core/include",
                 "${workspaceFolder}/src/libs/jsRuntime/include",
                 "${workspaceFolder}/src/testing",
                 "${workspaceFolder}/src/testing/libs/testUtils",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
-                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
-                "${workspaceFolder}/bazel-v8App"
+                "${workspaceFolder}/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App",
+                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
                 "UNICODE",
@@ -89,10 +93,12 @@
                 "${workspaceFolder}/src/libs/jsRuntime/include",
                 "${workspaceFolder}/src/testing",
                 "${workspaceFolder}/src/testing/libs/testUtils",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googlemock/include",
-                "${workspaceFolder}/bazel-v8App/external/com_google_googletest/googletest/include",
-                "${workspaceFolder}/bazel-v8App/external/bazel_tools",
-                "${workspaceFolder}/bazel-v8App"
+                "${workspaceFolder}/external/com_google_googletest/googlemock/include",
+                "${workspaceFolder}/external/com_google_googletest/googletest/include",
+                "${workspaceFolder}/external/bazel_tools",
+                "${workspaceFolder}/bazel-v8App",
+                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
                 "V8APP_DEBUG",

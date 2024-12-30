@@ -38,10 +38,8 @@ namespace v8App
                         return V8LObject();
                     }
                 }
-                int indexes[] = {(int)V8CppObjDataIntField::CppHeapID, (int)V8CppObjDataIntField::ObjInfo, (int)V8CppObjDataIntField::ObjInstance};
-                void *values[] = {runtime->GetCppHeapID(), inInfo, this};
-                inObject->SetAlignedPointerInInternalFields((int)V8CppObjDataIntField::MaxInternalFields, indexes, values);
-                m_Object.Reset(runtime->GetIsolate(), inObject);
+                V8Object::Wrap<v8::CppHeapPointerTag::kDefaultTag>(isolate, inObject, this);
+                m_Object.Reset(isolate, inObject);
                 runtime->RegisterSnapshotHandleCloser(this);
 
                 return inObject;

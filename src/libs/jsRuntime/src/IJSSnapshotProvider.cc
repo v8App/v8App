@@ -24,6 +24,11 @@ namespace v8App
             return v8::DeserializeInternalFieldsCallback(IJSSnapshotProvider::DeserializeInternalField_Internal, this);
         }
 
+        v8::DeserializeAPIWrapperCallback IJSSnapshotProvider::GetAPIWrapperDeserializerCallback()
+        {
+            return v8::DeserializeAPIWrapperCallback(IJSSnapshotProvider::DeserializeAPIWrapperField_Internal, this);
+        }
+
         v8::DeserializeContextDataCallback IJSSnapshotProvider::GetContextDeserializerCallaback(JSContext *inJSContext)
         {
             return v8::DeserializeContextDataCallback(IJSSnapshotProvider::DeserializeContextInternalField_Internal, inJSContext);
@@ -35,6 +40,15 @@ namespace v8App
             if (provider != nullptr)
             {
                 provider->DeserializeInternalField(inHolder, inIndex, inPayload);
+            }
+        }
+
+        void IJSSnapshotProvider::DeserializeAPIWrapperField_Internal(V8LObject inHolder, V8StartupData inPayload, void *inData)
+        {
+            IJSSnapshotProvider *provider = static_cast<IJSSnapshotProvider*>(inData);
+            if (provider != nullptr)
+            {
+                provider->DeserializeAPIWrapperField(inHolder, inPayload);
             }
         }
 

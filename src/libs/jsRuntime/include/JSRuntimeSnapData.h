@@ -8,6 +8,7 @@
 #include <string>
 
 #include "Containers/NamedIndexes.h"
+#include "JSContextSnapData.h"
 
 namespace v8App
 {
@@ -27,6 +28,8 @@ namespace v8App
             std::unique_ptr<char[]> m_StartupDeleter{nullptr};
 
             Containers::NamedIndexes m_ContextIndexes;
+
+            std::vector<JSContextSnapDataSharedPtr> m_ContextData;
         };
     }
 }

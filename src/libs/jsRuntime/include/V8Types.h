@@ -1,3 +1,7 @@
+// Copyright 2020 - 2024 The v8App Authors. All rights reserved.
+// Use of this source code is governed by a MIT license that can be
+// found in the LICENSE file.
+
 #ifndef __V8_TYPES_H__
 #define __V8_TYPES_H__
 
@@ -132,6 +136,7 @@ namespace v8App
 
         using V8SourceLocation = v8::SourceLocation;
 
+        using V8UnboundModScript = v8::UnboundModuleScript;
         using V8LUnboundModScript = v8::Local<v8::UnboundModuleScript>;
         using V8GUnboundModScript = v8::Global<v8::UnboundModuleScript>;
 
@@ -177,9 +182,6 @@ namespace v8App
         using V8HighAllocationThroughputObserver = v8::HighAllocationThroughputObserver;
         using V8HighAllocationThroughputObserverUniquePtr = std::unique_ptr<v8::HighAllocationThroughputObserver>;
 
-        using V8ZoneBackingAllocator = v8::ZoneBackingAllocator;
-        using V8ZoneBackingAllocatorUniquePtr = std::unique_ptr<v8::ZoneBackingAllocator>;
-
         using V8ScopedBlockingCall = v8::ScopedBlockingCall;
         using V8ScopedBlockingCallUniquePtr = std::unique_ptr<v8::ScopedBlockingCall>;
 
@@ -205,6 +207,7 @@ namespace v8App
         using IJSSnapshotCreatorSharedPtr = std::shared_ptr<class IJSSnapshotCreator>;
         using IJSRuntimeProviderSharedPtr = std::shared_ptr<class IJSRuntimeProvider>;
         using IJSContextProviderSharedPtr = std::shared_ptr<class IJSContextProvider>;
+        using JSContextSnapDataSharedPtr = std::shared_ptr<class JSContextSnapData>;
 
         using V8SnapshotProviderSharedPtr = std::shared_ptr<class V8SnapshotProvider>;
 
@@ -213,6 +216,9 @@ namespace v8App
 
         using JSContextModulesWeakPtr = std::weak_ptr<class JSContextModules>;
         using JSContextModulesSharedPtr = std::shared_ptr<JSContextModules>;
+
+        using JSModuleInfoSharedPtr = std::shared_ptr<class JSModuleInfo>;
+        using JSModuleInfoWeakPre = std::weak_ptr<class JSModuleInfo>;
 
         using JSSnapshotCreatorUniquePtr = std::unique_ptr<class JSSnapshotCreator>;
 
@@ -266,10 +272,10 @@ namespace v8App
             Running
         };
 
-            /**
-             * Struct that holds the provider classes to manage runtimes, contextes and snapshots
-             */
-            struct AppProviders
+        /**
+         * Struct that holds the provider classes to manage runtimes, contextes and snapshots
+         */
+        struct AppProviders
         {
             AppProviders() {}
             AppProviders(IJSSnapshotProviderSharedPtr inSnapshotProvider, IJSRuntimeProviderSharedPtr inRuntimeProvider,
@@ -283,6 +289,19 @@ namespace v8App
             IJSRuntimeProviderSharedPtr m_RuntimeProvider;
             IJSContextProviderSharedPtr m_ContextProvider;
             IJSSnapshotCreatorSharedPtr m_SnapshotCreator;
+        };
+
+        /**
+         * Enum for the types of JS Modules
+         */
+        enum class JSModuleType
+        {
+            kInvalid,
+            kJavascript,
+            kJSON,
+            kNative,
+            kNoAttribute, //This one is only used with the AttributesInfo and is internal
+            kMaxModType
         };
     }
 }

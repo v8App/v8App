@@ -32,6 +32,7 @@ namespace v8App
              * Serializers for the snapshot
              */
             virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) override { return {nullptr, 0}; }
+            virtual V8StartupData SerializeAPIWrapperField(V8LObject inHolder, CppBridge::V8CppObjectBase* inObject) override { return {nullptr, 0}; }
             virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) override { return {nullptr, 0}; }
         };
 

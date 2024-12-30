@@ -4,6 +4,7 @@
 
 #include "Serialization/WriteBuffer.h"
 #include "Serialization/TypeSerializer.h"
+#include "Utils/Format.h"
 
 #include "CppBridge/CallbackRegistry.h"
 #include "CppBridge/V8CppObjInfo.h"
@@ -76,39 +77,24 @@ namespace v8App
 
         V8StartupData V8AppSnapshotCreator::SerializeInternalField(V8LObject inHolder, int inIndex)
         {
+            //TODO: Add a system similiar for the ObjInfo being stored in an internal field
+            //for dynamic modules to be able to set info
+            //Serialization::WriteBuffer wBuffer;
+
+            return {nullptr, 0};
+        }
+
+        V8StartupData V8AppSnapshotCreator::SerializeAPIWrapperField(V8LObject inHolder, CppBridge::V8CppObjectBase* inObject)
+        {
             Serialization::WriteBuffer wBuffer;
 
-            // Index 0 is hte object info but we can't do anythign with it without the actual cpp object
-            if (inIndex == (int)V8CppObjDataIntField::ObjInfo)
+            const CppBridge::V8CppObjInfo& info = inObject->GetTypeInfo();
+            if(info.m_Serializer != nullptr)
             {
-                CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
-                if (info == nullptr)
+                wBuffer << info.m_TypeName;
+                info.m_Serializer(wBuffer, inObject);
+                if(wBuffer.HasErrored() == false)
                 {
-                    // should prboably thow an error here
-                    return {nullptr, 0};
-                }
-                wBuffer << info->m_TypeName;
-                if (wBuffer.HasErrored())
-                {
-                    // should throw an error here
-                    return {nullptr, 0};
-                }
-                return {wBuffer.GetDataNew(), (int)wBuffer.BufferSize()};
-            }
-            if (inIndex == (int)V8CppObjDataIntField::ObjInstance)
-            {
-                CppBridge::V8CppObjInfo *info = CppBridge::V8CppObjInfo::From(inHolder);
-                if (info->m_Serializer != nullptr)
-                {
-                    void *instance = inHolder->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInstance);
-                    CppBridge::V8CppObjectBase *temp = reinterpret_cast<CppBridge::V8CppObjectBase *>(instance);
-                    info->m_Serializer(wBuffer, instance);
-
-                    if (wBuffer.HasErrored())
-                    {
-                        // should thorw and error here
-                        return {nullptr, 0};
-                    }
                     return {wBuffer.GetDataNew(), (int)wBuffer.BufferSize()};
                 }
             }

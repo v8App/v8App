@@ -57,6 +57,7 @@ namespace v8App
 
             V8Isolate *GetIsolate() const;
 
+            void SetJSContext(JSContextSharedPtr inContext) { m_Context = inContext; }
             /**
              * LoadEntryPoint takes a path that should be rooted under the app root and can be absolute or relative.
              */
@@ -86,37 +87,47 @@ namespace v8App
              */
             static void SetupModulesCallbacks(V8Isolate *inIsolate);
 
-            bool 
-
             /**
              * Genrates the code cache for the modules that have been instantiated
-             * and do not already have code cache data. NOTE: If modules are in a state 
+             * and do not already have code cache data. NOTE: If modules are in a state
              * of Evaluating, Evaluated or Errored then their code cache won't be generated.
-            */
+             */
             void GenerateCodeCache();
+
+            /**
+             * Create the snapshot data for the modules
+             */
+            bool MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, Serialization::WriteBuffer &inBuffer);
+            /**
+             * Loads the snapshot data for later restoration
+             */
+            bool LoadSnapshotData(Serialization::ReadBuffer &inBuffer, JSContextSnapData &inContextSnapData);
+            /**
+             * Rstores all the modules info for the context
+             */
+            bool RestoreModules(const std::vector<JSModuleInfo::SnapshotData> &inModInfoSnapData);
 
         protected:
             /**
              * Adds a module to the map tracking that it's been loaded
              */
-            bool AddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType);
-            JSModuleInfoSharedPtr GetModuleInfoByModule(V8LModule inModule, JSModuleInfo::ModuleType inType = JSModuleInfo::ModuleType::kInvalid);
+            bool AddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleType inModuleType);
+            JSModuleInfoSharedPtr GetModuleInfoByModule(V8LModule inModule, JSModuleType inType = JSModuleType::kInvalid);
 
             /**
              * Parses the import Attributes and returns the info attributed
              */
-            JSModuleInfo::AttributesInfo GetModuleAttributesInfo(JSContextSharedPtr inContext, V8LFixedArray inAttributes);
 
-            JSModuleInfoSharedPtr BuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath);
+            JSModuleInfoSharedPtr BuildModuleInfo(JSModuleAttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath);
 
             /**
              * Callback for V8 to dynamically load imports
              */
             static V8MBLPromise HostImportModuleDynamically(V8LContext inContext,
-                                                                   V8LData inDefinedOptions,
-                                                                   V8LValue inResourceName,
-                                                                   V8LString inSpecifier,
-                                                                   V8LFixedArray import_attributes);
+                                                            V8LData inDefinedOptions,
+                                                            V8LValue inResourceName,
+                                                            V8LString inSpecifier,
+                                                            V8LFixedArray import_attributes);
 
             /**
              * A Microtask run by V8 that handles the actual importing
@@ -155,7 +166,7 @@ namespace v8App
 
             JSContextSharedPtr m_Context;
 
-            std::map<std::pair<std::string, JSModuleInfo::ModuleType>, JSModuleInfoSharedPtr> m_ModuleMap;
+            std::map<std::pair<std::string, JSModuleType>, JSModuleInfoSharedPtr> m_ModuleMap;
 
             JSContextModules(const JSContextModules &) = delete;
             JSContextModules &operator=(const JSContextModules &) = delete;

@@ -156,8 +156,8 @@ namespace v8App
         {
             CHECK_NOT_NULL(m_Isolate.get());
 
-            //if they pass an empty string make it global
-            if(inNamespace == "")
+            // if they pass an empty string make it global
+            if (inNamespace == "")
             {
                 inNamespace = "global";
             }
@@ -197,17 +197,17 @@ namespace v8App
             // Register all teh normal functions on the global
             for (auto const &it : m_FunctionTemplates)
             {
-                V8LFuncTpl tpl =it.second.Get(m_Isolate.get());
+                V8LFuncTpl tpl = it.second.Get(m_Isolate.get());
                 inGlobal->Set(inContext,
                               JSUtilities::StringToV8(m_Isolate.get(), it.first),
                               tpl->GetFunction(inContext).ToLocalChecked());
             }
-            if(inNamespace == "")
+            if (inNamespace == "")
             {
                 inNamespace = "global";
             }
-            
-            std::vector<std::string> namespaces { "global" };
+
+            std::vector<std::string> namespaces{"global"};
             if (inNamespace != "global")
             {
                 namespaces.push_back(inNamespace);
@@ -220,7 +220,7 @@ namespace v8App
                 if (nit == m_NamespaceObjInfo.end())
                 {
                     // don't complain about the global namespace
-                    if(name == "global")
+                    if (name == "global")
                     {
                         continue;
                     }
@@ -238,16 +238,15 @@ namespace v8App
         }
 
         JSContextSharedPtr JSRuntime::CreateContext(std::string inName, std::filesystem::path inEntryPoint, std::string inNamespace,
-                                                    std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
+                                                    bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
         {
             if (GetContextProvider() == nullptr || m_App->GetSnapshotProvider() == nullptr)
             {
                 return nullptr;
             }
-            size_t contextIndex = m_App->GetSnapshotProvider()->GetIndexForContextName(inName, m_SnapshotIndex);
             JSContextSharedPtr context = GetContextProvider()->CreateContext(shared_from_this(), inName,
-                                                                             inNamespace, inEntryPoint, inSnapEntryPoint,
-                                                                             inSupportsSnapshot, inSnapMethod, contextIndex);
+                                                                             inNamespace, inEntryPoint,
+                                                                             inSupportsSnapshot, inSnapMethod, 0);
             if (context == nullptr)
             {
                 Log::LogMessage message;
@@ -258,6 +257,50 @@ namespace v8App
             {
                 m_Contextes.insert(std::make_pair(inName, context));
                 // m_ContextProvider->RegisterSnapshotCloser(context);
+            }
+            return context;
+        }
+
+        JSContextSharedPtr JSRuntime::CreateContextFromSnapshot(std::string inName, std::string inIndexName, bool inSupportsSnapshot,
+                                                                SnapshotMethod inSnapMethod)
+        {
+            if (m_App->GetSnapshotProvider() == nullptr)
+            {
+                LOG_ERROR("SnapshotProvider hasn't been set");
+                return nullptr;
+            }
+
+            size_t contextIndex = m_App->GetSnapshotProvider()->GetIndexForContextName(inIndexName, m_SnapshotIndex);
+            if (m_App->GetSnapshotProvider()->IsContextIndexValid(contextIndex, m_SnapshotIndex) == false)
+            {
+                Log::Log::Error(Utils::format("ContextHelper Says that the intext Index {} is invalid", inIndexName));
+                return nullptr;
+            }
+            return CreateContextFromSnapshot(inName, contextIndex, inSupportsSnapshot, inSnapMethod);
+        }
+
+        JSContextSharedPtr JSRuntime::CreateContextFromSnapshot(std::string inName, size_t inIndex, bool inSupportsSnapshot,
+                                                                SnapshotMethod inSnapMethod)
+        {
+            if (GetContextProvider() == nullptr || m_App->GetSnapshotProvider() == nullptr)
+            {
+                LOG_ERROR("ContextProvider helpr or SnapshotProvider hasn't been set");
+                return nullptr;
+            }
+            if (m_App->GetSnapshotProvider()->IsContextIndexValid(inIndex, m_SnapshotIndex) == false)
+            {
+                LOG_ERROR(Utils::format("ContextHelper Says that the intext Index {} is invalid", inIndex));
+                return nullptr;
+            }
+            JSContextSharedPtr context = GetContextProvider()->CreateContext(shared_from_this(), inName, "", "",
+                                                                             inSupportsSnapshot, inSnapMethod, inIndex);
+            if (context == nullptr)
+            {
+                Log::Log::Error("ContextHelper returned a nullptr for the context");
+            }
+            else
+            {
+                m_Contextes.insert(std::make_pair(inName, context));
             }
             return context;
         }
@@ -380,6 +423,7 @@ namespace v8App
                     return false;
                 }
 
+                inBuffer << m_Contextes.size();
                 for (auto [name, context] : m_Contextes)
                 {
                     if (context->SupportsSnapshots() == false)
@@ -393,6 +437,10 @@ namespace v8App
                     size_t index = m_Creator->AddContext(v8Context, snapCreator->GetInternalSerializerCallaback(),
                                                          snapCreator->GetContextSerializerCallback()) +
                                    1;
+                    if (context->MakeSnapshot(m_Creator, inBuffer) == false)
+                    {
+                        return false;
+                    }
                     if (contextIndexes.AddNamedIndex(index, name) == false)
                     {
                         LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));
@@ -434,6 +482,18 @@ namespace v8App
                 LOG_ERROR("Buffer read failed on reading runtime idle enabled");
                 return {};
             }
+            size_t numContextes;
+            inBuffer >> numContextes;
+            for (size_t idx = 0; idx < numContextes; idx++)
+            {
+                JSContextSharedPtr context = std::make_shared<JSContext>();
+                JSContextSnapDataSharedPtr data = context->LoadSnapshotData(inBuffer);
+                if (data == nullptr)
+                {
+                    return {};
+                }
+                snapData->m_ContextData.push_back(data);
+            }
 
             inBuffer >> snapData->m_ContextIndexes;
             if (inBuffer.HasErrored())
@@ -465,6 +525,20 @@ namespace v8App
         bool JSRuntime::RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData)
         {
             return false;
+        }
+
+        JSRuntimeSnapDataSharedPtr JSRuntime::GetRuntimeSnapData()
+        {
+            JSAppSnapDataSharedPtr snapData = m_App->GetSnapshotProvider()->GetJSAppSnapData();
+            if(snapData == nullptr)
+            {
+                return nullptr;
+            }
+            if(m_Initialized == false)
+            {
+                return nullptr;
+            }
+            return snapData->m_RuntimesSnapData[m_SnapshotIndex];
         }
 
         void JSRuntime::CloseOpenHandlesForSnapshot()
@@ -582,9 +656,7 @@ namespace v8App
             params.array_buffer_allocator =
                 V8ArrayBuffer::Allocator::NewDefaultAllocator();
 
-            V8CppHeapUniquePtr heap = V8CppHeap::Create(
-                V8AppPlatform::Get().get(),
-                v8::CppHeapCreateParams({}, v8::WrapperDescriptor((int)V8CppObjDataIntField::ObjInfo, (int)V8CppObjDataIntField::ObjInstance, m_CppHeapID)));
+            V8CppHeapUniquePtr heap = V8CppHeap::Create(V8AppPlatform::Get().get(), v8::CppHeapCreateParams({}));
             params.cpp_heap = heap.get();
             // the isolate will own the heap so release it
             heap.release();
@@ -660,19 +732,18 @@ namespace v8App
         };
     } // namespace JSRuntime
 
-    bool Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>::Serialize(Serialization::BaseBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue)
+    bool Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>::SerializeRead(Serialization::ReadBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue)
     {
-        if (inBuffer.IsReader())
-        {
-            bool enabled;
-            inBuffer >> enabled;
+        bool enabled;
+        inBuffer >> enabled;
 
-            inValue = enabled ? v8App::JSRuntime::IdleTaskSupport::kEnabled : v8App::JSRuntime::IdleTaskSupport::kDisabled;
-        }
-        else
-        {
-            inBuffer << (inValue == v8App::JSRuntime::IdleTaskSupport::kEnabled ? true : false);
-        }
+        inValue = enabled ? v8App::JSRuntime::IdleTaskSupport::kEnabled : v8App::JSRuntime::IdleTaskSupport::kDisabled;
+        return true;
+    }
+
+    bool Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>::SerializeWrite(Serialization::WriteBuffer &inBuffer, const v8App::JSRuntime::IdleTaskSupport &inValue)
+    {
+        inBuffer << (inValue == v8App::JSRuntime::IdleTaskSupport::kEnabled ? true : false);
         return true;
     }
 } // namespace v8App

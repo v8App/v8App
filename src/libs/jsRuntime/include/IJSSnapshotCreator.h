@@ -9,6 +9,7 @@
 
 #include "V8Types.h"
 #include "ISnapshotObject.h"
+#include "CppBridge/V8CppObjBase.h"
 
 namespace v8App
 {
@@ -35,6 +36,7 @@ namespace v8App
              * Serializers for the snapshot
              */
             virtual V8StartupData SerializeInternalField(V8LObject inHolder, int inIndex) = 0;
+            virtual V8StartupData SerializeAPIWrapperField(V8LObject inHolder, CppBridge::V8CppObjectBase* inObject) = 0;
             virtual V8StartupData SerializeContextInternalField(V8LContext inHolder, int inIndex) = 0;
 
             /**
@@ -42,12 +44,14 @@ namespace v8App
              * the internal callbacks are setup correctly below
              */
             v8::SerializeInternalFieldsCallback GetInternalSerializerCallaback();
+            v8::SerializeAPIWrapperCallback GetAPIWrapperSerializerCallaback();
             v8::SerializeContextDataCallback GetContextSerializerCallback();
 
             /**
              * Internal serializers that get the provider and call the real serializer for it
              */
             static V8StartupData SerializeInternalField_Internal(V8LObject inHolder, int inIndex, void *inData);
+            static V8StartupData SerializeAPIWrapperField_Internal(V8LObject inHolder, void* inCppObject, void *inData);
             static V8StartupData SerializeContextInternalField_Internal(V8LContext inHolder, int inIndex, void *inData);
         };
 

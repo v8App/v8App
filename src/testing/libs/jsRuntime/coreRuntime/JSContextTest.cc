@@ -24,9 +24,9 @@ namespace v8App
         {
         public:
             TestJSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
-                          size_t inContextIndex, std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                          size_t inContextIndex, bool inSupportsSnapshot = true,
                           SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly)
-                : JSContext(inRuntime, inName, inNamespace, inEntryPoint, inContextIndex, inSnapEntryPoint, inSupportsSnapshot, inSnapMethod) {}
+                : JSContext(inRuntime, inName, inNamespace, inEntryPoint, inContextIndex, inSupportsSnapshot, inSnapMethod) {}
             virtual ~TestJSContext() = default;
 
             void SetInit(bool inValue) { m_Initialized = inValue; }
@@ -36,7 +36,6 @@ namespace v8App
             bool TestCreateContext() { return CreateContext(); }
             void TestDisposeContext() { DisposeContext(); }
             void SetJSRuntime(JSRuntimeSharedPtr inRuntime) { m_Runtime = inRuntime; }
-            void ClearSnapEntry() { m_SnapEntryPoint = ""; }
 
             JSContextWeakPtr *TestGetContextWeakRef() { return GetContextWeakRef(); }
 
@@ -53,7 +52,7 @@ namespace v8App
             V8IsolateScope isolateScope(isolate);
             V8HandleScope handleScope(isolate);
 
-            TestJSContext context(runtime, "test:test", "test", "testEntry", 0, "testSnapEntry", false, SnapshotMethod::kNamespaceAndEntrypoint);
+            TestJSContext context(runtime, "test:test", "test", "testEntry", 0, false, SnapshotMethod::kNamespaceAndEntrypoint);
 
             EXPECT_EQ(runtime->GetIsolate(), context.GetIsolate());
             EXPECT_EQ(runtime, context.GetJSRuntime());
@@ -66,14 +65,11 @@ namespace v8App
             EXPECT_FALSE(context.SupportsSnapshots());
             EXPECT_EQ(SnapshotMethod::kNamespaceAndEntrypoint, context.GetSnapshotMethod());
             EXPECT_EQ("testEntry", context.GetEntrypoint());
-            EXPECT_EQ("testSnapEntry", context.GetSnapshotEntrypoint());
             EXPECT_FALSE(context.IsInitialized());
             EXPECT_TRUE(context.ContextEmpty());
 
             context.ClearIsolate();
-            context.ClearSnapEntry();
             EXPECT_EQ(nullptr, context.GetIsolate());
-            EXPECT_EQ("testEntry", context.GetSnapshotEntrypoint());
         }
 
         TEST_F(JSContextTest, CreateDisposeContext)
@@ -117,7 +113,7 @@ namespace v8App
             V8IsolateScope isolateScope(isolate);
             V8HandleScope handleScope(isolate);
 
-            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test", "test", "test", 0, "testSnap", false, SnapshotMethod::kNamespaceAndEntrypoint);
+            std::shared_ptr<TestJSContext> context = std::make_shared<TestJSContext>(runtime, "test", "test", "test", 0, false, SnapshotMethod::kNamespaceAndEntrypoint);
             context->TestCreateContext();
             std::shared_ptr<TestJSContext> context2 = std::make_shared<TestJSContext>(runtime, "", "", "", 0);
 
@@ -135,7 +131,6 @@ namespace v8App
             EXPECT_EQ("test", context2->GetName());
             EXPECT_EQ("test", context2->GetNamespace());
             EXPECT_EQ("test", context2->GetEntrypoint());
-            EXPECT_EQ("testSnap", context2->GetSnapshotEntrypoint().string());
             EXPECT_FALSE(context2->SupportsSnapshots());
             EXPECT_EQ(0, context->GetSnapshotIndex());
             EXPECT_EQ(SnapshotMethod::kNamespaceAndEntrypoint, context2->GetSnapshotMethod());
@@ -197,7 +192,7 @@ namespace v8App
         {
             JSRuntimeSharedPtr runtime = m_App->GetMainRuntime();
 
-            JSContextSharedPtr jsContext = runtime->CreateContext("runModules", "", "", "", false, SnapshotMethod::kNamespaceOnly);
+            JSContextSharedPtr jsContext = runtime->CreateContext("runModules", "", "", false, SnapshotMethod::kNamespaceOnly);
             ASSERT_NE(nullptr, jsContext);
 
             const char* testSource1 = R"(

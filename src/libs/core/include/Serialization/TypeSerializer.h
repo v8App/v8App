@@ -122,7 +122,7 @@ namespace v8App
          * take care of the direction of the data.
          */
         template <typename T>
-        BaseBuffer &operator<<(WriteBuffer &inBuffer, T inValue)
+        BaseBuffer &operator<<(WriteBuffer &inBuffer, const T &inValue)
         {
             if (TypeSerializer<T>::SerializeWrite(inBuffer, inValue) == false)
             {

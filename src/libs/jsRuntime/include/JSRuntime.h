@@ -104,11 +104,16 @@ namespace v8App
             void RegisterNamespaceFunctionsOnGlobal(std::string inNamespace, V8LContext inContext, V8LObject inGlobal);
 
             /**
-             * Creates a JSContext with the specified namespace.
-             * If no namespace is provided then returns the default v8 context
+             * Creates a JSContext with the specified namespace using a plain v8 context.
              */
             JSContextSharedPtr CreateContext(std::string inName, std::filesystem::path inEntryPoint, std::string inNamespace = "",
-                                             std::filesystem::path inSnapEntryPoint = "", bool inSupportsSnapshot = true,
+                                             bool inSupportsSnapshot = true, SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
+            /**
+             * Creates a JSContext with from specified snapshot index.
+             */
+            JSContextSharedPtr CreateContextFromSnapshot(std::string inName, std::string inIndexName, bool inSupportsSnapshot = false,
+                                             SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
+            JSContextSharedPtr CreateContextFromSnapshot(std::string inName, size_t inIndex, bool inSupportsSnapshot = false,
                                              SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
             /**
              * Gets the JSContext with the specified name
@@ -194,6 +199,7 @@ namespace v8App
             virtual JSRuntimeSnapDataSharedPtr LoadSnapshotData(Serialization::ReadBuffer &inBuffer);
             virtual bool RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData);
 
+            virtual JSRuntimeSnapDataSharedPtr GetRuntimeSnapData();
         protected:
             /**
              * Uses the name context's name, namespace and snap method to reolve the context's index name in the snapshot
@@ -315,7 +321,8 @@ namespace v8App
     template <>
     struct Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>
     {
-        static bool Serialize(BaseBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue);
+        static bool SerializeRead(ReadBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue);
+        static bool SerializeWrite(WriteBuffer &inBuffer, const v8App::JSRuntime::IdleTaskSupport &inValue);
     };
 } // namespace v8App
 #endif

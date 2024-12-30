@@ -61,8 +61,6 @@ namespace v8App
                 void SetValue(int inValue) { m_Value = inValue; }
                 int GetValue() { return m_Value; }
 
-                void ClearPersistent() { m_CppHolder.Clear(); }
-
                 static inline TestV8CppObject *objInstance = nullptr;
 
             protected:
@@ -149,7 +147,6 @@ namespace v8App
                         std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
                         ASSERT_TRUE(false);
                     }
-                     TestV8CppObject::objInstance->ClearPersistent();
 
                     isolate->RequestGarbageCollectionForTesting(V8Isolate::GarbageCollectionType::kFullGarbageCollection);
                     EXPECT_EQ(nullptr, TestV8CppObject::objInstance);

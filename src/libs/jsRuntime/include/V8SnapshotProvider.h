@@ -38,10 +38,33 @@ namespace v8App
             /**
              * The Stadnard V8 Sanpshot just has the default context
              */
-            virtual size_t GetIndexForContextName(std::string inName, std::string inRuntimeName) override { return 0; };
-            virtual size_t GetIndexForContextName(std::string inName, size_t inRuntimeIndex) override { return 0; };
+            virtual size_t GetIndexForContextName(std::string inName, std::string inRuntimeName) override
+            {
+                return 0;
+            };
+            virtual size_t GetIndexForContextName(std::string inName, size_t inRuntimeIndex) override
+            {
+                return 0;
+            };
+
             /**
-             * V8 Snapshot provider has no otehr contexts than the defualt V8 one which is 
+             * The standard v8 index has only the one isolate so 0 is the only valid index
+             */
+            virtual bool IsRuntimeIndexValid(size_t inIndex) override { return inIndex == 0; }
+            /**
+             * The Stadnard V8 Sanpshot just has the default context so 0 is the only valid index
+             */
+            virtual bool IsContextIndexValid(size_t inIndex, std::string inRuntimeName) override
+            {
+                return inIndex == 0 && inRuntimeName == "";
+            }
+            virtual bool IsContextIndexValid(size_t inIndex, size_t inRuntimeIndex) override
+            {
+                return inIndex == 0 && inRuntimeIndex == 0;
+            }
+
+            /**
+             * V8 Snapshot provider has no other contexts than the defualt V8 one which is
              * always 0
              */
             virtual size_t RealContextIndex(size_t inNamedIndex) override { return 0; };
@@ -59,10 +82,16 @@ namespace v8App
             virtual const intptr_t *GetExternalReferences() override { return nullptr; }
 
             /**
+             * The Standard V8 Snapshot has no JSApp snapshot data.
+             */
+            virtual const JSAppSnapDataSharedPtr GetJSAppSnapData() override { return {}; }
+
+            /**
              * Deserializers for the snapshot
              */
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override {};
-            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext* inJSContext) override {};
+            virtual void DeserializeAPIWrapperField(V8LObject inHolder, V8StartupData inPayload) override {};
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext *inJSContext) override {};
 
         protected:
             /**

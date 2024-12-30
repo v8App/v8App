@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "uuid/uuid.h"
+#include "Utils/Format.h"
 
 #include "CppBridge/CallbackRegistry.h"
 #include "V8ContextProvider.h"
@@ -14,7 +15,7 @@ namespace v8App
     namespace JSRuntime
     {
         JSContextSharedPtr V8ContextProvider::CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
-                                                            std::filesystem::path inEntryPoint, std::filesystem::path inSnapEntryPoint, bool inSupportsSnapshot,
+                                                            std::filesystem::path inEntryPoint, bool inSupportsSnapshot,
                                                             SnapshotMethod inSnapMethod, size_t inContextIndex)
         {
             V8Isolate::Scope iScope(inRuntime->GetIsolate());
@@ -32,7 +33,7 @@ namespace v8App
             CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(inRuntime, inNamespace);
 
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, inName, inNamespace, inEntryPoint, inContextIndex,
-                                                                     inSnapEntryPoint, inSupportsSnapshot, inSnapMethod);
+                                                                     inSupportsSnapshot, inSnapMethod);
             if (context->CreateContext() == false)
             {
                 context->DisposeContext();
@@ -47,7 +48,7 @@ namespace v8App
             }
 
             // if the context index is not 0 then no need to run the entry point
-            if (context->GetSnapshotIndex() > -1)
+            if (context->GetSnapshotIndex() > 0)
             {
                 return context;
             }

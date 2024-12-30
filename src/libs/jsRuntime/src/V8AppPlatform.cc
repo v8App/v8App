@@ -48,15 +48,6 @@ namespace v8App
             return m_ThreadIsolatedAllocator.get();
         }
 
-        V8ZoneBackingAllocator *V8AppPlatform::GetZoneBackingAllocator()
-        {
-            if (m_ZoneBlockingAllocator == nullptr)
-            {
-                return V8Platform::GetZoneBackingAllocator();
-            }
-            return m_ZoneBlockingAllocator.get();
-        }
-
         void V8AppPlatform::OnCriticalMemoryPressure()
         {
             // for now we do nothing
@@ -153,14 +144,6 @@ namespace v8App
             if (s_PlatformInited != false && inObserver != nullptr)
             {
                 m_HighAllocObserver.reset(inObserver);
-            }
-        }
-
-        void V8AppPlatform::SetZoneBlockingAllocator(V8ZoneBackingAllocator *inZoneAllocator)
-        {
-            if (s_PlatformInited != false && inZoneAllocator != nullptr)
-            {
-                m_ZoneBlockingAllocator.reset(inZoneAllocator);
             }
         }
 

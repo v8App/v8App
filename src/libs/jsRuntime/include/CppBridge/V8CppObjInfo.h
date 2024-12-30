@@ -41,18 +41,9 @@ namespace v8App
                 V8CppObjInfo(std::string inTypeName, SerializeCppObject inSerializer, DeserializeCppObject inDeserializer)
                     : m_TypeName(inTypeName), m_JsClassName(inTypeName), m_Serializer(inSerializer), m_Deserializer(inDeserializer) {}
                 /**
-                 * Gets the Object info form the Object
+                 * Gets the Object info from the Object
                  */
-                static V8CppObjInfo *From(V8LObject inObject)
-                {
-                    if (inObject->InternalFieldCount() != (int)V8CppObjDataIntField::MaxInternalFields)
-                    {
-                        return nullptr;
-                    }
-                    V8CppObjInfo *info = static_cast<V8CppObjInfo *>(
-                        inObject->GetAlignedPointerFromInternalField((int)V8CppObjDataIntField::ObjInfo));
-                    return info;
-                }
+                static const V8CppObjInfo *From(V8LObject inObject);
 
                 /**
                  * The type name of the native obj usually the class name

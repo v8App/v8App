@@ -30,7 +30,6 @@ namespace v8App
             // v8::platform interface
             virtual V8PageAllocator *GetPageAllocator() override;
             virtual V8ThreadIsolatedAllocator *GetThreadIsolatedAllocator() override;
-            virtual V8ZoneBackingAllocator *GetZoneBackingAllocator() override;
             virtual void OnCriticalMemoryPressure() override;
             virtual int NumberOfWorkerThreads() override;
             virtual V8TaskRunnerSharedPtr GetForegroundTaskRunner(V8Isolate *inIsolate, V8TaskPriority priority) override;
@@ -53,7 +52,6 @@ namespace v8App
             void SetPageAllocator(V8PageAllocator *inAllocator);
             void SetThreadIsolatatedAllocator(V8ThreadIsolatedAllocator *inAllocator);
             void SetHighAllocatoionObserver(V8HighAllocationThroughputObserver *inObserver);
-            void SetZoneBlockingAllocator(V8ZoneBackingAllocator *inZoneAllocator);
 
             void SetIsolateHelper(PlatformRuntimeProviderUniquePtr inHelper);
 
@@ -108,7 +106,6 @@ namespace v8App
             V8PageAllocatorUniquePtr m_PageAllocator;
             V8ThreadIsolatedAllocatorUniquePtr m_ThreadIsolatedAllocator;
             V8HighAllocationThroughputObserverUniquePtr m_HighAllocObserver;
-            V8ZoneBackingAllocatorUniquePtr m_ZoneBlockingAllocator;
 
             int m_NumberOfWorkers;
 

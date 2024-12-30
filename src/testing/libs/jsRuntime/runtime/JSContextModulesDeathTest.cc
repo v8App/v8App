@@ -12,6 +12,7 @@
 
 #include "JSApp.h"
 #include "JSContext.h"
+#include "JSModuleAttributesInfo.h"
 
 namespace v8App
 {
@@ -44,9 +45,8 @@ namespace v8App
             ASSERT_DEATH({
                 std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
                 JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-                JSModuleInfo::AttributesInfo attributesInfo;
-                attributesInfo.m_Type = JSModuleInfo::ModuleType::kInvalid;
-                attributesInfo.m_TypeString = "invalid";
+                JSModuleAttributesInfo attributesInfo;
+                attributesInfo.m_Type = JSModuleType::kInvalid;
                 info->SetAttributesInfo(attributesInfo);
                 TestJSContextDeathModules jsModules(m_Context);
 
