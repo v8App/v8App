@@ -178,6 +178,10 @@ int main(int argc, char **argv)
     s_V8StartupData = v8App::JSRuntime::V8StartupData{buf.release(), dataLength};
 
     v8::V8::SetFlagsFromString("--expose_gc");
+    //TODO: remove once we can turn off the shared cage or v8 exposes the IsolateGroup
+    //Using this to get our snapshot testing to work can lead to corruption of the 
+    //read only heap space
+    v8::V8::SetFlagsFromString("--stress_snapshot");
 
     v8App::JSRuntime::PlatformRuntimeProviderUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
     v8App::JSRuntime::V8AppPlatform::InitializeV8(std::move(helper));

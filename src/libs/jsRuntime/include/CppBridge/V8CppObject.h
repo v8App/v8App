@@ -72,7 +72,7 @@ namespace v8App
                     }
 
                     V8LObject jsObject = V8LObject::Cast(inValue);
-                    return static_cast<T *>(static_cast<V8CppObjectBase *>(V8Object::Unwrap<v8::CppHeapPointerTag::kDefaultTag>(inisolate, jsObject)));
+                    return static_cast<T*>(V8Object::Unwrap<V8CppObjectBase>(inisolate, jsObject, v8::kAnyCppHeapPointer));
                 }
 
                 /**

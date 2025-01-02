@@ -68,7 +68,7 @@ namespace v8App
                 V8LValue result;
                 if (script1->Run(m_Isolate->GetCurrentContext()).ToLocal(&result) == false)
                 {
-                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
+                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(m_Isolate, try_catch) << std::endl;
                      EXPECT_TRUE(false);
                }
             }

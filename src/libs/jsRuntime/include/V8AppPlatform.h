@@ -109,7 +109,7 @@ namespace v8App
 
             int m_NumberOfWorkers;
 
-            static bool s_PlatformDestoryed;
+            static bool s_PlatformDestroyed;
             static bool s_PlatformInited;
 
             PlatformRuntimeProviderUniquePtr m_IsolateHelper;

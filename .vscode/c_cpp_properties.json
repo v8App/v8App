@@ -13,7 +13,7 @@
                 "${workspaceFolder}/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/external/bazel_tools",
                 "${workspaceFolder}/bazel-v8App",
-                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/bazel-out/*/bin/third_party/v8/_virtual_includes",
                 "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
@@ -40,7 +40,7 @@
                 "${workspaceFolder}/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/external/bazel_tools",
                 "${workspaceFolder}/bazel-v8App",
-                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/bazel-out/*/bin/third_party/v8/_virtual_includes",
                 "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
@@ -68,7 +68,7 @@
                 "${workspaceFolder}/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/external/bazel_tools",
                 "${workspaceFolder}/bazel-v8App",
-                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/bazel-out/*/bin/third_party/v8/_virtual_includes",
                 "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [
@@ -97,7 +97,7 @@
                 "${workspaceFolder}/external/com_google_googletest/googletest/include",
                 "${workspaceFolder}/external/bazel_tools",
                 "${workspaceFolder}/bazel-v8App",
-                "${workspaceFolder}/bazel-bin/third_party/v8/_virtual_includes",
+                "${workspaceFolder}/bazel-out/*/bin/third_party/v8/_virtual_includes",
                 "${workspaceFolder}/third_party/v8/include"
             ],
             "defines": [

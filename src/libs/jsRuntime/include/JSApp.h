@@ -97,9 +97,9 @@ namespace v8App
              * Create a new isolate that runs separate from the app's main runtime
              */
             JSRuntimeSharedPtr CreateJSRuntimeFromName(std::string inRuntimeName, std::string inSnapRuntimeName = kDefaulV8tRuntimeName, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
-                                               IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
+                                                       IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
             JSRuntimeSharedPtr CreateJSRuntimeFromIndex(std::string inRuntimeName, size_t inSanpRuntimeIndex = kDefaultV8RutimeIndex, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
-                                               IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
+                                                        IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
             /**
              * Gets the specified JSRuntime by it's name. You can fetch the main runtime as well
              * by it's name which is <app_name>-main
@@ -136,6 +136,9 @@ namespace v8App
              * Whether the app has neem initialized or not yet
              */
             bool IsInitialized() { return m_AppState >= JSAppStates::Initialized; }
+            /**
+             * Is the app in a running state
+             */
             bool IsRunning() { return m_AppState == JSAppStates::Running; }
 
             /**
@@ -143,6 +146,9 @@ namespace v8App
              */
             bool IsSnapshotApp() { return m_IsSnapshotter; }
 
+            /**
+             * Clones this app for snapshotting
+             */
             JSAppSharedPtr CloneAppForSnapshotting();
 
             /**
@@ -163,10 +169,25 @@ namespace v8App
              */
             virtual JSAppSnapDataSharedPtr CreateSnapData() { return std::make_shared<JSAppSnapData>(); }
 
+            /**
+             * Gets the app version
+             */
             Utils::VersionString &GetAppVersion() { return m_AppVersion; }
-
+            /**
+             * Sets teh app version by string
+             */
+            void SetAppVersion(std::string inVersion);
+            /**
+             * Sets the version by Version class
+             */
+            void SetAppVersion(const Utils::VersionString &inVersion);
+            /**
+             * Function to create the class from serialized type string
+             */
             static JSAppSharedPtr AppCreator() { return std::make_shared<JSApp>(); }
-
+            /**
+             * Returns the class's type strign used when serializing
+             */
             virtual std::string GetClassType() { return s_ClassType; }
 
         protected:
@@ -196,25 +217,37 @@ namespace v8App
              */
             virtual bool CloneAppForSnapshot(JSAppSharedPtr inClonee);
 
+            /**
+             * Name of the app
+             */
             std::string m_Name;
 
-            /** The JS rutime for the this app */
+            /**
+             * The JS rutime for the this app
+             */
             JSRuntimeSharedPtr m_MainRuntime;
 
-            /** Other runtimes created that are not main */
+            /**
+             * Other runtimes created that are not main
+             */
             using JSRuntimesMap = std::map<std::string, JSRuntimeSharedPtr>;
             JSRuntimesMap m_Runtimes;
 
             /**
+             * The version of the app
+             */
+            Utils::VersionString m_AppVersion{"0.0.0"};
+
+            /** Non Snoapshot properties
+             * ***************************************/
+            /** 
              * Holds the order of runtime creation so that when snapshotting
-             * we can reverse the order do to the v8::SanpshotCreator automaticlly 
-             * entering the isolate when it's created and we need to reverse the 
+             * we can reverse the order do to the v8::SanpshotCreator automaticlly
+             * entering the isolate when it's created and we need to reverse the
              * destory order so they exit in reverse or we get an error
              */
             std::vector<JSRuntimeSharedPtr> m_DestroyOrder;
 
-            // Non Snoapshot properties
-            //****************************************/
             /** The struct that holds the varois app providers */
             AppProviders m_AppProviders;
 
@@ -229,8 +262,6 @@ namespace v8App
 
             /** Is this instance initialized*/
             JSAppStates m_AppState{JSAppStates::Uninitialized};
-
-            Utils::VersionString m_AppVersion;
         };
 
         REGISTER_JSAPP_CREATOR(JSApp, JSApp::AppCreator)

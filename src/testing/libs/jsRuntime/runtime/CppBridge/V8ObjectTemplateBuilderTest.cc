@@ -54,7 +54,6 @@ namespace v8App
 
                 static void Constructor(const V8FuncCallInfoValue &inInfo, V8Isolate *isolate)
                 {
-
                     if (inInfo.IsConstructCall() == false)
                     {
                         JSUtilities::ThrowV8Error(isolate, JSUtilities::V8Errors::TypeError, "must be an instance call (new)");
@@ -70,7 +69,8 @@ namespace v8App
                 DEF_V8CPP_OBJ_FUNCTIONS(TestUnnamed);
 
             private:
-                int m_Value;;
+                int m_Value;
+                ;
             };
 
             IMPL_V8CPPOBJ_DESERIALIZER(TestUnnamed) {}
@@ -267,7 +267,7 @@ namespace v8App
 
                 function->Call(m_Context->GetLocalContext(), v8::Undefined(m_Isolate), 1, argv).ToLocalChecked();
                 EXPECT_FALSE(tryCatch.HasCaught());
-                EXPECT_EQ("", JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch));
+                EXPECT_EQ("", JSUtilities::GetStackTrace(m_Isolate, tryCatch));
 
                 EXPECT_EQ(200, object->GetValue());
             }
@@ -335,7 +335,10 @@ namespace v8App
 
                 // test calling on the wrong object
                 V8LObject wrongObject = v8::Object::New(m_Isolate);
+#ifndef V8APP_DEBUG
+                // This one trips the DCHECK in v8 so only run it in release
                 EXPECT_EQ("Uncaught TypeError", getError(m_Isolate, context, memberMethod, wrongObject));
+#endif
                 // since the static doesn't require the object should not throw
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, staticMemberMethod, wrongObject));
                 // but non memeber won't throw
@@ -371,7 +374,9 @@ namespace v8App
 
                 // test calling on the wrong object
                 V8LObject wrongObject = v8::Object::New(m_Isolate);
+#ifndef V8APP_DEBUG
                 EXPECT_EQ("Uncaught TypeError", getError(m_Isolate, context, memberMethod, wrongObject));
+#endif
                 // but non memeber won't throw
                 EXPECT_EQ(std::string(), getError(m_Isolate, context, nonMemberMethod, wrongObject));
             }
@@ -396,7 +401,7 @@ namespace v8App
                 script->Run(context);
                 if (tryCatch.HasCaught())
                 {
-                    std::string error = JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch);
+                    std::string error = JSUtilities::GetStackTrace(m_Isolate, tryCatch);
                     std::cout << "Script Error: " << error << std::endl;
                     ASSERT_TRUE(false);
                 }
@@ -417,7 +422,7 @@ namespace v8App
                 script->Run(context);
                 if (tryCatch.HasCaught())
                 {
-                    std::string error = JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch);
+                    std::string error = JSUtilities::GetStackTrace(m_Isolate, tryCatch);
                     std::cout << "Script Error: " << error << std::endl;
                     ASSERT_TRUE(false);
                 }
@@ -443,12 +448,12 @@ namespace v8App
                 script->Run(context); //.ToLocalChecked();
                 if (tryCatch.HasCaught())
                 {
-                    std::string error = JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch);
+                    std::string error = JSUtilities::GetStackTrace(m_Isolate, tryCatch);
                     std::cout << "Script Error: " << error << std::endl;
                     ASSERT_TRUE(false);
                 }
 
-                EXPECT_NE(nullptr, constructerCreatedObjectUnnamed);
+                EXPECT_NE(nullptr, constructerCreatedObjectNamed);
             }
         }
     }

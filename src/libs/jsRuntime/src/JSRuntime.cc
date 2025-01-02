@@ -48,7 +48,6 @@ namespace v8App
             m_ObjectTemplates = std::move(inRuntime.m_ObjectTemplates);
             m_Creator = std::move(inRuntime.m_Creator);
             m_IsSnapshotter = inRuntime.m_IsSnapshotter;
-            m_CppHeapID = inRuntime.m_CppHeapID;
 
             m_Initialized = inRuntime.m_Initialized;
             inRuntime.m_Initialized = false;
@@ -415,7 +414,7 @@ namespace v8App
 
                     // we always add a v8 context to the snapshot so nothing is ever assigned
                     m_Creator->SetDefaultContext(defaultContext, snapCreator->GetInternalSerializerCallaback(),
-                                                 snapCreator->GetContextSerializerCallback());
+                                                 snapCreator->GetContextSerializerCallback(), snapCreator->GetAPIWrapperSerializerCallaback());
                 }
 
                 if (contextIndexes.AddNamedIndex(JSRuntime::kDefaultV8ContextIndex, JSRuntime::kDefaultV8ContextName) == false)
@@ -432,15 +431,15 @@ namespace v8App
                     }
 
                     V8LContext v8Context = context->GetLocalContext();
-                    // we add one since for us index 0 is the default context and the above added default context is
-                    //  not factored into the indexes for v8 that AddContext returns
-                    size_t index = m_Creator->AddContext(v8Context, snapCreator->GetInternalSerializerCallaback(),
-                                                         snapCreator->GetContextSerializerCallback()) +
-                                   1;
                     if (context->MakeSnapshot(m_Creator, inBuffer) == false)
                     {
                         return false;
                     }
+                    // we add one since for us index 0 is the default context and the above added default context is
+                    //  not factored into the indexes for v8 that AddContext returns
+                    size_t index = m_Creator->AddContext(v8Context, snapCreator->GetInternalSerializerCallaback(),
+                                                         snapCreator->GetContextSerializerCallback(), snapCreator->GetAPIWrapperSerializerCallaback()) +
+                                   1;
                     if (contextIndexes.AddNamedIndex(index, name) == false)
                     {
                         LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));

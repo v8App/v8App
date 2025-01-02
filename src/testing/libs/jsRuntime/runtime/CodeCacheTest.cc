@@ -53,14 +53,14 @@ namespace v8App
                 EXPECT_TRUE(V8ScriptCompiler::CompileModule(isolate, source, option).ToLocal(&module));
                 if (tryCatch.HasCaught())
                 {
-                    std::string stack = JSUtilities::GetStackTrace(context, tryCatch);
+                    std::string stack = JSUtilities::GetStackTrace(isolate, tryCatch);
                     std::cout << stack << std::endl;
                     return -1;
                 }
                 module->InstantiateModule(context, UnresovledCallback);
                 if (tryCatch.HasCaught())
                 {
-                    std::string stack = JSUtilities::GetStackTrace(context, tryCatch);
+                    std::string stack = JSUtilities::GetStackTrace(isolate, tryCatch);
                     std::cout << stack << std::endl;
                     return -1;
                 }
@@ -74,7 +74,7 @@ namespace v8App
                 EXPECT_EQ(promise->State(), V8Promise::kFulfilled);
                 if (tryCatch.HasCaught())
                 {
-                    std::string stack = JSUtilities::GetStackTrace(context, tryCatch);
+                    std::string stack = JSUtilities::GetStackTrace(isolate, tryCatch);
                     std::cout << stack << std::endl;
                     return -1;
                 }

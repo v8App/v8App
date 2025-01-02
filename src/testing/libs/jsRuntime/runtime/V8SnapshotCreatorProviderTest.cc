@@ -37,9 +37,9 @@ namespace v8App
             Log::Log::SetLogLevel(Log::LogLevel::Error);
             logSink->FlushMessages();
 
-            std::filesystem::path testRoot = s_TestDir / "ConstrcutorInitializeDispose";
+            std::filesystem::path testRoot = s_TestDir / "CreateLoadSnapshot";
             EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
-            std::string appName = "testJSAppV8BaseSnapshotCreatorProvider";
+            std::string appName = "testJSAppV8SnapshotCreatorProvider";
 
             std::filesystem::path snapshotFile = "v8snapshot.bin";
             snapshotFile = testRoot / snapshotFile;
@@ -148,6 +148,7 @@ namespace v8App
             // test that we can load and runa some scripts in it
             ASSERT_TRUE(snapProvider->LoadSnapshotData(snapshotFile));
 
+            const V8StartupData* orig = m_App->GetSnapshotProvider()->GetSnapshotData();
             AppProviders providers = m_Providers;
             providers.m_SnapshotProvider = snapProvider;
 

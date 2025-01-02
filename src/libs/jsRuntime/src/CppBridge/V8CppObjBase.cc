@@ -25,7 +25,6 @@ namespace v8App
                     return V8LObject();
                 }
 
-                // TODO: Look at removing this as we may be able to use the object passed in FunctionCallbackInfo.This()
                 if (deserializing == false)
                 {
                     V8LFuncTpl objTpl = runtime->GetClassFunctionTemplate(inInfo);
@@ -40,10 +39,21 @@ namespace v8App
                 }
                 V8Object::Wrap<v8::CppHeapPointerTag::kDefaultTag>(isolate, inObject, this);
                 m_Object.Reset(isolate, inObject);
+                m_Object.SetWeak(this, V8CppObjectBase::WeakCallback, v8::WeakCallbackType::kParameter);
                 runtime->RegisterSnapshotHandleCloser(this);
 
                 return inObject;
             }
+
+            void V8CppObjectBase::WeakCallback(const v8::WeakCallbackInfo<V8CppObjectBase> &inInfo)
+            {
+                V8CppObjectBase* baseObj = inInfo.GetParameter();
+                if(baseObj != nullptr)
+                {
+                    baseObj->m_Object.Reset();
+                }
+            }
+
         }
     }
 }

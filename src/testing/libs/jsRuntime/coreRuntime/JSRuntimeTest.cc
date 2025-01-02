@@ -122,7 +122,6 @@ namespace v8App
             EXPECT_EQ(nullptr, runtime->GetSnapshotCreator());
             EXPECT_FALSE(runtime->IsSnapshotRuntime());
             EXPECT_EQ(nullptr, runtime->GetCppHeap());
-            EXPECT_EQ(1, *runtime->GetCppHeapID());
             EXPECT_EQ(nullptr, runtime->GetContextProvider());
             EXPECT_FALSE(runtime->IsInitialzed());
         }
@@ -141,7 +140,6 @@ namespace v8App
             EXPECT_EQ(nullptr, runtime->GetSnapshotCreator());
             EXPECT_FALSE(runtime->IsSnapshotRuntime());
             EXPECT_NE(nullptr, runtime->GetCppHeap());
-            EXPECT_EQ(1, *runtime->GetCppHeapID());
             EXPECT_EQ(m_App->GetContextProvider(), runtime->GetContextProvider());
             EXPECT_TRUE(runtime->IsInitialzed());
 
@@ -343,6 +341,5 @@ namespace v8App
 
             snapApp->DisposeApp();
         }
-
     }
 }

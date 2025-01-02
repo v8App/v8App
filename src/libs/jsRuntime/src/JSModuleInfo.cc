@@ -154,16 +154,16 @@ namespace v8App
 
             data.m_Type = m_Type;
             data.m_Path = m_Path;
-            data.m_Version = m_Version.GetVersionString();;
+            data.m_Version = m_Version.GetVersionString();
             data.m_ModuleName = m_ModuleName;
-            m_Version.SetVersionString(data.m_Version);
             data.m_AtrribInfo = m_AttributesInfo;
 
             if (m_Module.IsEmpty() == false)
             {
-                data.m_ModuleDataIndex = inCreator->AddData(context, m_Module.Get(isolate));
+                V8LModule module = m_Module.Get(isolate);
+                data.m_ModuleDataIndex = inCreator->AddData(context, module);
                 // Have to release the global for the snapshot
-                m_Module.Reset();
+                // m_Module.Reset();
                 data.m_SaveModule = true;
             }
             if (m_JSON.IsEmpty() == false)
@@ -184,6 +184,12 @@ namespace v8App
 
         void JSModuleInfo::RestoreV8Module(const SnapshotData &inSnapData)
         {
+            m_Type = inSnapData.m_Type;
+            m_ModuleName = inSnapData.m_ModuleName;
+            m_Path = inSnapData.m_Path;
+            m_Version.SetVersionString(inSnapData.m_Version);
+            m_AttributesInfo = inSnapData.m_AtrribInfo;
+            
             V8Isolate *isolate = m_Context->GetIsolate();
             V8IsolateScope iScope(isolate);
             V8HandleScope hScope(isolate);
@@ -192,11 +198,13 @@ namespace v8App
 
             if (inSnapData.m_SaveModule)
             {
-                m_Module.Reset(isolate, context->GetDataFromSnapshotOnce<V8Module>(inSnapData.m_ModuleDataIndex).ToLocalChecked());
+                V8LModule restored = context->GetDataFromSnapshotOnce<V8Module>(inSnapData.m_ModuleDataIndex).ToLocalChecked();
+                m_Module.Reset(isolate, restored);
             }
             if (inSnapData.m_SavedJSON)
             {
-                m_JSON.Reset(isolate, context->GetDataFromSnapshotOnce<V8Value>(inSnapData.m_JSONModuleDataIndex).ToLocalChecked());
+                V8LValue restored = context->GetDataFromSnapshotOnce<V8Value>(inSnapData.m_JSONModuleDataIndex).ToLocalChecked();
+                m_JSON.Reset(isolate, restored);
             }
             // if (m_SavedScript)
             //{

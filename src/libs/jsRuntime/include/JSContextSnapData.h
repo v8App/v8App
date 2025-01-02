@@ -24,6 +24,7 @@ namespace v8App
             // name of the app
             std::string m_Name;
             std::string m_Namespace;
+            std::string m_EntryPoint;
             std::vector<JSModuleInfo::SnapshotData> m_Modules;
         };
     }

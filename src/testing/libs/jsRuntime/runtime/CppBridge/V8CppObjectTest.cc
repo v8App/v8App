@@ -132,7 +132,7 @@ namespace v8App
                     V8LValue result;
                     if (script1->Run(context).ToLocal(&result) == false)
                     {
-                        std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
+                        std::cout << "Script Error: " << JSUtilities::GetStackTrace(isolate, try_catch) << std::endl;
                         ASSERT_TRUE(false);
                     }
 
@@ -144,7 +144,7 @@ namespace v8App
 
                     if (script2->Run(context).ToLocal(&result) == false)
                     {
-                        std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
+                        std::cout << "Script Error: " << JSUtilities::GetStackTrace(isolate, try_catch) << std::endl;
                         ASSERT_TRUE(false);
                     }
 

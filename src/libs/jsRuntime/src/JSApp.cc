@@ -295,6 +295,20 @@ namespace v8App
             return false;
         }
 
+        void JSApp::SetAppVersion(std::string inVersion)
+        {
+            Utils::VersionString version(inVersion);
+            SetAppVersion(version);
+        }
+
+        void JSApp::SetAppVersion(const Utils::VersionString &inVersion)
+        {
+            if (inVersion.IsVersionString())
+            {
+                m_AppVersion = inVersion;
+            }
+        }
+
         JSRuntimeSharedPtr JSApp::CreateJSRuntimeFromName(std::string inRuntimeName, std::string inSnapRuntimeName,
                                                           JSRuntimeSnapshotAttributes inSnapAttribute,
                                                           IdleTaskSupport inEnableIdleTasks)
@@ -378,7 +392,7 @@ namespace v8App
             }
             GetRuntimeProvider()->DisposeRuntime(it->second);
             auto vIt = std::find(m_DestroyOrder.begin(), m_DestroyOrder.end(), it->second);
-             if (vIt != m_DestroyOrder.end())
+            if (vIt != m_DestroyOrder.end())
             {
                 m_DestroyOrder.erase(vIt);
             }

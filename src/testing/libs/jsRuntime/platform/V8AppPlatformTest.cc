@@ -18,12 +18,13 @@ namespace v8App
         class TestForegroundTaskRunner : public v8::TaskRunner
         {
         public:
-            virtual void PostTask(V8TaskUniquePtr task) override {}
+            virtual bool IdleTasksEnabled() override { return true; }
 
-            virtual void PostDelayedTask(V8TaskUniquePtr task,
-                                         double delay_in_seconds) override {}
-            virtual void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override {}
-            virtual bool IdleTasksEnabled() override {return true;}
+        protected:
+            virtual void PostTaskImpl(V8TaskUniquePtr task, const V8SourceLocation& inLocattion) override {}
+            virtual void PostDelayedTaskImpl(V8TaskUniquePtr task,
+                                             double delay_in_seconds, const V8SourceLocation& inLocattion) override {}
+            virtual void PostIdleTaskImpl(std::unique_ptr<v8::IdleTask> task, const V8SourceLocation& inLocattion) override {}
         };
 
         class TestIsolateHelper : public IJSPlatformRuntimeProvider
@@ -42,7 +43,7 @@ namespace v8App
             TestPageAllocator() = default;
             size_t AllocatePageSize() override { return 0; }
             size_t CommitPageSize() override { return 0; }
-            void SetRandomMmapSeed(int64_t seed) override{};
+            void SetRandomMmapSeed(int64_t seed) override {};
             void *GetRandomMmapAddr() override { return nullptr; }
             void *AllocatePages(void *address, size_t length, size_t alignment,
                                 Permission permissions) override { return nullptr; }

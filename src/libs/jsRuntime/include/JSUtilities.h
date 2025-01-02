@@ -16,7 +16,7 @@ namespace v8App
     {
         namespace JSUtilities
         {
-            std::string GetStackTrace(V8LContext inContext, V8TryCatch &inTryCatch, std::string inResourceName = "");
+            std::string GetStackTrace(V8Isolate* inIsolate, V8TryCatch &inTryCatch, std::string inResourceName = "");
 
             enum class V8Errors
             {

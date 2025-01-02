@@ -141,7 +141,7 @@ namespace v8App
                 };
                 if (tryCatch.HasCaught())
                 {
-                    msg.emplace(Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch));
+                    msg.emplace(Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(m_Context->GetIsolate(), tryCatch));
                 }
                 LOG_ERROR(msg);
                 return false;
@@ -175,7 +175,7 @@ namespace v8App
             {
                 Log::LogMessage message = {
                     {Log::MsgKey::Msg, "Failed to run the module"},
-                    {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(m_Context->GetLocalContext(), tryCatch)}};
+                    {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(m_Context->GetIsolate(), tryCatch)}};
                 LOG_ERROR(message);
                 tryCatch.ReThrow();
                 return V8LValue();
@@ -367,6 +367,8 @@ namespace v8App
             V8Isolate *ioslate = m_Context->GetIsolate();
             JSModuleInfoSharedPtr moduleInfo = std::make_shared<JSModuleInfo>(m_Context);
             moduleInfo->SetAttributesInfo(inAttributesInfo);
+            //pull the type up
+            moduleInfo->SetType(inAttributesInfo.m_Type);
 
             const char startChar = absImportPath.c_str()[0];
             // may start with a token so let the app root handle it
@@ -501,10 +503,13 @@ namespace v8App
                     return nullptr;
                 }
                 std::string ext = relModulePath.extension().string();
-                if (ext == ".js" || ext == ".mjs")
+                if (ext == JSModuleAttributesInfo::kExtJS || ext == JSModuleAttributesInfo::kExtModuleJS 
+                || ext == JSModuleAttributesInfo::kExtNative)
                 {
                     JSUtilities::ThrowV8Error(ioslate, JSUtilities::V8Errors::SyntaxError,
-                                              Utils::format("Files ending in .js or .mjs can not be in resources, ImportPath: {}", inImportPath));
+                                              Utils::format("Files ending in {}, {} or {} can not be in resources, ImportPath: {}", 
+                                              JSModuleAttributesInfo::kExtJS, JSModuleAttributesInfo::kExtModuleJS,
+                                              JSModuleAttributesInfo::kExtNative, inImportPath));
                     return nullptr;
                 }
                 if (inAttributesInfo.DoesExtensionMatchType(ext) == false)
@@ -724,7 +729,7 @@ namespace v8App
             {
                 Log::LogMessage msg{
                     {Log::MsgKey::Msg, "Got an error trying to set the JSON module export"},
-                    {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(inContext, tryCatch)}
+                    {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(isolate, tryCatch)}
                 };
                 LOG_ERROR(msg);
                 resolver->Reject(inContext, v8::Undefined(isolate));
@@ -835,7 +840,7 @@ namespace v8App
                     tryCatch.ReThrow();
                     Log::LogMessage msg{
                         {Log::MsgKey::Msg, Utils::format("Got an error compiling module {}", importPath)},
-                        {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(context, tryCatch)}
+                        {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(isolate, tryCatch)}
                     };
                     LOG_ERROR(msg);
                     return nullptr;
@@ -862,7 +867,7 @@ namespace v8App
                 if (v8::JSON::Parse(context, jsonStr).ToLocal(&parsedJSON) == false)
                 {
                     tryCatch.ReThrow();
-                    LOG_ERROR(JSUtilities::GetStackTrace(context, tryCatch, importPath.string()));
+                    LOG_ERROR(JSUtilities::GetStackTrace(isolate, tryCatch, importPath.string()));
                     return nullptr;
                 }
                 auto exportNames = v8::to_array<V8LString>({JSUtilities::StringToV8(isolate, "default")});

@@ -33,8 +33,8 @@ namespace v8App
             int TestPriorityToInt(V8TaskPriority inPriority) { return PriorityToInt(inPriority); }
             bool IsInited() { return s_PlatformInited; }
             void SetInited(bool inValue) { s_PlatformInited = inValue; }
-            bool IsDestoryed() { return s_PlatformDestoryed; }
-            void SetDestoryed(bool inValue) { s_PlatformDestoryed = inValue; }
+            bool IsDestoryed() { return s_PlatformDestroyed; }
+            void SetDestoryed(bool inValue) { s_PlatformDestroyed = inValue; }
         };
 
         TEST(V8AppPlatformInitDeathTest, InitializeShutdownV8StaticNull)

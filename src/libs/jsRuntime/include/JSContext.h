@@ -103,7 +103,13 @@ namespace v8App
              */
             std::filesystem::path GetEntrypoint() { return m_EntryPoint; }
 
+            /**
+             * Run the specified file as a module
+             */
             V8LValue RunModule(std::filesystem::path inModulePath);
+            /**
+             * Runs the specified string as js code
+             */
             V8LValue RunScript(std::string inScript);
 
             /**
@@ -111,10 +117,27 @@ namespace v8App
              */
             bool IsInitialized() { return m_Initialized; }
 
+            /**
+             * Gets the security token set for the context
+             */
+            std::string GetSecurityToken() { return m_SecurityToken; }
+
+            /**
+             * Serializes the context data internal field data
+             */
             void SerializeContextData(Serialization::WriteBuffer& inBuffer);
+            /**
+             * Deserializes the context's internal field data
+             */
             void DeserializeContextData(V8LContext inContext, Serialization::ReadBuffer& inBuffer);
 
+            /**
+             * Make a snapshot of the context
+             */
             bool MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, v8App::Serialization::WriteBuffer& inBuffer);
+            /**
+             * Loads the context's snapshot data
+             */
             JSContextSnapDataSharedPtr LoadSnapshotData(v8App::Serialization::ReadBuffer& inBuffer);
         protected:
             /**
@@ -159,7 +182,7 @@ namespace v8App
             bool CreateContext();
 
             /**
-             * creates and attaches the weak ptr yo the context
+             * creates and attaches the weak ptr to the context
              */
             void AttachWeakPtr(V8LContext inContext);
 
@@ -168,7 +191,46 @@ namespace v8App
              */
             void DisposeContext();
 
+            /**
+             * Moves the context to a new instance
+             */
             void MoveContext(JSContext &&inContext);
+
+            /**
+             * Snapshot data
+             * ******************************************
+             */
+            /**
+             * The modules associated with the context
+             */
+            JSContextModulesSharedPtr m_Modules;
+
+            /**
+             * The name of the context
+             */
+            std::string m_Name;
+
+            /**
+             * The namespace tha tthe context was created with.
+             * No namespace means it on;y has the default v8 builtins
+             */
+            std::string m_Namespace;
+
+            /**
+             * The entry point script for the context
+             */
+            std::filesystem::path m_EntryPoint;
+
+
+            /**
+             * Non Snapshot data
+             * ******************************************
+             */
+
+            /**
+             * The snapshot index this context was created from 0 == default v8 context
+             */
+            size_t m_SnapIndex;
 
             /**
              * The runtime this context is associated with
@@ -182,28 +244,6 @@ namespace v8App
              * Has the context been initialized yet
              */
             bool m_Initialized{false};
-            /**
-             * The modules associated with the context
-             */
-            JSContextModulesSharedPtr m_Modules;
-            /**
-             * The name of the context
-             */
-            std::string m_Name;
-            /**
-             * The snapshot index this context was created from 0 == default v8 context
-             */
-            size_t m_SnapIndex;
-            /**
-             * The namespace tha tthe context was created with.
-             * No namespace means it on;y has the default v8 builtins
-             */
-            std::string m_Namespace;
-
-            /**
-             * The entry point script for the context
-             */
-            std::filesystem::path m_EntryPoint;
 
             /**
              * Indicates if this context is snapshottable. The app may not want all it's created
@@ -214,6 +254,11 @@ namespace v8App
              * The methof of snapshotting this context
              */
             SnapshotMethod m_SnapMethod;
+
+            /**
+             * The generated Security token for the context
+             */
+            std::string m_SecurityToken;
 
             JSContext(const JSContext &) = delete;
             JSContext &operator=(const JSContext &) = delete;

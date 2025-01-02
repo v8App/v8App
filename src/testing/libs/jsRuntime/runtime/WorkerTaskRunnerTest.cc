@@ -64,7 +64,7 @@ namespace v8App
 
             std::this_thread::sleep_for(std::chrono::seconds(2));
 
-            // only task 1 should have been run task 2 is delayed and nestable are not supo
+            // only task 1 should have been run task 2 is delayed
             EXPECT_EQ(1, task1Int);
             EXPECT_EQ(0, task2Int);
             EXPECT_EQ(0, task3Int);

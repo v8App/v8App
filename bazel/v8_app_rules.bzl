@@ -33,7 +33,7 @@ def _default_args():
                       ("@platforms//cpu:x86_32", "@platforms//cpu:armv7"): ["PLATFORM_32"],
                       "//conditions:default": [],
                   }) +
-                  ["V8_COMPRESS_POINTERS" ,"V8_ENABLE_SANDBOX"],
+                  ["V8_COMPRESS_POINTERS"],
         copts = select({
             "@platforms//os:windows": ["-std:c++20"],
             "//conditions:default": ["-std=c++20"],

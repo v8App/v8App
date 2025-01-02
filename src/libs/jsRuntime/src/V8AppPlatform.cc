@@ -19,7 +19,7 @@ namespace v8App
     namespace JSRuntime
     {
         std::shared_ptr<V8AppPlatform> V8AppPlatform::s_Platform;
-        bool V8AppPlatform::s_PlatformDestoryed = false;
+        bool V8AppPlatform::s_PlatformDestroyed = false;
         bool V8AppPlatform::s_PlatformInited = false;
 
         V8AppPlatform::V8AppPlatform()
@@ -158,7 +158,7 @@ namespace v8App
             {
                 return;
             }
-            if (s_PlatformDestoryed)
+            if (s_PlatformDestroyed)
             {
                 Log::LogMessage message;
                 message.emplace(Log::MsgKey::Msg, "Tried to initialize the V8 Platform after it's been destroyed");
@@ -176,7 +176,7 @@ namespace v8App
 
         void V8AppPlatform::ShutdownV8()
         {
-            if (s_PlatformDestoryed || s_Platform == nullptr)
+            if (s_PlatformDestroyed || s_Platform == nullptr)
             {
                 return;
             }
@@ -190,7 +190,7 @@ namespace v8App
                 v8::V8::Dispose();
                 v8::V8::DisposePlatform();
             }
-            s_PlatformDestoryed = true;
+            s_PlatformDestroyed = true;
             s_PlatformInited = false;
             s_Platform.reset();
         }

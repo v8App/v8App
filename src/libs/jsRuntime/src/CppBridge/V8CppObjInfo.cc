@@ -13,7 +13,7 @@ namespace v8App
         {
             const V8CppObjInfo *V8CppObjInfo::From(V8LObject inObject)
             {
-                V8CppObjectBase *base = static_cast<V8CppObjectBase *>(V8Object::Unwrap<v8::CppHeapPointerTag::kDefaultTag>(inObject->GetIsolate(), inObject));
+                V8CppObjectBase *base = V8Object::Unwrap<V8CppObjectBase>(inObject->GetIsolate(), inObject, v8::kAnyCppHeapPointer);
                 if (base == nullptr)
                 {
                     return nullptr;

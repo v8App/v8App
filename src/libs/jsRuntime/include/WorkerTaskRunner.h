@@ -50,16 +50,20 @@ namespace v8App
             // TaskRunner implementation
         public:
             bool IdleTasksEnabled() override { return false; };
-            virtual bool NonNestableTasksEnabled() const override { return false; }
-            virtual bool NonNestableDelayedTasksEnabled() const override { return false; }
 
         protected:
             virtual void PostTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation &inLocation) override;
-            virtual void PostNonNestableTaskImpl(V8TaskUniquePtr task, const V8SourceLocation &inLocation) override;
             virtual void PostDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation &inLocation) override;
-            virtual void PostNonNestableDelayedTaskImpl(V8TaskUniquePtr task, double delay_in_seconds,
-                                                        const V8SourceLocation &inLocation) override;
-            virtual void PostIdleTaskImpl(V8IdleTaskUniquePtr, const V8SourceLocation &inLocation) override;
+
+            /**
+             * These are not implemented for the worker task runner
+             */
+            virtual void PostNonNestableTaskImpl(V8TaskUniquePtr task,
+                                                 const V8SourceLocation &location) override;
+            virtual void PostNonNestableDelayedTaskImpl(V8TaskUniquePtr task,
+                                                        double delay_in_seconds,
+                                                        const V8SourceLocation &location) override;
+            virtual void PostIdleTaskImpl(V8IdleTaskUniquePtr inTask, const V8SourceLocation &inLocation) override;
             // end TaskRunner implementation
 
         protected:

@@ -162,7 +162,7 @@ namespace v8App
             m_Runtime = inContext.m_Runtime;
             inContext.m_Runtime = nullptr;
 
-            m_Initialized = std::move(inContext.m_Initialized);
+            m_Initialized = inContext.m_Initialized;
             inContext.m_Initialized = false;
 
             m_Context = std::move(inContext.m_Context);
@@ -213,10 +213,13 @@ namespace v8App
                     return false;
                 }
 
+                m_Context.Reset(isolate, context);
+
                 // Set the security token for shadow realms.
                 // TODO: figure out how to determine if a context from a snapshot keeps or needs this reset
                 uuids::uuid uuid = uuids::uuid_system_generator{}();
-                V8LString v8Uuid = JSUtilities::StringToV8(isolate, uuids::to_string(uuid));
+                m_SecurityToken = uuids::to_string(uuid);
+                V8LString v8Uuid = JSUtilities::StringToV8(isolate, m_SecurityToken);
                 context->SetSecurityToken(v8Uuid);
                 m_Runtime->RegisterNamespaceFunctionsOnGlobal(m_Namespace, context, context->Global());
 
@@ -226,27 +229,34 @@ namespace v8App
             {
                 size_t realContextIndex = provider->RealContextIndex(m_SnapIndex);
                 // Coming from a snapshot we don't have to create the global template
+                // TODO: Look at removing the ToLocalChecked in favor oof ToLocal so we
+                // don't assert if it fails and can handle it ourselves
                 context = V8Context::FromSnapshot(isolate,
                                                   realContextIndex,
                                                   provider->GetInternalDeserializerCallback(),
                                                   nullptr,
                                                   V8MBLValue(),
                                                   nullptr,
-                                                  provider->GetContextDeserializerCallaback(this))
+                                                  provider->GetContextDeserializerCallaback(this),
+                                                  provider->GetAPIWrapperDeserializerCallback())
                               .ToLocalChecked();
+                m_Context.Reset(isolate, context);
+
+                V8LString token = context->GetSecurityToken().As<V8String>();
+                m_SecurityToken = JSUtilities::V8ToString(isolate, token);
                 // The weak ptr gets attached during deserialization
                 JSRuntimeSnapDataSharedPtr snapData = m_Runtime->GetRuntimeSnapData();
-                if(snapData == nullptr)
+                if (snapData == nullptr)
                 {
                     LOG_ERROR("Snapshot provider returned a null JSRuntimeSnapData");
                     return false;
                 }
-                if(realContextIndex >= snapData->m_ContextData.size())
+                if (realContextIndex >= snapData->m_ContextData.size())
                 {
                     LOG_ERROR("M_SnapIndex is out of the context snap data");
                     return false;
                 }
-                if(m_Modules->RestoreModules(snapData->m_ContextData[realContextIndex]->m_Modules) == false)
+                if (m_Modules->RestoreModules(snapData->m_ContextData[realContextIndex]->m_Modules) == false)
                 {
                     return false;
                 }
@@ -254,12 +264,13 @@ namespace v8App
 
             if (tryCatch.HasCaught())
             {
-                // TODO: add erorr message
+                Log::LogMessage msg{
+                    {Log::MsgKey::Msg, "Got an error trying to create ht econtext"},
+                    {Log::MsgKey::StackTrace, JSUtilities::GetStackTrace(isolate, tryCatch)}};
+                LOG_ERROR(msg);
                 return false;
             }
 
-
-            m_Context.Reset(isolate, context);
             m_Initialized = true;
 
             if (m_Runtime->IsSnapshotRuntime())
@@ -308,7 +319,7 @@ namespace v8App
             if (tryCatch.HasCaught())
             {
                 Log::LogMessage msg;
-                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(v8Context, tryCatch));
+                msg.emplace(Log::MsgKey::Msg, JSUtilities::GetStackTrace(isolate, tryCatch));
                 LOG_ERROR(msg);
                 tryCatch.ReThrow();
                 return V8LValue();
@@ -317,7 +328,7 @@ namespace v8App
             V8MLScript maybeScript = v8::Script::Compile(v8Context, source);
             if (tryCatch.HasCaught())
             {
-                LOG_ERROR(JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(JSUtilities::GetStackTrace(isolate, tryCatch));
                 tryCatch.ReThrow();
                 return V8LValue();
             }
@@ -326,7 +337,7 @@ namespace v8App
             script = maybeScript.FromMaybe(V8LScript());
             if (script.IsEmpty())
             {
-                LOG_ERROR(JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(JSUtilities::GetStackTrace(isolate, tryCatch));
                 tryCatch.ReThrow();
                 return V8LValue();
             }
@@ -334,7 +345,7 @@ namespace v8App
             V8LValue result;
             if (script->Run(v8Context).ToLocal(&result) == false)
             {
-                LOG_ERROR(JSUtilities::GetStackTrace(v8Context, tryCatch));
+                LOG_ERROR(JSUtilities::GetStackTrace(isolate, tryCatch));
                 tryCatch.ReThrow();
                 return V8LValue();
             }
@@ -358,6 +369,7 @@ namespace v8App
         {
             inBuffer << m_Name;
             inBuffer << m_Namespace;
+            inBuffer << m_EntryPoint.string();
             if (inBuffer.HasErrored())
             {
                 return false;
@@ -370,6 +382,7 @@ namespace v8App
             JSContextSnapDataSharedPtr data = std::make_shared<JSContextSnapData>();
             inBuffer >> data->m_Name;
             inBuffer >> data->m_Namespace;
+            inBuffer >> data->m_EntryPoint;
             if (inBuffer.HasErrored())
             {
                 return nullptr;

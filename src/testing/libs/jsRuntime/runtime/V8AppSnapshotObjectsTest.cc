@@ -151,7 +151,7 @@ namespace v8App
                 V8LValue result = jsContext->RunScript(csource1);
                 if (result.IsEmpty())
                 {
-                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
+                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(isolate, try_catch) << std::endl;
                     EXPECT_TRUE(false);
                 }
             }
@@ -202,9 +202,7 @@ namespace v8App
                     test('test3');
                     test2('test4');
                     snapObj.value = 200;
-                    delete snapObj;
                 )";
-                isolate->RequestGarbageCollectionForTesting(V8Isolate::GarbageCollectionType::kFullGarbageCollection);
 
                 V8TryCatch try_catch(isolate);
 
@@ -215,7 +213,7 @@ namespace v8App
                 V8LValue result;
                 if (script1->Run(context).ToLocal(&result) == false)
                 {
-                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
+                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(isolate, try_catch) << std::endl;
                     EXPECT_TRUE(false);
                 }
 

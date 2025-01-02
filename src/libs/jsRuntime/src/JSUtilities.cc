@@ -22,16 +22,14 @@ namespace v8App
                 return maybe.ToLocal(&line) ? line : V8String::Empty(inIsolate);
             }
 
-            std::string GetStackTrace(V8LContext inContext, V8TryCatch &inTryCatch, std::string inResourceName)
+            std::string GetStackTrace(V8Isolate *inIsolate, V8TryCatch &inTryCatch, std::string inResourceName)
             {
-                V8Isolate *isolate = inContext->GetIsolate();
                 if (inTryCatch.HasCaught() == false)
                 {
                     return "";
                 }
-
                 V8LValue exception = inTryCatch.Exception();
-                V8String::Utf8Value exception_str(isolate, exception);
+                V8String::Utf8Value exception_str(inIsolate, exception);
 
                 const char *cStr = *exception_str ? *exception_str : "<string conversion failed>";
                 std::stringstream messageBuilder;
@@ -42,13 +40,20 @@ namespace v8App
                 }
                 else
                 {
-                    std::string resourceName = V8ToString(isolate, message->GetScriptOrigin().ResourceName());
+                    V8LContext context = inIsolate->GetCurrentContext();
+
+                    std::string resourceName = V8ToString(inIsolate, message->GetScriptOrigin().ResourceName());
                     if (resourceName == "")
                     {
                         resourceName = inResourceName;
                     }
-                    messageBuilder << V8ToString(isolate, message->Get()) << std::endl
-                                   << resourceName << ":" << message->GetLineNumber(inContext).FromMaybe(-1)
+                    int sourceLine = -1;
+                    if (context.IsEmpty() == false)
+                    {
+                        message->GetLineNumber(context).To(&sourceLine);
+                    }
+                    messageBuilder << V8ToString(inIsolate, message->Get()) << std::endl
+                                   << resourceName << ":" << sourceLine
                                    << ":" << cStr
                                    << std::endl;
 
@@ -58,10 +63,10 @@ namespace v8App
                         int length = trace->GetFrameCount();
                         for (int idx = 0; idx < length; idx++)
                         {
-                            V8LStackFrame frame = trace->GetFrame(isolate, idx);
-                            messageBuilder << V8ToString(isolate, frame->GetScriptName()) << ":"
+                            V8LStackFrame frame = trace->GetFrame(inIsolate, idx);
+                            messageBuilder << V8ToString(inIsolate, frame->GetScriptName()) << ":"
                                            << frame->GetLineNumber() << ":" << frame->GetColumn() << ":"
-                                           << V8ToString(isolate, frame->GetFunctionName()) << std::endl;
+                                           << V8ToString(inIsolate, frame->GetFunctionName()) << std::endl;
                         }
                     }
                 }

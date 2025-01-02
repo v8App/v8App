@@ -27,6 +27,15 @@ namespace v8App
 {
     namespace JSRuntime
     {
+        class TestJSApp : public JSApp
+        {
+        public:
+            TestJSApp() {}
+            ~TestJSApp() {}
+
+            void SetAppState(JSAppStates inState) { m_AppState = inState; }
+        };
+
         TEST(JSAppTest, Constrcutor)
         {
             std::filesystem::path testRoot = s_TestDir / "ConstrcutorInitializeDispose";
@@ -34,16 +43,17 @@ namespace v8App
 
             std::string appName = "testJSAppConstructor";
             JSAppSharedPtr app = std::make_shared<JSApp>();
-            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
-            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
-            EXPECT_EQ(nullptr, app->GetContextProvider());
-            EXPECT_EQ(nullptr, app->GetRuntimeProvider());
+            EXPECT_EQ("", app->GetName());
             EXPECT_EQ(nullptr, app->GetMainRuntime());
+            EXPECT_EQ(nullptr, app->GetSnapshotCreator());
+            EXPECT_EQ(nullptr, app->GetRuntimeProvider());
+            EXPECT_EQ(nullptr, app->GetContextProvider());
+            EXPECT_EQ(nullptr, app->GetSnapshotProvider());
+            EXPECT_FALSE(app->IsSnapshotApp());
             EXPECT_EQ(nullptr, app->GetCodeCache());
             EXPECT_EQ(nullptr, app->GetAppRoot());
-            EXPECT_EQ("", app->GetName());
             EXPECT_FALSE(app->IsInitialized());
-            EXPECT_FALSE(app->IsSnapshotApp());
+            EXPECT_EQ("0.0.0", app->GetAppVersion().GetVersionString());
         }
 
         TEST(JSAppTest, GetSetProviders)
@@ -86,6 +96,21 @@ namespace v8App
             EXPECT_EQ(runtimeProvider, app->GetRuntimeProvider());
         }
 
+        TEST(JSAppTest, GetSetAppVersion)
+        {
+            std::shared_ptr<TestJSApp> app = std::make_shared<TestJSApp>();
+
+            EXPECT_EQ("0.0.0", app->GetAppVersion().GetVersionString());
+            app->SetAppVersion("test");
+            EXPECT_EQ("0.0.0", app->GetAppVersion().GetVersionString());
+            app->SetAppVersion("1.2.0");
+            EXPECT_EQ("1.2.0", app->GetAppVersion().GetVersionString());
+
+            Utils::VersionString version("2.2.2");
+            app->SetAppVersion(version);
+            EXPECT_EQ("2.2.2", app->GetAppVersion().GetVersionString());
+        }
+
         TEST(JSAppTest, InitializeDispose)
         {
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
@@ -104,15 +129,25 @@ namespace v8App
             std::string appName = "testJSAppConstructor";
             AppProviders providers;
 
-            JSAppSharedPtr app = std::make_shared<JSApp>();
+            std::shared_ptr<TestJSApp> app = std::make_shared<TestJSApp>();
             std::shared_ptr snapProvider = std::make_shared<TestSnapshotProvider>();
             std::shared_ptr snapCreator = std::make_shared<TestSnapshotCreator>();
             // the creator isn't required to be set except during a snapshot
             providers.m_SnapshotCreator = snapCreator;
 
-            // test snapshot provider not set
+            // Tets app is restored
+            app->SetAppState(JSAppStates::Restored);
             EXPECT_FALSE(app->Initialize(appName, testRoot, AppProviders()));
             Log::LogMessage expected = {
+                {Log::MsgKey::Msg, "Initalize can not be called on a restored app. Use RestoreInitialize."},
+                {Log::MsgKey::LogLevel, "Error"},
+            };
+            EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
+
+            // test snapshot provider not set
+            app->SetAppState(JSAppStates::Uninitialized);
+            EXPECT_FALSE(app->Initialize(appName, testRoot, AppProviders()));
+            expected = {
                 {Log::MsgKey::Msg, "The snapshot provider must be set before calling Initialize"},
                 {Log::MsgKey::LogLevel, "Error"},
             };
@@ -167,10 +202,10 @@ namespace v8App
             newProviders.m_SnapshotProvider = providers.m_SnapshotProvider;
             newProviders.m_RuntimeProvider = providers.m_RuntimeProvider;
             newProviders.m_ContextProvider = std::make_shared<V8ContextProvider>();
-            ;
 
-            EXPECT_TRUE(app->Initialize(appName, testRoot, providers, false));
+            EXPECT_TRUE(app->Initialize("NewAppName", testRoot, providers, false));
             EXPECT_EQ(providers.m_ContextProvider, app->GetContextProvider());
+            EXPECT_EQ(appName, app->GetName());
 
             app->DisposeApp();
             EXPECT_EQ(nullptr, app->GetSnapshotCreator());
@@ -244,7 +279,7 @@ namespace v8App
 
             EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName1));
 
-            JSRuntimeSharedPtr runtime = app->CreateJSRuntimeFromIndex(runtimeName1, 0, JSRuntimeSnapshotAttributes::NotSnapshottable,IdleTaskSupport::kEnabled);
+            JSRuntimeSharedPtr runtime = app->CreateJSRuntimeFromIndex(runtimeName1, 0, JSRuntimeSnapshotAttributes::NotSnapshottable, IdleTaskSupport::kEnabled);
             EXPECT_NE(nullptr, runtime);
             EXPECT_EQ(runtime, app->GetRuntimeByName(runtimeName1));
             EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName2));
@@ -252,8 +287,8 @@ namespace v8App
             app->DisposeRuntime(runtimeName1);
             EXPECT_EQ(nullptr, app->GetRuntimeByName(runtimeName1));
 
-            runtime = app->CreateJSRuntimeFromIndex(runtimeName1, 0, JSRuntimeSnapshotAttributes::SnapshotOnly,IdleTaskSupport::kEnabled);
-            runtime = app->CreateJSRuntimeFromIndex(runtimeName2, 0, JSRuntimeSnapshotAttributes::SnapshotOnly,IdleTaskSupport::kEnabled);
+            runtime = app->CreateJSRuntimeFromIndex(runtimeName1, 0, JSRuntimeSnapshotAttributes::SnapshotOnly, IdleTaskSupport::kEnabled);
+            runtime = app->CreateJSRuntimeFromIndex(runtimeName2, 0, JSRuntimeSnapshotAttributes::SnapshotOnly, IdleTaskSupport::kEnabled);
 
             app->DisposeApp();
         }

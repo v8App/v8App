@@ -44,7 +44,7 @@ namespace v8App
 test.js:4:SyntaxError: Unexpected identifier 'x'
 )error");
 
-                EXPECT_EQ(error, JSUtilities::GetStackTrace(context, tryCatch));
+                EXPECT_EQ(error, JSUtilities::GetStackTrace(m_Isolate, tryCatch));
             }
 
             TEST_F(V8UtilitiesTest, TestThrowError)

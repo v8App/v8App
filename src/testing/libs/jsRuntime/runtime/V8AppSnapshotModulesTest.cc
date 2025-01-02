@@ -86,33 +86,41 @@ namespace v8App
 
             {
                 runtime = restore->GetMainRuntime();
-                JSContextSharedPtr jsContext = runtime->CreateContext("default", "");
                 V8Isolate *isolate = runtime->GetIsolate();
                 V8IsolateScope iScope(isolate);
                 V8HandleScope hScope(isolate);
-                V8LContext context = jsContext->GetLocalContext();
-                V8ContextScope cScope(context);
+                {
+                    JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default", 1);
+                    ASSERT_NE(nullptr, jsContext);
+                    V8LContext context = jsContext->GetLocalContext();
+                    V8ContextScope cScope(context);
 
-                //TODO: Figure out a way to test that the module was restored 
-                //Since this doesn't work 
-                /*
-                                const char csource1[] = R"(
-                                    module1.function2();
-                                )";
+                    // TODO: Figure out a way to test that the module was restored
+                    // Since this doesn't work
+                    /**
+                                        const char csource1[] = R"(
+                                                            module1.function2();
+                                                        )";
 
-                                V8TryCatch try_catch(isolate);
+                                        V8TryCatch try_catch(isolate);
 
-                                V8LString source1 = JSUtilities::StringToV8(isolate, csource1);
+                                        V8LString source1 = JSUtilities::StringToV8(isolate, csource1);
 
-                                V8LScript script1 = v8::Script::Compile(context, source1).ToLocalChecked();
+                                        V8LScript script1 = v8::Script::Compile(context, source1).ToLocalChecked();
 
-                                V8LValue result;
-                                if (script1->Run(context).ToLocal(&result) == false)
-                                {
-                                    std::cout << "Script Error: " << JSUtilities::GetStackTrace(context, try_catch) << std::endl;
-                                    EXPECT_TRUE(false);
-                                }
-                                */
+                                        V8LValue result;
+                                        if (script1->Run(context).ToLocal(&result) == false)
+                                        {
+                                            std::cout << "Script Error: " << JSUtilities::GetStackTrace(isolate, try_catch) << std::endl;
+                                            EXPECT_TRUE(false);
+                                        }
+                                        */
+                }
+                {
+
+                    JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default2", 1);
+                    ASSERT_NE(nullptr, jsContext);
+                }
             }
             restore->DisposeApp();
         }
