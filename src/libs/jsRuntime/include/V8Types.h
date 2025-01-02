@@ -103,6 +103,7 @@ namespace v8App
         using V8PropCallInfoValeu = v8::PropertyCallbackInfo<v8::Value>;
 
         using V8FuncTpl = v8::FunctionTemplate;
+        using V8GFuncTpl = v8::Global<v8::FunctionTemplate>;
         using V8LFuncTpl = v8::Local<v8::FunctionTemplate>;
 
         using V8ObjTpl = v8::ObjectTemplate;

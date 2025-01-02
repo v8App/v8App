@@ -134,24 +134,13 @@ namespace v8App
             }
         }
 
-        void JSRuntime::SetFunctionTemplate(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate)
+        void JSRuntime::SetFunctionTemplate(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate, std::string inNamespace)
         {
             CHECK_NOT_NULL(m_Isolate.get());
-            FunctionTemplateMap::iterator it = m_FunctionTemplates.find(inJSFuncName);
-            if (it == m_FunctionTemplates.end())
-            {
-                m_FunctionTemplates[inJSFuncName] = v8::Global<V8FuncTpl>(m_Isolate.get(), inTemplate);
-            }
-            else
-            {
-                if (it->second != inTemplate)
-                {
-                    LOG_WARN(Utils::format("{} has lready been registerd with a different function template", inJSFuncName));
-                }
-            }
+            SetFunctionTemplateInternal(inJSFuncName, inTemplate, inNamespace, nullptr);
         }
 
-        void JSRuntime::SetClassFunctionTemplate(std::string inNamespace, CppBridge::V8CppObjInfo *inInfo, v8::Local<V8FuncTpl> inTemplate)
+        void JSRuntime::SetClassFunctionTemplate(std::string inNamespace, CppBridge::V8CppObjInfo *inObjInfo, v8::Local<V8FuncTpl> inTemplate)
         {
             CHECK_NOT_NULL(m_Isolate.get());
 
@@ -160,23 +149,11 @@ namespace v8App
             {
                 inNamespace = "global";
             }
-            ObjectTemplateMap::iterator it = m_ObjectTemplates.find(inInfo);
+            FunctionTemplateInfoSharedPtr info = SetFunctionTemplateInternal(inObjInfo->m_JsClassName, inTemplate, inNamespace, inObjInfo);
+            ObjectTemplateMap::iterator it = m_ObjectTemplates.find(inObjInfo);
             if (it == m_ObjectTemplates.end())
             {
-                m_ObjectTemplates[inInfo] = v8::Global<V8FuncTpl>(m_Isolate.get(), inTemplate);
-            }
-            NamespaceObjectInfoMap::iterator nit = m_NamespaceObjInfo.find(inNamespace);
-            if (nit == m_NamespaceObjInfo.end())
-            {
-                m_NamespaceObjInfo[inNamespace].push_back(inInfo);
-            }
-            else
-            {
-                auto vit = std::find(nit->second.begin(), nit->second.end(), inInfo);
-                if (vit == nit->second.end())
-                {
-                    m_NamespaceObjInfo[inNamespace].push_back(inInfo);
-                }
+                m_ObjectTemplates[inObjInfo] = info;
             }
         }
 
@@ -188,51 +165,26 @@ namespace v8App
             {
                 return v8::Local<V8FuncTpl>();
             }
-            return it->second.Get(m_Isolate.get());
+            return it->second->m_Template.Get(m_Isolate.get());
         }
 
         void JSRuntime::RegisterNamespaceFunctionsOnGlobal(std::string inNamespace, V8LContext inContext, V8LObject inGlobal)
         {
-            // Register all teh normal functions on the global
-            for (auto const &it : m_FunctionTemplates)
-            {
-                V8LFuncTpl tpl = it.second.Get(m_Isolate.get());
-                inGlobal->Set(inContext,
-                              JSUtilities::StringToV8(m_Isolate.get(), it.first),
-                              tpl->GetFunction(inContext).ToLocalChecked());
-            }
-            if (inNamespace == "")
+            if (inNamespace.empty())
             {
                 inNamespace = "global";
             }
-
-            std::vector<std::string> namespaces{"global"};
-            if (inNamespace != "global")
+            for (auto const &it : m_FunctinNameMap)
             {
-                namespaces.push_back(inNamespace);
-            }
-
-            for (std::string name : namespaces)
-            {
-                // now register all the cpp functions on the global
-                NamespaceObjectInfoMap::iterator nit = m_NamespaceObjInfo.find(name);
-                if (nit == m_NamespaceObjInfo.end())
+                // register all the global function templates and ones that match the passed in namespace
+                if (it.second->m_Namespace != inNamespace && it.second->m_Namespace != "global")
                 {
-                    // don't complain about the global namespace
-                    if (name == "global")
-                    {
-                        continue;
-                    }
-                    LOG_ERROR(Utils::format("Tried to register function templates on non existant namespace: {}", inNamespace));
-                    return;
+                    continue;
                 }
-                for (auto info : m_NamespaceObjInfo[inNamespace])
-                {
-                    V8LFuncTpl tpl = m_ObjectTemplates[info].Get(m_Isolate.get());
-                    inGlobal->Set(inContext,
-                                  JSUtilities::StringToV8(m_Isolate.get(), info->m_JsClassName),
-                                  tpl->GetFunction(inContext).ToLocalChecked());
-                }
+                V8LFuncTpl tpl = it.second->m_Template.Get(m_Isolate.get());
+                inGlobal->Set(inContext,
+                              JSUtilities::StringToV8(m_Isolate.get(), it.second->m_FunctionName),
+                              tpl->GetFunction(inContext).ToLocalChecked());
             }
         }
 
@@ -255,7 +207,6 @@ namespace v8App
             else
             {
                 m_Contextes.insert(std::make_pair(inName, context));
-                // m_ContextProvider->RegisterSnapshotCloser(context);
             }
             return context;
         }
@@ -361,15 +312,13 @@ namespace v8App
                 V8IsolateScope isolateScope(m_Isolate.get());
                 V8Locker locker(m_Isolate.get());
                 V8HandleScope handleScope(m_Isolate.get());
-                for (auto &it : m_ObjectTemplates)
+                for (auto &it : m_FunctinNameMap)
                 {
-                    it.second.Reset();
+                    it.second->m_Template.Reset();
                 }
-                for (auto &it : m_FunctionTemplates)
-                {
-                    it.second.Reset();
-                }
-                m_NamespaceObjInfo.clear();
+                m_FunctinNameMap.clear();
+                m_ObjectTemplates.clear();
+
                 m_Contextes.clear();
                 JSRuntimeWeakPtr *weakPtr = static_cast<JSRuntimeWeakPtr *>(m_Isolate->GetData(uint32_t(JSRuntime::DataSlot::kJSRuntimeWeakPtr)));
                 delete weakPtr;
@@ -446,6 +395,29 @@ namespace v8App
                         return false;
                     }
                 }
+
+                inBuffer << contextIndexes;
+                if (inBuffer.HasErrored())
+                {
+                    LOG_ERROR(Utils::format("Failed to seriaize the context indexes for runtime {}", m_Name));
+                    return false;
+                }
+
+                // Save of the function templates
+                inBuffer << m_FunctinNameMap.size();
+                for (auto it : m_FunctinNameMap)
+                {
+                    JSRuntimeSnapData::FuncTplSnapshotData snapData;
+                    snapData.m_Namespace = it.second->m_Namespace;
+                    snapData.m_FunctionName = it.second->m_FunctionName;
+                    if (it.second->m_ObjInfo != nullptr)
+                    {
+                        snapData.m_ClassName = it.second->m_ObjInfo->m_TypeName;
+                    }
+                    snapData.m_IsolateDataIndex = m_Creator->AddData(it.second->m_Template.Get(m_Isolate.get()));
+                    inBuffer << snapData;
+                }
+
                 CloseOpenHandlesForSnapshot();
                 V8StartupData snapshot = m_Creator->CreateBlob(v8::SnapshotCreator::FunctionCodeHandling::kKeep);
                 if (snapshot.data == nullptr)
@@ -454,11 +426,6 @@ namespace v8App
                     return false;
                 }
 
-                if (contextIndexes.SerializeNameIndexes(inBuffer) == false)
-                {
-                    LOG_ERROR(Utils::format("Failed to seriaize the context indexes for runtime {}", m_Name));
-                    return false;
-                }
                 inBuffer << snapshot.raw_size;
                 inBuffer.SerializeWrite(snapshot.data, snapshot.raw_size);
             }
@@ -467,7 +434,7 @@ namespace v8App
 
         JSRuntimeSnapDataSharedPtr JSRuntime::LoadSnapshotData(Serialization::ReadBuffer &inBuffer)
         {
-            JSRuntimeSnapDataSharedPtr snapData = std::make_shared<JSRuntimeSnapData>();
+            JSRuntimeSnapDataSharedPtr snapData = CreateSnapData();
 
             inBuffer >> snapData->m_RuntimeName;
             if (inBuffer.HasErrored())
@@ -500,6 +467,21 @@ namespace v8App
                 LOG_ERROR("Buffer read failed on reading runtime context namespaces");
                 return {};
             }
+
+            size_t numFuncTemplates;
+            inBuffer >> numFuncTemplates;
+            for (size_t idx = 0; idx < numFuncTemplates; idx++)
+            {
+                JSRuntimeSnapData::FuncTplSnapshotData funcSnapData;
+                inBuffer >> funcSnapData;
+                if (inBuffer.HasErrored())
+                {
+                    LOG_ERROR("Buffer read failed reading the function template info");
+                    return {};
+                }
+                snapData->m_FunctionTemplates.push_back(funcSnapData);
+            }
+
             int dataSize;
             inBuffer >> dataSize;
 
@@ -528,16 +510,11 @@ namespace v8App
 
         JSRuntimeSnapDataSharedPtr JSRuntime::GetRuntimeSnapData()
         {
-            JSAppSnapDataSharedPtr snapData = m_App->GetSnapshotProvider()->GetJSAppSnapData();
-            if(snapData == nullptr)
+            if (m_Initialized == false)
             {
                 return nullptr;
             }
-            if(m_Initialized == false)
-            {
-                return nullptr;
-            }
-            return snapData->m_RuntimesSnapData[m_SnapshotIndex];
+            return GetRuntimeSnapDataInternal();
         }
 
         void JSRuntime::CloseOpenHandlesForSnapshot()
@@ -547,25 +524,7 @@ namespace v8App
             {
                 return;
             }
-            if (m_ObjectTemplates.empty() == false)
-            {
 
-                for (auto it = m_ObjectTemplates.begin(); it != m_ObjectTemplates.end(); it++)
-                {
-                    it->second.Reset();
-                }
-            }
-
-            if (m_FunctionTemplates.empty() == false)
-            {
-
-                for (auto it = m_FunctionTemplates.begin(); it != m_FunctionTemplates.end(); it++)
-                {
-                    it->second.Reset();
-                }
-            }
-
-            m_ObjectTemplates.clear();
             for (auto callback : m_HandleClosers)
             {
                 callback->CloseHandleForSnapshot();
@@ -627,6 +586,44 @@ namespace v8App
             return m_Isolate->GetCppHeap();
         }
 
+        JSRuntime::FunctionTemplateInfoSharedPtr JSRuntime::SetFunctionTemplateInternal(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate, std::string inNamespace, CppBridge::V8CppObjInfo *inObjInfo)
+        {
+            if (inNamespace.empty() == false)
+            {
+                inNamespace = "global";
+            }
+            std::string fullName = inNamespace + "." + inJSFuncName;
+            FunctionNameMap::iterator it = m_FunctinNameMap.find(fullName);
+            if (it == m_FunctinNameMap.end())
+            {
+                FunctionTemplateInfoSharedPtr info = std::make_shared<FunctionTemplateInfo>();
+                info->m_FunctionName = inJSFuncName;
+                info->m_Namespace = inNamespace;
+                info->m_Template.Reset(m_Isolate.get(), inTemplate);
+                info->m_ObjInfo = inObjInfo;
+                m_FunctinNameMap[fullName] = info;
+                return info;
+            }
+            else
+            {
+                if (it->second->m_Template != inTemplate)
+                {
+                    LOG_WARN(Utils::format("{} has lready been registerd with a different function template", inJSFuncName));
+                }
+                return it->second;
+            }
+        }
+
+        JSRuntimeSnapDataSharedPtr JSRuntime::GetRuntimeSnapDataInternal()
+        {
+            JSAppSnapDataSharedPtr snapData = m_App->GetSnapshotProvider()->GetJSAppSnapData();
+            if (snapData == nullptr)
+            {
+                return nullptr;
+            }
+            return snapData->m_RuntimesSnapData[m_SnapshotIndex];
+        }
+
         std::string JSRuntime::ResolveContextName(std::string inName, std::string inNamespace, SnapshotMethod inMethod)
         {
             if (inMethod == SnapshotMethod::kNamespaceOnly)
@@ -676,6 +673,30 @@ namespace v8App
             else
             {
                 V8Isolate::Initialize(isolate, params);
+                JSRuntimeSnapDataSharedPtr snapData = GetRuntimeSnapDataInternal();
+                if (snapData != nullptr && snapData->m_FunctionTemplates.size())
+                {
+                    V8Isolate::Scope iScoep(m_Isolate.get());
+                    V8HandleScope hScope(m_Isolate.get());
+
+                    for (auto it : snapData->m_FunctionTemplates)
+                    {
+                        V8LFuncTpl funcTemplate = isolate->GetDataFromSnapshotOnce<V8FuncTpl>(it.m_IsolateDataIndex).ToLocalChecked();
+                        if (it.m_ClassName.empty() == false)
+                        {
+                            CppBridge::V8CppObjInfo *info = CppBridge::CallbackRegistry::GetNativeObjectInfoFromTypeName(it.m_ClassName);
+                            if (info == nullptr)
+                            {
+                                return false;
+                            }
+                            SetClassFunctionTemplate(it.m_Namespace, info, funcTemplate);
+                        }
+                        else
+                        {
+                            SetFunctionTemplateInternal(it.m_FunctionName, funcTemplate, it.m_Namespace, nullptr);
+                        }
+                    }
+                }
             }
             return true;
         }
@@ -688,12 +709,24 @@ namespace v8App
                 return nullptr;
             }
 
-            // clone all of the registered namspaces
-            for (auto it : m_NamespaceObjInfo)
+            // clone all of the registered functions
+            std::vector<std::string> runNamespaces;
+            for (auto it : m_FunctinNameMap)
+            {
+                std::string funcNamespace = it.second->m_Namespace;
+                auto nit = std::find(runNamespaces.begin(), runNamespaces.end(), funcNamespace);
+                if (nit != runNamespaces.end())
+                {
+                    continue;
+                    ;
+                }
+                runNamespaces.push_back(funcNamespace);
+            }
+            for (auto it : runNamespaces)
             {
                 V8Isolate::Scope iScope(runtime->GetIsolate());
                 V8HandleScope hScope(runtime->GetIsolate());
-                CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(runtime, it.first);
+                CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(runtime, it);
             }
 
             for (auto it : m_Contextes)

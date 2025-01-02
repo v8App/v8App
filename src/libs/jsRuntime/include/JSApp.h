@@ -163,6 +163,7 @@ namespace v8App
              * Restores the app from the snap data
              */
             virtual bool RestoreSnapshot(JSAppSnapDataSharedPtr inSnapdata);
+
             /**
              * Subclasses should override and return their snap data object if they have otehr data they
              * need snapshotted
@@ -240,7 +241,7 @@ namespace v8App
 
             /** Non Snoapshot properties
              * ***************************************/
-            /** 
+            /**
              * Holds the order of runtime creation so that when snapshotting
              * we can reverse the order do to the v8::SanpshotCreator automaticlly
              * entering the isolate when it's created and we need to reverse the

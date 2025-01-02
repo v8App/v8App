@@ -379,7 +379,7 @@ namespace v8App
 
         JSContextSnapDataSharedPtr JSContext::LoadSnapshotData(v8App::Serialization::ReadBuffer &inBuffer)
         {
-            JSContextSnapDataSharedPtr data = std::make_shared<JSContextSnapData>();
+            JSContextSnapDataSharedPtr data = CreateSnapData();
             inBuffer >> data->m_Name;
             inBuffer >> data->m_Namespace;
             inBuffer >> data->m_EntryPoint;

@@ -42,6 +42,7 @@ namespace v8App
                 kJSRuntimeWeakPtr = 0
             };
 
+        public:
             JSRuntime();
             virtual ~JSRuntime();
 
@@ -87,7 +88,7 @@ namespace v8App
             /**
              * Sets the function template for normal functions bound to the global object
              */
-            void SetFunctionTemplate(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate);
+            void SetFunctionTemplate(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate, std::string inNamespace = "global");
             /**
              * Stores the fucntion tamplate for a cpp class for the isolate
              */
@@ -175,7 +176,7 @@ namespace v8App
              * Gets the cppgc heap for the isolate
              */
             V8CppHeap *GetCppHeap();
- 
+
             /**
              * Gets the context provider returning the app's or if one was passed when the runtime was inited
              */
@@ -210,11 +211,22 @@ namespace v8App
             virtual bool RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData);
 
             /**
+             * Subclasses should override and return their snap data object if they have other data they
+             * need snapshotted
+             */
+            virtual JSRuntimeSnapDataSharedPtr CreateSnapData() { return std::make_shared<JSRuntimeSnapData>(); }
+
+            /**
              * Gets this isolates snapshot data
              */
             virtual JSRuntimeSnapDataSharedPtr GetRuntimeSnapData();
 
         protected:
+            /**
+             * Internal version that skips the init check
+             */
+            JSRuntimeSnapDataSharedPtr GetRuntimeSnapDataInternal();
+
             /**
              * Uses the name context's name, namespace and snap method to reolve the context's index name in the snapshot
              * Naemspace only will only use the name space to look up the index.
@@ -282,24 +294,36 @@ namespace v8App
              */
             std::shared_ptr<ForegroundTaskRunner> m_TaskRunner;
 
-            using FunctionTemplateMap = std::map<std::string, v8::Global<V8FuncTpl>>;
-            using ObjectTemplateMap = std::map<CppBridge::V8CppObjInfo *, v8::Global<V8FuncTpl>>;
-            using NamespaceObjectInfoMap = std::map<std::string, std::vector<CppBridge::V8CppObjInfo *>>;
+            /**
+             * Atruct that holds info about the function template
+             */
+            struct FunctionTemplateInfo
+            {
+                V8GFuncTpl m_Template;
+                std::string m_FunctionName;
+                std::string m_Namespace;
+                CppBridge::V8CppObjInfo *m_ObjInfo{nullptr};
+            };
+
+            using FunctionTemplateInfoSharedPtr = std::shared_ptr<FunctionTemplateInfo>;
+            using FunctionNameMap = std::map<std::string, FunctionTemplateInfoSharedPtr>;
+            using ObjectTemplateMap = std::map<CppBridge::V8CppObjInfo *, FunctionTemplateInfoSharedPtr>;
 
             /**
-             * Holds all the functions that are registered on the global object
+             * Internal fucntion temnplate setter
              */
-            FunctionTemplateMap m_FunctionTemplates;
+            FunctionTemplateInfoSharedPtr SetFunctionTemplateInternal(std::string inJSFuncName, v8::Local<V8FuncTpl> inTemplate, std::string inNamespace, CppBridge::V8CppObjInfo *inInfo);
+
             /**
-             * The object templates for the isolate with no namespaces
+             * Hold a map of the Namespace.FunctionName to FunctionTemplateInfo
+             */
+            FunctionNameMap m_FunctinNameMap;
+
+            /**
+             * Map of V8CppObject info to FunctionTemplateInfo
              */
             ObjectTemplateMap m_ObjectTemplates;
-            /**
-             * The object templates mapped to a namespace.
-             * This helps track what namespaces are used in the runtime
-             * So we can restore their templates on restoration
-             */
-            NamespaceObjectInfoMap m_NamespaceObjInfo;
+
             /**
              * The v8 SnapshotCreator
              */

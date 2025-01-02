@@ -31,7 +31,7 @@ namespace v8App
                 kJSContextWeakPtr = 0
             };
             JSContext() {}
-            
+
             JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
                       size_t inContextIndex, bool inSupportsSnapshot = true,
                       SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
@@ -125,20 +125,27 @@ namespace v8App
             /**
              * Serializes the context data internal field data
              */
-            void SerializeContextData(Serialization::WriteBuffer& inBuffer);
+            void SerializeContextData(Serialization::WriteBuffer &inBuffer);
             /**
              * Deserializes the context's internal field data
              */
-            void DeserializeContextData(V8LContext inContext, Serialization::ReadBuffer& inBuffer);
+            void DeserializeContextData(V8LContext inContext, Serialization::ReadBuffer &inBuffer);
 
             /**
              * Make a snapshot of the context
              */
-            bool MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, v8App::Serialization::WriteBuffer& inBuffer);
+            bool MakeSnapshot(V8SnapshotCreatorSharedPtr inCreator, v8App::Serialization::WriteBuffer &inBuffer);
             /**
              * Loads the context's snapshot data
              */
-            JSContextSnapDataSharedPtr LoadSnapshotData(v8App::Serialization::ReadBuffer& inBuffer);
+            JSContextSnapDataSharedPtr LoadSnapshotData(v8App::Serialization::ReadBuffer &inBuffer);
+
+            /**
+             * Subclasses should override and return their snap data object if they have other data they
+             * need snapshotted
+             */
+            virtual JSContextSnapDataSharedPtr CreateSnapData() { return std::make_shared<JSContextSnapData>(); }
+
         protected:
             /**
              * Runs the entry point script for the snapshot
@@ -220,7 +227,6 @@ namespace v8App
              * The entry point script for the context
              */
             std::filesystem::path m_EntryPoint;
-
 
             /**
              * Non Snapshot data

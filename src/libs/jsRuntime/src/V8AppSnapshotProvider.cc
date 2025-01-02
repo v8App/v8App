@@ -114,7 +114,7 @@ namespace v8App
                 LOG_ERROR(Utils::format("Failed to load the snapshot data for JSAppType {}.", appClassType));
                 return false;
             }
-
+            m_Loaded = true;
             return true;
         }
 
