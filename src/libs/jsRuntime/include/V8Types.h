@@ -301,9 +301,12 @@ namespace v8App
             kJavascript,
             kJSON,
             kNative,
-            kNoAttribute, //This one is only used with the AttributesInfo and is internal
+            kNoAttribute, // This one is only used with the AttributesInfo and is internal
             kMaxModType
         };
+
+        static inline std::string kV8AppMagicNumber{"V8AppSnapshot"};
+
     }
 }
 #endif //__V8_TYPES_H__

@@ -30,15 +30,6 @@ namespace v8App
          * | 4 or 8 bytes | length of JSApp class type
          * |     ...      | content of JSApp class type string
          * |     ...      | JSApp Data
-         * |     ...      |     Runtime NamedIndexes the number that are serialized is number of snapshot below
-         * ---------------- Snapshot Section
-         * | 4 or 8 bytes | snapshot blob size
-         * |     ...      | v8 snapshot blob created by the app
-         * |     ...      |
-         * |     ...      | JSRuntime data
-         * |     ...      |     COntext NamedIndex
-         * ----------------
-         * |     ...      | n snapshot
          * ----------------
          */
         class V8AppSnapshotProvider : public IJSSnapshotProvider
@@ -76,11 +67,6 @@ namespace v8App
             virtual bool IsContextIndexValid(size_t inIndex, std::string inRuntimeName) override;
             virtual bool IsContextIndexValid(size_t inIndex, size_t inRuntimeIndex) override;
 
-            /**
-             * V8App adds 1 to the real index of the contexts since V8 starts at 0 for non default ones
-             */
-            virtual size_t RealContextIndex(size_t inNamedIndex) override { return inNamedIndex - 1; };
-
             virtual const intptr_t *GetExternalReferences() override;
             /**
              * Returns the JSApp snaoshot data
@@ -95,10 +81,26 @@ namespace v8App
              */
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override;
             virtual void DeserializeAPIWrapperField(V8LObject inHolder, V8StartupData inPayload) override;
-            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext* inJSContext) override;
+            virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext *inJSContext) override;
+
+            /**
+             * Restores the app that was snapshotted. It's only done once
+             */
+            virtual JSAppSharedPtr RestoreApp(std::filesystem::path inAppRoot, AppProviders inProviders) override;
 
         protected:
+            /**
+             * The type for the JSApp class to create
+             */
+            std::string m_AppClassType;
+            /** 
+             * The app's snapshot data 
+             */
             JSAppSnapDataSharedPtr m_SnapData;
+            /**
+             * Has the app been restored.
+             */
+            bool m_AppRestored{false};
         };
 
         using V8AppSnapshotProviderSharedPtr = std::shared_ptr<V8AppSnapshotProvider>;

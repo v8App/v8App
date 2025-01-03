@@ -25,7 +25,7 @@ namespace v8App
         class JSApp : public std::enable_shared_from_this<JSApp>, public ISnapshotObject
         {
         public:
-            inline static const char *kDefaulV8tRuntimeName{"v8-default"};
+            inline static const char *kDefaultRuntimeName{"MainRuntime"};
             inline static size_t kDefaultV8RutimeIndex = 0;
 
             JSApp();
@@ -96,7 +96,7 @@ namespace v8App
             /**
              * Create a new isolate that runs separate from the app's main runtime
              */
-            JSRuntimeSharedPtr CreateJSRuntimeFromName(std::string inRuntimeName, std::string inSnapRuntimeName = kDefaulV8tRuntimeName, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
+            JSRuntimeSharedPtr CreateJSRuntimeFromName(std::string inRuntimeName, std::string inSnapRuntimeName = kDefaultRuntimeName, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
                                                        IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
             JSRuntimeSharedPtr CreateJSRuntimeFromIndex(std::string inRuntimeName, size_t inSanpRuntimeIndex = kDefaultV8RutimeIndex, JSRuntimeSnapshotAttributes inSnapAttribute = JSRuntimeSnapshotAttributes::NotSnapshottable,
                                                         IdleTaskSupport inEnableIdleTasks = IdleTaskSupport::kEnabled);
@@ -162,7 +162,7 @@ namespace v8App
             /**
              * Restores the app from the snap data
              */
-            virtual bool RestoreSnapshot(JSAppSnapDataSharedPtr inSnapdata);
+            virtual bool RestoreSnapshot(JSAppSnapDataSharedPtr inSnapdata, std::filesystem::path inAppRoot, AppProviders inProviders);
 
             /**
              * Subclasses should override and return their snap data object if they have otehr data they

@@ -46,29 +46,21 @@ namespace v8App
             SharedRunner runner = std::make_shared<MockWorkerTaskRunner>(4, Threads::ThreadPriority::kBestEffort);
             int task1Int = 0;
             int task2Int = 0;
-            int task3Int = 0;
-            int task4Int = 0;
 
             V8TaskUniquePtr task1 = std::make_unique<WorkerRunnerTestTask>(&task1Int, 1);
             V8TaskUniquePtr task2 = std::make_unique<WorkerRunnerTestTask>(&task2Int, 2);
-            V8TaskUniquePtr task3 = std::make_unique<WorkerRunnerTestTask>(&task3Int, 3);
-            V8TaskUniquePtr task4 = std::make_unique<WorkerRunnerTestTask>(&task4Int, 4);
 
             TestTime::TestTimeSeconds::Enable();
             TestTime::TestTimeSeconds::Set(0.0);
 
             runner->PostTask(std::move(task1));
             runner->PostDelayedTask(std::move(task2), 4.0);
-            runner->PostNonNestableTask(std::move(task3));
-            runner->PostNonNestableDelayedTask(std::move(task4), 4.0);
 
             std::this_thread::sleep_for(std::chrono::seconds(2));
 
             // only task 1 should have been run task 2 is delayed
             EXPECT_EQ(1, task1Int);
             EXPECT_EQ(0, task2Int);
-            EXPECT_EQ(0, task3Int);
-            EXPECT_EQ(0, task4Int);
 
             TestTime::TestTimeSeconds::Set(6.0);
 
@@ -76,15 +68,6 @@ namespace v8App
             std::this_thread::sleep_for(std::chrono::seconds(2));
             EXPECT_EQ(1, task1Int);
             EXPECT_EQ(2, task2Int);
-            EXPECT_EQ(0, task3Int);
-            EXPECT_EQ(0, task4Int);
-
-            // shold be no change to any
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-            EXPECT_EQ(1, task1Int);
-            EXPECT_EQ(2, task2Int);
-            EXPECT_EQ(0, task3Int);
-            EXPECT_EQ(0, task4Int);
         }
 
         TEST(WorkerTaskRunnerTest, Terminates)

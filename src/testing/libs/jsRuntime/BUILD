@@ -96,6 +96,7 @@ v8App_test(
         "runtime/V8AppSnapshotCreatorProviderTest.cc",
         "runtime/V8AppSnapshotModulesTest.cc",
         "runtime/V8AppSnapshotObjectsTest.cc",
+        "runtime/V8AppSnapshotRestoreTest.cc",
         "runtime/V8SnapshotCreatorProviderTest.cc",
         "runtime/WorkerTaskRunnerDeathTest.cc",
         "runtime/WorkerTaskRunnerTest.cc",

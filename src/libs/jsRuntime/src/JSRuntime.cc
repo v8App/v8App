@@ -197,7 +197,7 @@ namespace v8App
             }
             JSContextSharedPtr context = GetContextProvider()->CreateContext(shared_from_this(), inName,
                                                                              inNamespace, inEntryPoint,
-                                                                             inSupportsSnapshot, inSnapMethod, 0);
+                                                                             inSupportsSnapshot, inSnapMethod, 0, true);
             if (context == nullptr)
             {
                 Log::LogMessage message;
@@ -243,7 +243,7 @@ namespace v8App
                 return nullptr;
             }
             JSContextSharedPtr context = GetContextProvider()->CreateContext(shared_from_this(), inName, "", "",
-                                                                             inSupportsSnapshot, inSnapMethod, inIndex);
+                                                                             inSupportsSnapshot, inSnapMethod, inIndex, false);
             if (context == nullptr)
             {
                 Log::Log::Error("ContextHelper returned a nullptr for the context");
@@ -351,6 +351,7 @@ namespace v8App
         {
             inBuffer << m_Name;
             inBuffer << m_IdleEnabled;
+            inBuffer << m_Snapshottable;
 
             Containers::NamedIndexes contextIndexes;
             IJSSnapshotCreatorSharedPtr snapCreator = m_App->GetSnapshotCreator();
@@ -366,11 +367,6 @@ namespace v8App
                                                  snapCreator->GetContextSerializerCallback(), snapCreator->GetAPIWrapperSerializerCallaback());
                 }
 
-                if (contextIndexes.AddNamedIndex(JSRuntime::kDefaultV8ContextIndex, JSRuntime::kDefaultV8ContextName) == false)
-                {
-                    return false;
-                }
-
                 inBuffer << m_Contextes.size();
                 for (auto [name, context] : m_Contextes)
                 {
@@ -384,11 +380,8 @@ namespace v8App
                     {
                         return false;
                     }
-                    // we add one since for us index 0 is the default context and the above added default context is
-                    //  not factored into the indexes for v8 that AddContext returns
                     size_t index = m_Creator->AddContext(v8Context, snapCreator->GetInternalSerializerCallaback(),
-                                                         snapCreator->GetContextSerializerCallback(), snapCreator->GetAPIWrapperSerializerCallaback()) +
-                                   1;
+                                                         snapCreator->GetContextSerializerCallback(), snapCreator->GetAPIWrapperSerializerCallaback());
                     if (contextIndexes.AddNamedIndex(index, name) == false)
                     {
                         LOG_ERROR(Utils::format("Failed to add the context {} to the named indexes", name));
@@ -448,6 +441,12 @@ namespace v8App
                 LOG_ERROR("Buffer read failed on reading runtime idle enabled");
                 return {};
             }
+            inBuffer >> snapData->m_SnashotAttribute;
+            if (inBuffer.HasErrored())
+            {
+                LOG_ERROR("Buffer read failed on reading snapshot attribute");
+                return {};
+            }
             size_t numContextes;
             inBuffer >> numContextes;
             for (size_t idx = 0; idx < numContextes; idx++)
@@ -503,9 +502,54 @@ namespace v8App
             return snapData;
         }
 
-        bool JSRuntime::RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData)
+        bool JSRuntime::RestoreSnapshot(JSAppSharedPtr inApp, JSRuntimeSnapDataSharedPtr inSnapData, size_t inSnapIndex)
         {
-            return false;
+            if (m_Initialized)
+            {
+                return true;
+            }
+
+            m_Name = inSnapData->m_RuntimeName;
+            m_App = inApp;
+            m_TaskRunner = std::make_shared<ForegroundTaskRunner>();
+            m_Snapshottable = inSnapData->m_SnashotAttribute;
+            m_IdleEnabled = inSnapData->m_IdleEnabled;
+            m_SnapshotIndex = inSnapIndex;
+            // Rstored Runtimes are never snapshottable
+            m_IsSnapshotter = false;
+            if (CreateIsolate() == false)
+            {
+                return false;
+            }
+            JSContextModules::SetupModulesCallbacks(m_Isolate.get());
+            //at this point we the runtime is initialized
+            m_Initialized = true;
+
+            for (size_t idx = 0; idx < inSnapData->m_ContextData.size(); idx++)
+            {
+                JSContextSnapDataSharedPtr ctxSnapData = inSnapData->m_ContextData[idx];
+                IJSContextProviderSharedPtr provider = GetContextProvider();
+                if (provider == nullptr)
+                {
+                    return false;
+                }
+                JSContextSharedPtr jsContext = provider->CreateContext(
+                    shared_from_this(),
+                    ctxSnapData->m_Name,
+                    ctxSnapData->m_Namespace,
+                    "",
+                    false,
+                    SnapshotMethod::kNamespaceOnly,
+                    idx,
+                    false);
+                if (jsContext == nullptr)
+                {
+                    return false;
+                }
+                m_Contextes.insert(std::make_pair(jsContext->GetName(), jsContext));
+            }
+            
+            return true;
         }
 
         JSRuntimeSnapDataSharedPtr JSRuntime::GetRuntimeSnapData()
@@ -770,12 +814,31 @@ namespace v8App
         inBuffer >> enabled;
 
         inValue = enabled ? v8App::JSRuntime::IdleTaskSupport::kEnabled : v8App::JSRuntime::IdleTaskSupport::kDisabled;
-        return true;
+        return inBuffer.HasErrored() == false;
     }
 
     bool Serialization::TypeSerializer<v8App::JSRuntime::IdleTaskSupport>::SerializeWrite(Serialization::WriteBuffer &inBuffer, const v8App::JSRuntime::IdleTaskSupport &inValue)
     {
         inBuffer << (inValue == v8App::JSRuntime::IdleTaskSupport::kEnabled ? true : false);
-        return true;
+        return inBuffer.HasErrored() == false;
+    }
+
+    bool Serialization::TypeSerializer<v8App::JSRuntime::JSRuntimeSnapshotAttributes>::SerializeRead(Serialization::ReadBuffer &inBuffer, v8App::JSRuntime::JSRuntimeSnapshotAttributes &inValue)
+    {
+        size_t modType;
+        inBuffer >> modType;
+        if (modType < 0 || modType > (int)JSRuntime::JSRuntimeSnapshotAttributes::SnapshotAndRestore)
+        {
+            inBuffer.SetError();
+            return false;
+        }
+        inValue = (JSRuntime::JSRuntimeSnapshotAttributes)modType;
+        return inBuffer.HasErrored() == false;
+    }
+
+    bool Serialization::TypeSerializer<v8App::JSRuntime::JSRuntimeSnapshotAttributes>::SerializeWrite(Serialization::WriteBuffer &inBuffer, const v8App::JSRuntime::JSRuntimeSnapshotAttributes &inValue)
+    {
+        inBuffer << (size_t)inValue;
+        return inBuffer.HasErrored() == false;
     }
 } // namespace v8App

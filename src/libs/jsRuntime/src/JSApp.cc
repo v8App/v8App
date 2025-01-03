@@ -101,9 +101,10 @@ namespace v8App
                 return false;
             }
 
-            // TODO: add code to do the rest of the init
+            m_AppAssets = std::make_shared<Assets::AppAssetRoots>();
+            m_AppAssets->SetAppRootPath(inAppRoot);
+            m_CodeCache = std::make_shared<CodeCache>(shared_from_this());
 
-            m_AppState = JSAppStates::Initialized;
             return true;
         }
 
@@ -224,13 +225,23 @@ namespace v8App
                 return false;
             }
 
-            // a snapshot app only has runtimes to snapshot
-            // they should be created for snapshotif
-            // CreateJSRuntime is used with an app that is snapshottable
-            // or a non snapshottable app was clone for snapshotting
-            inBuffer << m_Runtimes.size();
+            // count the runtimes that are snapshottable
+            size_t numSnapRuntimes = 0;
             for (auto [name, runtime] : m_Runtimes)
             {
+                if (runtime->CanBeSnapshotted() == false)
+                {
+                    continue;
+                }
+                numSnapRuntimes++;
+            }
+            inBuffer << numSnapRuntimes;
+            for (auto [name, runtime] : m_Runtimes)
+            {
+                if (runtime->CanBeSnapshotted() == false)
+                {
+                    continue;
+                }
                 if (runtime->MakeSnapshot(inBuffer) == false)
                 {
                     return false;
@@ -290,9 +301,53 @@ namespace v8App
             return snapData;
         }
 
-        bool JSApp::RestoreSnapshot(JSAppSnapDataSharedPtr inSnapData)
+        bool JSApp::RestoreSnapshot(JSAppSnapDataSharedPtr inSnapData, std::filesystem::path inAppRoot, AppProviders inProviders)
         {
-            return false;
+            m_AppState = JSAppStates::Restored;
+            m_Name = inSnapData->m_Name;
+            m_AppVersion = inSnapData->m_AppVersion;
+
+            if (ResotreInitialize(inAppRoot, inProviders) == false)
+            {
+                return false;
+            }
+
+            m_MainRuntime = m_AppProviders.m_RuntimeProvider->CreateRuntime();
+            if (m_MainRuntime == nullptr)
+            {
+                LOG_ERROR("Failed to create the mainr runtime");
+                return false;
+            }
+            // Main runtime is the first in the list
+            JSRuntimeSnapDataSharedPtr jsSnapData = inSnapData->m_RuntimesSnapData[0];
+            if (m_MainRuntime->RestoreSnapshot(shared_from_this(), jsSnapData, 0) == false)
+            {
+                return false;
+            }
+            JSRuntimeSharedPtr runtime;
+            for (size_t idx = 1; idx < inSnapData->m_RuntimesSnapData.size(); idx++)
+            {
+                jsSnapData = inSnapData->m_RuntimesSnapData[idx];
+                if (jsSnapData->m_SnashotAttribute != JSRuntimeSnapshotAttributes::SnapshotAndRestore)
+                {
+                    continue;
+                }
+                runtime = m_AppProviders.m_RuntimeProvider->CreateRuntime();
+                if (runtime->RestoreSnapshot(shared_from_this(), jsSnapData, idx) == false)
+                {
+                    runtime->DisposeRuntime();
+                    return false;
+                }
+                auto it = m_Runtimes.insert(std::make_pair(jsSnapData->m_RuntimeName, runtime));
+                if (it.second == false)
+                {
+                    runtime->DisposeRuntime();
+                    return false;
+                }
+                m_DestroyOrder.push_back(runtime);
+            }
+            m_AppState = JSAppStates::Initialized;
+            return true;
         }
 
         void JSApp::SetAppVersion(std::string inVersion)

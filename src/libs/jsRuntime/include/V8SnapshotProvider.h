@@ -64,12 +64,6 @@ namespace v8App
             }
 
             /**
-             * V8 Snapshot provider has no other contexts than the defualt V8 one which is
-             * always 0
-             */
-            virtual size_t RealContextIndex(size_t inNamedIndex) override { return 0; };
-
-            /**
              * Gets the v8 startup data that the isolate needs
              * Passing an index is ignored as there is only one snapshot for v8
              */
@@ -92,6 +86,11 @@ namespace v8App
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override {};
             virtual void DeserializeAPIWrapperField(V8LObject inHolder, V8StartupData inPayload) override {};
             virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext *inJSContext) override {};
+
+            /**
+             * V8 provider can't restore a snapshot
+             */
+            virtual JSAppSharedPtr RestoreApp(std::filesystem::path inAppRoot, AppProviders inProviders) override { return nullptr; }
 
         protected:
             /**

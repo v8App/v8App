@@ -29,8 +29,6 @@ namespace v8App
             virtual size_t GetIndexForContextName(std::string inName, std::string inRuntimeName) override { return 0; };
             virtual size_t GetIndexForContextName(std::string inName, size_t inRuntimeIndex) override { return 0; };
 
-            virtual size_t RealContextIndex(size_t inNamedIndex) override { return 0; };
-
             virtual bool IsRuntimeIndexValid(size_t inIndex) override { return inIndex == 0; };
 
             virtual bool IsContextIndexValid(size_t inIndex, std::string inRuntimeName) override { return inIndex == 0; };
@@ -46,6 +44,11 @@ namespace v8App
             virtual void DeserializeInternalField(V8LObject inHolder, int inIndex, V8StartupData inPayload) override {};
             virtual void DeserializeAPIWrapperField(V8LObject inHolder, V8StartupData inPayload) override {};
             virtual void DeserializeContextInternalField(V8LContext inHolder, int inIndex, V8StartupData inPayload, JSContext *inJSContext) override {};
+
+            /**
+             * Test provider can't restore a snapshot
+             */
+            virtual JSAppSharedPtr RestoreApp(std::filesystem::path inAppRoot, AppProviders inProviders) override { return nullptr; }
 
             void SetLoaded(bool inLoaded) { m_Loaded = inLoaded; }
             void SetReturnEmpty(bool inLoaded) { m_ReturnEmpty = inLoaded; }

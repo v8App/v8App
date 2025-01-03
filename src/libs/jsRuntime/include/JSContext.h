@@ -33,7 +33,7 @@ namespace v8App
             JSContext() {}
 
             JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
-                      size_t inContextIndex, bool inSupportsSnapshot = true,
+                      size_t inContextIndex, bool inUseV8Default, bool inSupportsSnapshot = true,
                       SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly);
             ~JSContext();
 
@@ -265,6 +265,11 @@ namespace v8App
              * The generated Security token for the context
              */
             std::string m_SecurityToken;
+
+            /**
+             * Whether the context was the v8 default one
+             */
+            bool m_V8Default{false};
 
             JSContext(const JSContext &) = delete;
             JSContext &operator=(const JSContext &) = delete;

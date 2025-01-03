@@ -31,9 +31,6 @@ namespace v8App
         class JSRuntime : public std::enable_shared_from_this<JSRuntime>, public ISnapshotObject
         {
         public:
-            inline static const char *kDefaultV8ContextName = "v8-default";
-            inline static const size_t kDefaultV8ContextIndex = 0;
-
             /**
              * What type of data is stored in the runtime data slots
              */
@@ -208,7 +205,7 @@ namespace v8App
             /**
              * Rstores this isolate from the snapshot
              */
-            virtual bool RestoreSnapshot(JSRuntimeSnapDataSharedPtr inSnapData);
+            virtual bool RestoreSnapshot(JSAppSharedPtr inApp, JSRuntimeSnapDataSharedPtr inSnapData, size_t inSnapIndex);
 
             /**
              * Subclasses should override and return their snap data object if they have other data they
@@ -378,6 +375,16 @@ namespace v8App
     {
         static bool SerializeRead(ReadBuffer &inBuffer, v8App::JSRuntime::IdleTaskSupport &inValue);
         static bool SerializeWrite(WriteBuffer &inBuffer, const v8App::JSRuntime::IdleTaskSupport &inValue);
+    };
+
+    /**
+     * Serializer for the JSRuntimeSnapshotAttributes enum
+     */
+    template <>
+    struct Serialization::TypeSerializer<v8App::JSRuntime::JSRuntimeSnapshotAttributes>
+    {
+        static bool SerializeRead(ReadBuffer &inBuffer, v8App::JSRuntime::JSRuntimeSnapshotAttributes &inValue);
+        static bool SerializeWrite(WriteBuffer &inBuffer, const v8App::JSRuntime::JSRuntimeSnapshotAttributes &inValue);
     };
 } // namespace v8App
 #endif

@@ -13,7 +13,8 @@ namespace v8App
     {
         /**
          * Interface for classes that need to have their handles closed in order
-         * to create a snapshot
+         * to create a snapshot. Note if a handle is added to the context or isolate's data
+         * during snapshot then they don't need to be closed.
          */
         class ISnapshotHandleCloser
         {

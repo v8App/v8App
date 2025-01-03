@@ -61,11 +61,6 @@ namespace v8App
              */
             virtual bool IsContextIndexValid(size_t inIndex, std::string inRuntimeName) = 0;
             virtual bool IsContextIndexValid(size_t inIndex, size_t inRuntimeIndex) = 0;
-            /**
-             * Since engine providers may have a different index to the context vs what
-             * is in the named index have it give us the real index.
-             */
-            virtual size_t RealContextIndex(size_t inNamedIndex) = 0;
 
             /**
              * Gets the external references that the snapshot will need.
@@ -118,11 +113,16 @@ namespace v8App
             static void DeserializeAPIWrapperField_Internal(V8LObject inHolder, V8StartupData inPayload, void *inData);
             static void DeserializeContextInternalField_Internal(V8LContext inHolder, int inIndex, V8StartupData inPayload, void *inData);
 
+            /**
+             * Takes the JSapp Data and does a restoration of the app. This should only be done once.
+             */
+            virtual JSAppSharedPtr RestoreApp(std::filesystem::path inAppRoot, AppProviders inProviders) = 0;
+
         protected:
             /**
              * Has the data been loaded
              */
-            bool m_Loaded = false;
+            bool m_Loaded{false};
             /**
              * Path of the file the data was loaded from
              */

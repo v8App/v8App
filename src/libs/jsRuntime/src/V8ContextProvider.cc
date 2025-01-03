@@ -16,7 +16,7 @@ namespace v8App
     {
         JSContextSharedPtr V8ContextProvider::CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
                                                             std::filesystem::path inEntryPoint, bool inSupportsSnapshot,
-                                                            SnapshotMethod inSnapMethod, size_t inContextIndex)
+                                                            SnapshotMethod inSnapMethod, size_t inContextIndex, bool inUseV8Default)
         {
             V8Isolate::Scope iScope(inRuntime->GetIsolate());
             V8HandleScope hScope(inRuntime->GetIsolate());
@@ -33,7 +33,7 @@ namespace v8App
             CppBridge::CallbackRegistry::RunNamespaceSetupFunctions(inRuntime, inNamespace);
 
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, inName, inNamespace, inEntryPoint, inContextIndex,
-                                                                     inSupportsSnapshot, inSnapMethod);
+                                                                     inUseV8Default, inSupportsSnapshot, inSnapMethod);
             if (context->CreateContext() == false)
             {
                 context->DisposeContext();
@@ -48,7 +48,7 @@ namespace v8App
             }
 
             // if the context index is not 0 then no need to run the entry point
-            if (context->GetSnapshotIndex() > 0)
+            if (inUseV8Default == false)
             {
                 return context;
             }

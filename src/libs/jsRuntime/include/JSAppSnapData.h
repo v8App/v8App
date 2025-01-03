@@ -28,7 +28,7 @@ namespace v8App
 
             /** Runtimes snap data. Main is 0 */
             std::vector<JSRuntimeSnapDataSharedPtr> m_RuntimesSnapData;
-            //holds a map of indexes to runteim snapshot names
+            //holds a map of indexes to runtime snapshot names
             Containers::NamedIndexes m_RuntimesSnapIndexes;
         };
     }

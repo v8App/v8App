@@ -68,9 +68,9 @@ namespace v8App
         {
         public:
             TestContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
-                        size_t inSnapIndex, bool inSupportsSnapshot = true,
+                        size_t inSnapIndex, bool inUseV8Default, bool inSupportsSnapshot = true,
                         SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly) : JSContext(inRuntime, inName, inNamespace, inEntryPoint, inSnapIndex,
-                                                                                                  inSupportsSnapshot, inSnapMethod) {}
+                                                                                                  inUseV8Default, inSupportsSnapshot, inSnapMethod) {}
             void TestDisposeContext() { m_Runtime = nullptr; }
         };
 
@@ -79,7 +79,7 @@ namespace v8App
         public:
             virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespce,
                                                      std::filesystem::path inEntryPoint,
-                                                     bool inSupportsSnapshot, SnapshotMethod inSnapMethod, size_t inContextIndex) override
+                                                     bool inSupportsSnapshot, SnapshotMethod inSnapMethod, size_t inContextIndex, bool inUseV8Default) override
             {
                 return m_Context;
             }

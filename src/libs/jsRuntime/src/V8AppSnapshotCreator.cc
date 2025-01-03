@@ -39,11 +39,10 @@ namespace v8App
             }
 
             Serialization::WriteBuffer buffer;
-            uint32_t v8AppMagicNumber = 0; // TODO: comeup with a magic number
 
             // V8's magic number is at the start we want it to be 0 so we can tell it's ours
             buffer << (uint32_t)0;
-            buffer << v8AppMagicNumber;
+            buffer << kV8AppMagicNumber;
             buffer << (uint32_t)JSRUNTIME_MAJOR_VERSION;
             buffer << (uint32_t)JSRUNTIME_MINOR_VERSION;
             buffer << (uint32_t)JSRUNTIME_PATCH_LEVEL;

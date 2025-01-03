@@ -22,9 +22,9 @@ namespace v8App
     namespace JSRuntime
     {
         JSContext::JSContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace,
-                             std::filesystem::path inEntryPoint, size_t inContextIndex,
+                             std::filesystem::path inEntryPoint, size_t inContextIndex, bool inUseV8Default,
                              bool inSupportsSnapshot, SnapshotMethod inSnapMethod)
-            : m_Runtime(inRuntime), m_Name(inName), m_SnapIndex(inContextIndex), m_Namespace(inNamespace),
+            : m_Runtime(inRuntime), m_Name(inName), m_SnapIndex(inContextIndex), m_V8Default(inUseV8Default), m_Namespace(inNamespace),
               m_EntryPoint(inEntryPoint), m_SupportsSnapshots(inSupportsSnapshot), m_SnapMethod(inSnapMethod)
         {
             CHECK_NOT_NULL(m_Runtime.get());
@@ -203,7 +203,7 @@ namespace v8App
 
             V8LContext context;
 
-            if (m_SnapIndex == 0)
+            if (m_V8Default)
             {
                 context = V8Context::New(isolate, nullptr, {});
 
@@ -227,12 +227,11 @@ namespace v8App
             }
             else
             {
-                size_t realContextIndex = provider->RealContextIndex(m_SnapIndex);
                 // Coming from a snapshot we don't have to create the global template
                 // TODO: Look at removing the ToLocalChecked in favor oof ToLocal so we
                 // don't assert if it fails and can handle it ourselves
                 context = V8Context::FromSnapshot(isolate,
-                                                  realContextIndex,
+                                                  m_SnapIndex,
                                                   provider->GetInternalDeserializerCallback(),
                                                   nullptr,
                                                   V8MBLValue(),
@@ -251,12 +250,12 @@ namespace v8App
                     LOG_ERROR("Snapshot provider returned a null JSRuntimeSnapData");
                     return false;
                 }
-                if (realContextIndex >= snapData->m_ContextData.size())
+                if (m_SnapIndex >= snapData->m_ContextData.size())
                 {
                     LOG_ERROR("M_SnapIndex is out of the context snap data");
                     return false;
                 }
-                if (m_Modules->RestoreModules(snapData->m_ContextData[realContextIndex]->m_Modules) == false)
+                if (m_Modules->RestoreModules(snapData->m_ContextData[m_SnapIndex]->m_Modules) == false)
                 {
                     return false;
                 }
@@ -408,7 +407,7 @@ namespace v8App
         JSContextSharedPtr JSContext::CloneForSnapshot(JSRuntimeSharedPtr inRuntime)
         {
             JSContextSharedPtr context = std::make_shared<JSContext>(inRuntime, m_Name, m_Namespace,
-                                                                     m_EntryPoint, m_SnapIndex,
+                                                                     m_EntryPoint, m_SnapIndex, m_V8Default,
                                                                      m_SupportsSnapshots, m_SnapMethod);
             // create it's context
             if (context->CreateContext() == false)

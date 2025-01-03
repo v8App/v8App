@@ -61,25 +61,25 @@ namespace v8App
 
             Serialization::ReadBuffer rBuffer(m_AssetFile.GetContent().data(), m_AssetFile.GetContent().size());
 
-            uint32_t v8AppMagicNumber = 0;
+            std::string v8AppMagicNumber;
             uint32_t major_ver = 0;
             uint32_t minor_ver = 0;
             uint32_t patch_ver = 0;
             uint32_t build_ver = 0;
 
-            // just resue the var to make sure the first 4 bytes are 0
-            rBuffer >> v8AppMagicNumber;
-            if (v8AppMagicNumber != 0)
+            // use the major version to read in the first int that would be
+            //V8's magic number
+            rBuffer >> major_ver;
+            if (major_ver != 0)
             {
                 LOG_ERROR("Magic Number in file is not 0");
                 return false;
             }
-            // check the next 4 are our magic number
-            // TODO: figure out our magic number
+            // that we should get a string for our magic number
             rBuffer >> v8AppMagicNumber;
-            if (v8AppMagicNumber != 0)
+            if (v8AppMagicNumber != kV8AppMagicNumber)
             {
-                LOG_ERROR("Magic Number in file is not 0");
+                LOG_ERROR(Utils::format("Magic Number in file is not {}", kV8AppMagicNumber));
                 return false;
             }
 
@@ -98,20 +98,19 @@ namespace v8App
             rBuffer >> platformArch;
             // TODO: add platform check
 
-            std::string appClassType;
 
-            rBuffer >> appClassType;
+            rBuffer >> m_AppClassType;
 
-            JSAppSharedPtr app = JSAppCreatorRegistry::CreateApp(appClassType);
+            JSAppSharedPtr app = JSAppCreatorRegistry::CreateApp(m_AppClassType);
             if (app == nullptr)
             {
-                LOG_ERROR(Utils::format("Failed to find JSApp type {} registered with the JSAppCreator", appClassType));
+                LOG_ERROR(Utils::format("Failed to find JSApp type {} registered with the JSAppCreator", m_AppClassType));
                 return false;
             }
             m_SnapData = app->LoadSnapshotData(rBuffer);
             if (m_SnapData == nullptr)
             {
-                LOG_ERROR(Utils::format("Failed to load the snapshot data for JSAppType {}.", appClassType));
+                LOG_ERROR(Utils::format("Failed to load the snapshot data for JSAppType {}.", m_AppClassType));
                 return false;
             }
             m_Loaded = true;
@@ -214,6 +213,34 @@ namespace v8App
             Serialization::ReadBuffer rBuffer(inPayload.data, inPayload.raw_size);
 
             inJSContext->DeserializeContextData(inHolder, rBuffer);
+        }
+
+        JSAppSharedPtr V8AppSnapshotProvider::RestoreApp(std::filesystem::path inAppRoot, AppProviders inProviders)
+        {
+            if(m_AppRestored)
+            {
+                LOG_ERROR("The app has already been restored");
+                return nullptr;
+            }
+            if(m_AppClassType.empty())
+            {
+                LOG_ERROR("The JSApp class type is empty");
+                return nullptr;
+            }
+            JSAppSharedPtr app = JSAppCreatorRegistry::CreateApp(m_AppClassType);
+            if (app == nullptr)
+            {
+                LOG_ERROR(Utils::format("Failed to find JSApp type {} registered with the JSAppCreator", m_AppClassType));
+                return nullptr;
+            }
+            if(app->RestoreSnapshot(m_SnapData, inAppRoot, inProviders) == false)
+            {
+                app->DisposeApp();
+                LOG_ERROR("Failed to restore the App from the snapshot");
+                return nullptr;
+            }
+            m_AppRestored = true;
+            return app;
         }
     }
 }

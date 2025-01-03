@@ -121,7 +121,7 @@ namespace v8App
 
             JSAppSharedPtr snapApp = m_App->CloneAppForSnapshotting();
             JSRuntimeSharedPtr secondRuntime = snapApp->CreateJSRuntimeFromIndex("SecondRuntime", 0,
-            JSRuntimeSnapshotAttributes::NotSnapshottable);
+            JSRuntimeSnapshotAttributes::SnapshotOnly);
             JSRuntimeSharedPtr thirdRuntime = snapApp->CreateJSRuntimeFromIndex("ThirdRuntime", 0,
             JSRuntimeSnapshotAttributes::NotSnapshottable);
             V8AppSnapshotCreator creator;
@@ -133,7 +133,6 @@ namespace v8App
                 snapApp->DisposeApp();
                 ASSERT_FALSE(true);
             }
-            //snapApp->DisposeRuntime(thirdRuntime);
             snapApp->DisposeApp();
 
             V8AppSnapshotProviderSharedPtr snapProvider = std::make_shared<V8AppSnapshotProvider>();

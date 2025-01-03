@@ -30,14 +30,15 @@ namespace v8App
             ~JSRuntimeSnapData() {};
 
             std::string m_RuntimeName;
-            bool m_IdleEnabled{false};
+            IdleTaskSupport m_IdleEnabled{IdleTaskSupport::kDisabled};
+            JSRuntimeSnapshotAttributes m_SnashotAttribute;
 
             V8StartupData m_StartupData;
             std::unique_ptr<char[]> m_StartupDeleter{nullptr};
 
             Containers::NamedIndexes m_ContextIndexes;
-
             std::vector<JSContextSnapDataSharedPtr> m_ContextData;
+
             std::vector<FuncTplSnapshotData> m_FunctionTemplates;
         };
     }
