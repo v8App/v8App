@@ -280,7 +280,7 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
             logSink->FlushMessages();
 
-            contextProvider->m_Context = std::make_shared<TestContext>(runtime, "test", "", "", 0);
+            contextProvider->m_Context = std::make_shared<TestContext>(runtime, "test", "", "", 0, true);
 
             EXPECT_EQ(contextProvider->m_Context, runtime->CreateContext("test", ""));
             EXPECT_TRUE(logSink->NoMessages());

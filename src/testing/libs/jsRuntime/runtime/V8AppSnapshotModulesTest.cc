@@ -87,11 +87,16 @@ namespace v8App
             {
                 runtime = restore->GetMainRuntime();
                 V8Isolate *isolate = runtime->GetIsolate();
-                V8IsolateScope iScope(isolate);
+                isolate->Enter();
                 V8HandleScope hScope(isolate);
                 {
-                    JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default", 1);
-                    ASSERT_NE(nullptr, jsContext);
+                    JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default", 0);
+                    if (jsContext == nullptr)
+                    {
+                        isolate->Exit();
+                        restore->DisposeApp();
+                        ASSERT_FALSE(true);
+                    }
                     V8LContext context = jsContext->GetLocalContext();
                     V8ContextScope cScope(context);
 
@@ -116,11 +121,23 @@ namespace v8App
                                         }
                                         */
                 }
+                isolate->Exit();
+            }
+            {
+                runtime = restore->GetMainRuntime();
+                V8Isolate *isolate = runtime->GetIsolate();
+                isolate->Enter();
+                V8HandleScope hScope(isolate);
                 {
-
-                    JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default2", 1);
-                    ASSERT_NE(nullptr, jsContext);
+                    JSContextSharedPtr jsContext = runtime->CreateContextFromSnapshot("default2", 0);
+                    if (jsContext == nullptr)
+                    {
+                        isolate->Exit();
+                        restore->DisposeApp();
+                        ASSERT_FALSE(true);
+                    }
                 }
+                isolate->Exit();
             }
             restore->DisposeApp();
         }

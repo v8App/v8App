@@ -130,14 +130,14 @@ namespace v8App
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught SyntaxError: Files ending in .js or .mjs can not be in resources, ImportPath: {}", testPath));
+                      Utils::format("Uncaught SyntaxError: Files ending in {}, {} or {} can not be in resources, ImportPath: {}", JSModuleAttributesInfo::kExtJS, JSModuleAttributesInfo::kExtModuleJS, JSModuleAttributesInfo::kExtNative, testPath));
 
             testPath = std::filesystem::path("%RESOURCES%/testModule.mjs");
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught SyntaxError: Files ending in .js or .mjs can not be in resources, ImportPath: {}", testPath));
+                      Utils::format("Uncaught SyntaxError: Files ending in {}, {} or {} can not be in resources, ImportPath: {}", JSModuleAttributesInfo::kExtJS, JSModuleAttributesInfo::kExtModuleJS, JSModuleAttributesInfo::kExtNative, testPath));
 
             tryCatch.Reset();
             // extension doesn't match allowed type
