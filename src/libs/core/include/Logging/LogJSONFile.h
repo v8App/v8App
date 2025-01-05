@@ -14,6 +14,9 @@ namespace v8App
 {
     namespace Log
     {
+        /**
+         * Class to write the log messages as json objects. The file is a collection of json objects and not a single json object
+        */
         class LogJSONFile : public ILogSink
         {
         public:
@@ -21,7 +24,9 @@ namespace v8App
             virtual ~LogJSONFile();
 
             virtual void SinkMessage(LogMessage &InMessage) override;
-            virtual bool WantsLogMessage(LogLevel inLevel) override;            
+            virtual bool WantsLogMessage(LogLevel inLevel) override;  
+
+            virtual void Close() override;          
 
             std::filesystem::path GetFilePath() { return m_LogFile; }
         protected:

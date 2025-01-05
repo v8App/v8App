@@ -31,27 +31,27 @@ namespace v8App
             Terminate();
         }
 
-        void ForegroundTaskRunner::PostTask(V8TaskUniquePtr inTask)
+        void ForegroundTaskRunner::PostTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation& inLocation)
         {
             m_Tasks.PushItem(std::move(inTask));
         }
 
-        void ForegroundTaskRunner::PostNonNestableTask(V8TaskUniquePtr inTask)
+        void ForegroundTaskRunner::PostNonNestableTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation& inLocation)
         {
             m_Tasks.PushNonNestableItem(std::move(inTask));
         }
 
-        void ForegroundTaskRunner::PostDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds)
+        void ForegroundTaskRunner::PostDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation& inLocation)
         {
             m_Tasks.PushItemDelayed(inDelaySeconds, std::move(inTask));
         }
 
-        void ForegroundTaskRunner::PostNonNestableDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds)
+        void ForegroundTaskRunner::PostNonNestableDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation& inLocation)
         {
             m_Tasks.PushNonNestableItemDelayed(inDelaySeconds, std::move(inTask));
         }
 
-        void ForegroundTaskRunner::PostIdleTask(V8IdleTaskUniquePtr inTask)
+        void ForegroundTaskRunner::PostIdleTaskImpl(V8IdleTaskUniquePtr inTask, const V8SourceLocation& inLocation)
         {
             m_IdleTasks.PushItem(std::move(inTask));
         }

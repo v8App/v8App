@@ -13,6 +13,9 @@ namespace v8App
 {
     namespace Threads
     {
+        /**
+         * These mirror the v8 Thread Priorities
+         */
         enum class ThreadPriority : uint8_t
         {
             kDefault,
@@ -22,8 +25,15 @@ namespace v8App
             kMaxPriority = kUserBlocking
         };
 
+        /**
+         * The max size of a therad name
+        */
         constexpr int kMaxThreadName = 63;
 
+        /**
+         * class to implement a thread. To implment the logic for the thread 
+         * Implment the Run fucntion
+        */
         class Thread
         {
         public:
@@ -53,10 +63,10 @@ namespace v8App
             bool m_Running = false;
             std::mutex m_Lock;
         };
-        // These mirror the v8 Thread Priorities
 
-        // allows setting the std::thread's native priority
-
+        /**
+         * Gets the systems number of harware cores
+        */
         int GetHardwareCores();
     } // namespace Threads
 } // namespace v8App

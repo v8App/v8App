@@ -13,17 +13,16 @@ namespace v8App
     {
         VersionString::VersionString(std::string inVersion)
         {
-            m_Version = inVersion;
-            ParseVersionString();
+            SetVersionString(inVersion);
         }
 
         int VersionString::CompareVersions(const VersionString &inVersion) const
         {
-            if(IsVersionString() == false)
+            if (IsVersionString() == false)
             {
                 return -1;
             }
-            if(inVersion.IsVersionString() == false)
+            if (inVersion.IsVersionString() == false)
             {
                 return 1;
             }
@@ -72,34 +71,34 @@ namespace v8App
                 bool leftIsNumber = IsNumber(left);
                 bool rightIsNumber = IsNumber(right);
 
-                if(leftIsNumber && rightIsNumber) 
+                if (leftIsNumber && rightIsNumber)
                 {
                     int iLeft = ConvertStringToInt(left);
                     int iRight = ConvertStringToInt(right);
-                    if(iLeft < iRight)
+                    if (iLeft < iRight)
                     {
                         return -1;
                     }
-                    if(iLeft > iRight)
+                    if (iLeft > iRight)
                     {
                         return 1;
                     }
-                } 
-                else if(leftIsNumber && rightIsNumber == false)
+                }
+                else if (leftIsNumber && rightIsNumber == false)
                 {
                     return -1;
                 }
-                else if(leftIsNumber == false && rightIsNumber)
+                else if (leftIsNumber == false && rightIsNumber)
                 {
                     return 1;
                 }
                 int result = left.compare(right);
-                if(result != 0)
+                if (result != 0)
                 {
                     return result < 0 ? -1 : 1;
                 }
             }
-            if(preRelease.size() == inPreRelease.size())
+            if (preRelease.size() == inPreRelease.size())
             {
                 return 0;
             }
@@ -122,6 +121,7 @@ namespace v8App
             m_PreRelease = matches[4].str();
             m_Build = matches[5].str();
             m_Valid = true;
+            GenerateVersionString();
         }
 
         int VersionString::ConvertStringToInt(const std::string &inInt) const
@@ -149,8 +149,85 @@ namespace v8App
         bool VersionString::IsNumber(const std::string &inValue) const
         {
             return inValue.empty() == false && std::find_if(inValue.begin(), inValue.end(),
-            [](unsigned char c){return std::isdigit(c) == false;}) == inValue.end();
+                                                            [](unsigned char c)
+                                                            { return std::isdigit(c) == false; }) == inValue.end();
         }
 
+        bool VersionString::SetVersionString(std::string inVersion)
+        {
+            m_Version = inVersion;
+            ParseVersionString();
+            return IsVersionString();
+        }
+
+        std::string VersionString::GetVersionString() const
+        {
+            return m_Version;
+        }
+
+        void VersionString::GenerateVersionString()
+        {
+            m_Version = "";
+            if (m_Major > -1)
+            {
+                m_Version += std::to_string(m_Major);
+            }
+            else
+            {
+                m_Version = "";
+                return;
+            }
+
+            m_Version += ".";
+            if (m_Minor > -1)
+            {
+                m_Version += std::to_string(m_Minor);
+            }
+            else
+            {
+                m_Version = "";
+                return;
+            }
+
+            m_Version += ".";
+            if (m_Patch > -1)
+            {
+                m_Version += std::to_string(m_Patch);
+            }
+            else
+            {
+                m_Version = "";
+                return;
+            }
+
+            if (m_PreRelease != "")
+            {
+                m_Version += "-" + m_PreRelease;
+            }
+
+            if (m_Build != "")
+            {
+                m_Version += "+" + m_Build;
+            }
+        }
+
+    }
+
+    bool Serialization::TypeSerializer<Utils::VersionString>::SerializeRead(Serialization::ReadBuffer &inBuffer, Utils::VersionString &inValue)
+    {
+        std::string version;
+        inBuffer >> version;
+        if (inBuffer.HasErrored())
+        {
+            return false;
+        }
+        inValue.SetVersionString(version);
+        return true;
+    }
+
+    bool Serialization::TypeSerializer<Utils::VersionString>::SerializeWrite(Serialization::WriteBuffer &inBuffer, const Utils::VersionString &inValue)
+    {
+        inBuffer << inValue.GetVersionString();
+        return true;
     }
 }

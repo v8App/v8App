@@ -16,14 +16,14 @@ namespace v8App
             class V8Arguments
             {
             public:
-                explicit V8Arguments(const v8::FunctionCallbackInfo<v8::Value> &inInfo);
-                explicit V8Arguments(const v8::PropertyCallbackInfo<v8::Value> &inInfo);
+                explicit V8Arguments(const V8FuncCallInfoValue &inInfo);
+                explicit V8Arguments(const V8PropCallInfoValeu &inInfo);
                 ~V8Arguments();
 
                 template <typename T>
                 bool GetHolder(T **outHolder)
                 {
-                    v8::Local<v8::Object> holder = m_IsProperty ? m_PropertyInfo->Holder()
+                    V8LObject holder = m_IsProperty ? m_PropertyInfo->Holder()
                                                                 : m_FunctionInfo->Holder();
 
                     if (ConvertFromV8(m_Isolate, holder, outHolder))
@@ -37,7 +37,7 @@ namespace v8App
                 template <typename T>
                 bool GetData(T *outData)
                 {
-                    v8::Local<v8::Value> data = m_IsProperty ? m_PropertyInfo->Data()
+                    V8LValue data = m_IsProperty ? m_PropertyInfo->Data()
                                                              : m_FunctionInfo->Data();
 
                     if (ConvertFromV8(m_Isolate, data, outData))
@@ -55,7 +55,8 @@ namespace v8App
                     {
                         return false;
                     }
-                    v8::Local<v8::Value> v8Value;
+
+                    V8LValue v8Value;
                     if (m_CppArgsReveresed)
                     {
                         v8Value = (*m_FunctionInfo)[m_NextArg--];
@@ -77,7 +78,7 @@ namespace v8App
                         if (ConvertFromV8(m_Isolate, v8Value, outType))
                         {
                             m_CppArgsReveresed = true;
-                            m_NextArg = tempNext-1;
+                            m_NextArg = tempNext - 1;
                             return true;
                         }
                     }
@@ -93,7 +94,7 @@ namespace v8App
                 template <typename T>
                 bool Return(T inValue)
                 {
-                    v8::Local<v8::Value> v8Value;
+                    V8LValue v8Value;
                     if (TryConvertToV8(m_Isolate, inValue, &v8Value) == false)
                     {
                         return false;
@@ -102,7 +103,7 @@ namespace v8App
                     return true;
                 }
 
-                v8::Isolate *GetIsolate()
+                V8Isolate *GetIsolate()
                 {
                     return m_Isolate;
                 }
@@ -138,27 +139,27 @@ namespace v8App
                 // When using these 2 make sure that the you use the right one as the types are
                 // are a union and you if you request the wrong type you'll end up with at least a crash
                 // or worse a hard to track down bug.
-                const v8::FunctionCallbackInfo<v8::Value> &GetFunctionInfo() { return *m_FunctionInfo; }
-                const v8::PropertyCallbackInfo<v8::Value> &GetPropertyInfo() { return *m_PropertyInfo; }
+                const V8FuncCallInfoValue &GetFunctionInfo() { return *m_FunctionInfo; }
+                const V8PropCallInfoValeu &GetPropertyInfo() { return *m_PropertyInfo; }
 
             private:
-                v8::Isolate *m_Isolate;
+                V8Isolate *m_Isolate;
                 bool m_IsProperty = false;
                 bool m_AllConverted = true;
                 bool m_CppArgsReveresed = false;
 
                 union
                 {
-                    const v8::FunctionCallbackInfo<v8::Value> *m_FunctionInfo;
-                    const v8::PropertyCallbackInfo<v8::Value> *m_PropertyInfo;
+                    const V8FuncCallInfoValue *m_FunctionInfo;
+                    const V8PropCallInfoValeu *m_PropertyInfo;
                 };
                 size_t m_NextArg = 0;
             };
 
-            std::string V8TypeAsString(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue);
+            std::string V8TypeAsString(V8Isolate *inIsolate, V8LValue inValue);
 
             void ThrowConversionError(V8Arguments *inArgs, size_t inIndex, bool isMemberFunction, const char *inTypeNmae = nullptr);
         } // namespace CppBridge
-    }     // namespace JSRuntime
+    } // namespace JSRuntime
 } // namespace v8App
 #endif

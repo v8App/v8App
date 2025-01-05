@@ -24,12 +24,15 @@ namespace v8App
             virtual bool WriteAsset() override {return true; }
         };
 
-        TEST(BaseAssetTest, Constrcutor)
+        TEST(BaseAssetTest, Constructor)
         {
             std::filesystem::path tmp = s_TestDir /"baseAsset.txt";
 
             TestBaseAsset asset(tmp);
 
+            EXPECT_EQ(asset.GetPath().string(), tmp.string());
+            tmp = s_TestDir / "baseAsset2.txt";
+            asset.SetPath(tmp);
             EXPECT_EQ(asset.GetPath().string(), tmp.string());
         }
         

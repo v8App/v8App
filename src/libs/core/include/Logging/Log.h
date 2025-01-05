@@ -73,19 +73,35 @@ namespace v8App
             static std::string GenerateISO8601Time(bool inUTC);
 
             static void General(LogMessage &inMessage);
+            static void General(std::string inMessage);
             static void Error(LogMessage &inMessage);
+            static void Error(std::string inMessage);
             static void Warn(LogMessage &inMessage);
+            static void Warn(std::string inMessage);
             static void Debug(LogMessage &inMessage);
+            static void Debug(std::string inMessage);
             static void Trace(LogMessage &inMessage);
+            static void Trace(std::string inMessage);
             static void Fatal(LogMessage &inMessage);
+            static void Fatal(std::string inMessage);
 
             static void General(LogMessage &inMessage, std::string File, std::string Function, int Line);
+            static void General(std::string inMessage, std::string File, std::string Function, int Line);
             static void Error(LogMessage &inMessage, std::string File, std::string Function, int Line);
+            static void Error(std::string inMessage, std::string File, std::string Function, int Line);
             static void Warn(LogMessage &inMessage, std::string File, std::string Function, int Line);
+            static void Warn(std::string inMessage, std::string File, std::string Function, int Line);
             static void Debug(LogMessage &inMessage, std::string File, std::string Function, int Line);
+            static void Debug(std::string inMessage, std::string File, std::string Function, int Line);
             static void Trace(LogMessage &inMessage, std::string File, std::string Function, int Line);
+            static void Trace(std::string inMessage, std::string File, std::string Function, int Line);
             static void Fatal(LogMessage &inMessage, std::string File, std::string Function, int Line);
+            static void Fatal(std::string inMessage, std::string File, std::string Function, int Line);
 
+            /**
+             * Closes out all the of the sinks used mainly by fatal to flush them all.
+            */
+            static void Shutdown();
         protected:
             static void InternalLog(LogMessage &inMessage, LogLevel inLevel, std::string File, std::string Function, int Line);
             static void InternalLog(LogMessage &inMessage, LogLevel inLevel);

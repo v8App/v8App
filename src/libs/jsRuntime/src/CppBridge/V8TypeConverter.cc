@@ -21,23 +21,23 @@ namespace v8App
                 return true;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<bool>::To(v8::Isolate *inIsolate, bool inValue)
+            V8LValue V8TypeConverter<bool>::To(V8Isolate *inIsolate, bool inValue)
             {
-                return v8::Boolean::New(inIsolate, inValue).As<v8::Value>();
+                return V8Boolean::New(inIsolate, inValue).As<V8Value>();
             }
 
-            bool V8TypeConverter<bool>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, bool *outValue)
+            bool V8TypeConverter<bool>::From(V8Isolate *inIsolate, V8LValue inValue, bool *outValue)
             {
                 *outValue = inValue->BooleanValue(inIsolate);
                 return true;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<int32_t>::To(v8::Isolate *inIsolate, int32_t inValue)
+            V8LValue V8TypeConverter<int32_t>::To(V8Isolate *inIsolate, int32_t inValue)
             {
-                return v8::Integer::New(inIsolate, inValue).As<v8::Value>();
+                return V8Integer::New(inIsolate, inValue).As<V8Value>();
             }
 
-            bool V8TypeConverter<int32_t>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, int32_t *outValue)
+            bool V8TypeConverter<int32_t>::From(V8Isolate *inIsolate, V8LValue inValue, int32_t *outValue)
             {
                 if (inValue->IsInt32())
                 {
@@ -47,12 +47,12 @@ namespace v8App
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<uint32_t>::To(v8::Isolate *inIsolate, uint32_t inValue)
+            V8LValue V8TypeConverter<uint32_t>::To(V8Isolate *inIsolate, uint32_t inValue)
             {
-                return v8::Integer::NewFromUnsigned(inIsolate, inValue).As<v8::Value>();
+                return V8Integer::NewFromUnsigned(inIsolate, inValue).As<V8Value>();
             }
 
-            bool V8TypeConverter<uint32_t>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, uint32_t *outValue)
+            bool V8TypeConverter<uint32_t>::From(V8Isolate *inIsolate, V8LValue inValue, uint32_t *outValue)
             {
                 if (inValue->IsUint32())
                 {
@@ -62,26 +62,12 @@ namespace v8App
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<int64_t>::To(v8::Isolate *inIsolate, int64_t inValue)
+            V8LValue V8TypeConverter<int64_t>::To(V8Isolate *inIsolate, int64_t inValue)
             {
-                return v8::Number::New(inIsolate, static_cast<double>(inValue)).As<v8::Value>();
+                return V8Number::New(inIsolate, static_cast<double>(inValue)).As<V8Value>();
             }
 
-            bool V8TypeConverter<int64_t>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, int64_t *outValue)
-            {
-                if (inValue->IsNumber())
-                {
-                    return FromMaybe(inValue->IntegerValue(inIsolate->GetCurrentContext()), outValue);
-                }
-                return false;
-            }
-
-            v8::Local<v8::Value> V8TypeConverter<uint64_t>::To(v8::Isolate *inIsolate, uint64_t inValue)
-            {
-                return v8::Number::New(inIsolate, static_cast<double>(inValue)).As<v8::Value>();
-            }
-
-            bool V8TypeConverter<uint64_t>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, uint64_t *outValue)
+            bool V8TypeConverter<int64_t>::From(V8Isolate *inIsolate, V8LValue inValue, int64_t *outValue)
             {
                 if (inValue->IsNumber())
                 {
@@ -90,156 +76,200 @@ namespace v8App
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<float>::To(v8::Isolate *inIsolate, float inValue)
+            V8LValue V8TypeConverter<uint64_t>::To(V8Isolate *inIsolate, uint64_t inValue)
             {
-                return v8::Number::New(inIsolate, inValue).As<v8::Value>();
+                return V8Number::New(inIsolate, static_cast<double>(inValue)).As<V8Value>();
             }
 
-            bool V8TypeConverter<float>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, float *outValue)
+            bool V8TypeConverter<uint64_t>::From(V8Isolate *inIsolate, V8LValue inValue, uint64_t *outValue)
             {
                 if (inValue->IsNumber())
                 {
-                    *outValue = static_cast<float>(inValue.As<v8::Number>()->Value());
+                    return FromMaybe(inValue->IntegerValue(inIsolate->GetCurrentContext()), outValue);
+                }
+                return false;
+            }
+
+            V8LValue V8TypeConverter<float>::To(V8Isolate *inIsolate, float inValue)
+            {
+                return V8Number::New(inIsolate, inValue).As<V8Value>();
+            }
+
+            bool V8TypeConverter<float>::From(V8Isolate *inIsolate, V8LValue inValue, float *outValue)
+            {
+                if (inValue->IsNumber())
+                {
+                    *outValue = static_cast<float>(inValue.As<V8Number>()->Value());
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<double>::To(v8::Isolate *inIsolate, double inValue)
+            V8LValue V8TypeConverter<double>::To(V8Isolate *inIsolate, double inValue)
             {
-                return v8::Number::New(inIsolate, inValue).As<v8::Value>();
+                return V8Number::New(inIsolate, inValue).As<V8Value>();
             }
 
-            bool V8TypeConverter<double>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, double *outValue)
+            bool V8TypeConverter<double>::From(V8Isolate *inIsolate, V8LValue inValue, double *outValue)
             {
                 if (inValue->IsNumber())
                 {
-                    *outValue = inValue.As<v8::Number>()->Value();
+                    *outValue = inValue.As<V8Number>()->Value();
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<std::string>::To(v8::Isolate *inIsolate, const std::string &inValue)
+            V8LValue V8TypeConverter<std::string>::To(V8Isolate *inIsolate, const std::string &inValue)
             {
-                return v8::String::NewFromUtf8(inIsolate, inValue.c_str(), v8::NewStringType::kNormal, inValue.length()).ToLocalChecked();
+                return V8String::NewFromUtf8(inIsolate, inValue.c_str(), v8::NewStringType::kNormal, inValue.length()).ToLocalChecked();
             }
 
-            bool V8TypeConverter<std::string>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, std::string *outValue)
+            bool V8TypeConverter<std::string>::From(V8Isolate *inIsolate, V8LValue inValue, std::string *outValue)
             {
                 if (inValue->IsString())
                 {
-                    v8::Local<v8::String> v8Str = v8::Local<v8::String>::Cast(inValue);
+                    V8LString v8Str = V8LString::Cast(inValue);
                     int length = v8Str->Utf8Length(inIsolate);
                     outValue->resize(length);
-                    v8Str->WriteUtf8(inIsolate, &(*outValue)[0], length, nullptr, v8::String::NO_NULL_TERMINATION);
+                    v8Str->WriteUtf8(inIsolate, &(*outValue)[0], length, nullptr, V8String::NO_NULL_TERMINATION);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<std::u16string>::To(v8::Isolate *inIsolate, const std::u16string &inValue, v8::NewStringType inStringType)
+            V8LValue V8TypeConverter<std::u16string>::To(V8Isolate *inIsolate, const std::u16string &inValue, v8::NewStringType inStringType)
             {
-                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inValue.c_str()), inStringType, inValue.length()).ToLocalChecked();
+                return V8String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inValue.c_str()), inStringType, inValue.length()).ToLocalChecked();
             }
 
-            bool V8TypeConverter<std::u16string>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, std::u16string *outValue)
+            bool V8TypeConverter<std::u16string>::From(V8Isolate *inIsolate, V8LValue inValue, std::u16string *outValue)
             {
                 if (inValue->IsString())
                 {
-                    v8::Local<v8::String> v8Str = v8::Local<v8::String>::Cast(inValue);
+                    V8LString v8Str = V8LString::Cast(inValue);
                     outValue->resize(v8Str->Length());
-                    v8Str->Write(inIsolate, reinterpret_cast<uint16_t *>(&(*outValue)[0]), 0, v8Str->Length(), v8::String::NO_NULL_TERMINATION);
+                    v8Str->Write(inIsolate, reinterpret_cast<uint16_t *>(&(*outValue)[0]), 0, v8Str->Length(), V8String::NO_NULL_TERMINATION);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::Function>>::To(v8::Isolate *inIsolate, v8::Local<v8::Function> inValue)
+            V8LValue V8TypeConverter<V8LFunction>::To(V8Isolate *inIsolate, V8LFunction inValue)
             {
-                return inValue.As<v8::Value>();
+                return inValue.As<V8Value>();
             }
 
-            bool V8TypeConverter<v8::Local<v8::Function>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Function> *outValue)
+            bool V8TypeConverter<V8LFunction>::From(V8Isolate *inIsolate, V8LValue inValue, V8LFunction *outValue)
             {
                 if (inValue->IsFunction())
                 {
-                    *outValue = v8::Local<v8::Function>::Cast(inValue);
+                    *outValue = V8LFunction::Cast(inValue);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::Object>>::To(v8::Isolate *inIsolate, v8::Local<v8::Object> inValue)
+            V8LValue V8TypeConverter<V8LObject>::To(V8Isolate *inIsolate, V8LObject inValue)
             {
-                return inValue.As<v8::Value>();
+                return inValue.As<V8Value>();
             }
 
-            bool V8TypeConverter<v8::Local<v8::Object>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Object> *outValue)
+            bool V8TypeConverter<V8LObject>::From(V8Isolate *inIsolate, V8LValue inValue, V8LObject *outValue)
             {
                 if (inValue->IsObject())
                 {
-                    *outValue = v8::Local<v8::Object>::Cast(inValue);
+                    *outValue = V8LObject::Cast(inValue);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::Promise>>::To(v8::Isolate *inIsolate, v8::Local<v8::Promise> inValue)
+            V8LValue V8TypeConverter<V8LPromise>::To(V8Isolate *inIsolate, V8LPromise inValue)
             {
-                return inValue.As<v8::Value>();
+                return inValue.As<V8Value>();
             }
 
-            bool V8TypeConverter<v8::Local<v8::Promise>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Promise> *outValue)
+            bool V8TypeConverter<V8LPromise>::From(V8Isolate *inIsolate, V8LValue inValue, V8LPromise *outValue)
             {
                 if (inValue->IsPromise())
                 {
-                    *outValue = v8::Local<v8::Promise>::Cast(inValue);
+                    *outValue = V8LPromise::Cast(inValue);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::ArrayBuffer>>::To(v8::Isolate *inIsolate, v8::Local<v8::ArrayBuffer> inValue)
+            V8LValue V8TypeConverter<V8LArrayBuffer>::To(V8Isolate *inIsolate, V8LArrayBuffer inValue)
             {
-                return inValue.As<v8::Value>();
+                return inValue.As<V8Value>();
             }
 
-            bool V8TypeConverter<v8::Local<v8::ArrayBuffer>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::ArrayBuffer> *outValue)
+            bool V8TypeConverter<V8LArrayBuffer>::From(V8Isolate *inIsolate, V8LValue inValue, V8LArrayBuffer *outValue)
             {
                 if (inValue->IsArrayBuffer())
                 {
-                    *outValue = v8::Local<v8::ArrayBuffer>::Cast(inValue);
+                    *outValue = V8LArrayBuffer::Cast(inValue);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::External>>::To(v8::Isolate *inIsolate, v8::Local<v8::External> inValue)
+            V8LValue V8TypeConverter<V8LExternal>::To(V8Isolate *inIsolate, V8LExternal inValue)
             {
-                return inValue.As<v8::Value>();
+                return inValue.As<V8Value>();
             }
 
-            bool V8TypeConverter<v8::Local<v8::External>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::External> *outValue)
+            bool V8TypeConverter<V8LExternal>::From(V8Isolate *inIsolate, V8LValue inValue, V8LExternal *outValue)
             {
                 if (inValue->IsExternal())
                 {
-                    *outValue = v8::Local<v8::External>::Cast(inValue);
+                    *outValue = V8LExternal::Cast(inValue);
                     return true;
                 }
                 return false;
             }
 
-            v8::Local<v8::Value> V8TypeConverter<v8::Local<v8::Value>>::To(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
+            V8LValue V8TypeConverter<V8LValue>::To(V8Isolate *inIsolate, V8LValue inValue)
             {
                 return inValue;
             }
 
-            bool V8TypeConverter<v8::Local<v8::Value>>::From(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue, v8::Local<v8::Value> *outValue)
+            bool V8TypeConverter<V8LValue>::From(V8Isolate *inIsolate, V8LValue inValue, V8LValue *outValue)
             {
                 *outValue = inValue;
                 return true;
             }
-       }
+
+            V8LValue V8TypeConverter<V8LNumber>::To(V8Isolate *inIsolate, V8LNumber inValue)
+            {
+                return inValue.As<V8Value>();
+            }
+
+            bool V8TypeConverter<V8LNumber>::From(V8Isolate *inIsolate, V8LValue inValue, V8LNumber *outValue)
+            {
+                if (inValue->IsNumber())
+                {
+                    *outValue = V8LNumber::Cast(inValue);
+                    return true;
+                }
+                return false;
+            }
+
+            V8LValue V8TypeConverter<V8LBigInt>::To(V8Isolate *inIsolate, V8LBigInt inValue)
+            {
+                return inValue.As<V8Value>();
+            }
+
+            bool V8TypeConverter<V8LBigInt>::From(V8Isolate *inIsolate, V8LValue inValue, V8LBigInt *outValue)
+            {
+                if (inValue->IsBigInt())
+                {
+                    *outValue = V8LBigInt::Cast(inValue);
+                    return true;
+                }
+                return false;
+            }
+        }
     }
 }

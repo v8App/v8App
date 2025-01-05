@@ -20,14 +20,14 @@ namespace v8App
         {
             using V8ArgumentsTest = V8Fixture;
 
-            v8::Isolate *testIsolate = nullptr;
+            V8Isolate *testIsolate = nullptr;
             struct testData
             {
             };
 
             testData *testDataPtr = nullptr;
 
-            void testFunctionCallback(const v8::FunctionCallbackInfo<v8::Value> &info)
+            void testFunctionCallback(const V8FuncCallInfoValue &info)
             {
                 //check initial construction
                 V8Arguments test(info);
@@ -36,7 +36,7 @@ namespace v8App
                 ASSERT_FALSE(test.InsufficientArgs());
 
                 //test the data that was passed to the function template
-                v8::Local<v8::External> data;
+                V8LExternal data;
                 EXPECT_TRUE(test.GetData(&data));
                 testData *dataPtr = reinterpret_cast<testData *>(data->Value());
                 EXPECT_EQ(testDataPtr, dataPtr);
@@ -70,7 +70,7 @@ namespace v8App
                 //add a test where the converesion fails and return false
             }
 
-            void testFunctionCallback2(const v8::FunctionCallbackInfo<v8::Value> &info)
+            void testFunctionCallback2(const V8FuncCallInfoValue &info)
             {
                 V8Arguments test(info);
                 ASSERT_EQ(3, test.Length());
@@ -84,7 +84,7 @@ namespace v8App
                 EXPECT_EQ(2.4f, arg3);
             }
 
-            void testReturnValue(const v8::FunctionCallbackInfo<v8::Value> &info)
+            void testReturnValue(const V8FuncCallInfoValue &info)
             {
                 V8Arguments test(info);
                 ASSERT_EQ(1, test.Length());
@@ -94,7 +94,7 @@ namespace v8App
                 EXPECT_EQ("test", arg1);
             }
 
-            void testProperyCallback(const v8::PropertyCallbackInfo<v8::Value> &info)
+            void testProperyCallback(const V8PropCallInfoValeu &info)
             {
                 //                capturedArguments = new CppArguments(info);
             }
@@ -102,25 +102,25 @@ namespace v8App
             TEST_F(V8ArgumentsTest, TestFunction)
             {
                 //TODO: add test for an class instance and property callbacks
-                v8::Isolate::Scope iScope(m_Isolate);
-                v8::HandleScope scope(m_Isolate);
-                v8::Context::Scope cScope(m_Context->GetLocalContext());
+                V8IsolateScope iScope(m_Isolate);
+                V8HandleScope scope(m_Isolate);
+                V8ContextScope cScope(m_Context->GetLocalContext());
 
                 testIsolate = m_Isolate;
 
                 std::unique_ptr<testData> testUnique = std::make_unique<testData>();
                 testDataPtr = testUnique.get();
-                v8::Local<v8::External> external = v8::External::New(m_Isolate, testDataPtr);
+                V8LExternal external = V8External::New(m_Isolate, testDataPtr);
 
-                v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
+                V8LObjTpl global = V8ObjTpl::New(m_Isolate);
                 global->Set(JSUtilities::StringToV8(m_Isolate, "test"),
-                            v8::FunctionTemplate::New(m_Isolate, &testFunctionCallback, external));
+                            V8FuncTpl::New(m_Isolate, &testFunctionCallback, external));
                 global->Set(JSUtilities::StringToV8(m_Isolate, "test2"),
-                            v8::FunctionTemplate::New(m_Isolate, &testFunctionCallback2));
+                            V8FuncTpl::New(m_Isolate, &testFunctionCallback2));
                 global->Set(JSUtilities::StringToV8(m_Isolate, "testReturn"),
-                            v8::FunctionTemplate::New(m_Isolate, &testReturnValue));
+                            V8FuncTpl::New(m_Isolate, &testReturnValue));
 
-                v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
+                V8LContext context = V8Context::New(m_Isolate, nullptr, global);
 
                 const char csource1[] = R"(
                     x = test('test', 1, 2.0);
@@ -130,23 +130,23 @@ namespace v8App
                     test2([], 1, 2.4);
                 )";
 
-                v8::TryCatch try_catch(m_Isolate);
+                V8TryCatch try_catch(m_Isolate);
 
-                v8::Local<v8::String> source1 = JSUtilities::StringToV8(m_Isolate, csource1);
-                v8::Local<v8::String> source2 = JSUtilities::StringToV8(m_Isolate, csource2);
+                V8LString source1 = JSUtilities::StringToV8(m_Isolate, csource1);
+                V8LString source2 = JSUtilities::StringToV8(m_Isolate, csource2);
 
-                v8::Local<v8::Script> script1 = v8::Script::Compile(context, source1).ToLocalChecked();
-                v8::Local<v8::Script> script2 = v8::Script::Compile(context, source2).ToLocalChecked();
+                V8LScript script1 = v8::Script::Compile(context, source1).ToLocalChecked();
+                V8LScript script2 = v8::Script::Compile(context, source2).ToLocalChecked();
 
-                v8::Local<v8::Value> result;
+                V8LValue result;
                 if (script1->Run(m_Isolate->GetCurrentContext()).ToLocal(&result) == false)
                 {
-                    v8::String::Utf8Value error(m_Isolate, try_catch.Exception());
+                    V8String::Utf8Value error(m_Isolate, try_catch.Exception());
                     std::cout << "Script Error: " << *error << std::endl;
                 }
                 if (script2->Run(m_Isolate->GetCurrentContext()).ToLocal(&result) == false)
                 {
-                    v8::String::Utf8Value error(m_Isolate, try_catch.Exception());
+                    V8String::Utf8Value error(m_Isolate, try_catch.Exception());
                     std::cout << "Script Error: " << *error << std::endl;
                 }
             }

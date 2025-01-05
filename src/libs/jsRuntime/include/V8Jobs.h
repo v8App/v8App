@@ -28,7 +28,7 @@ namespace v8App
         class V8JobState : public std::enable_shared_from_this<V8JobState>
         {
         public:
-            class V8JobDelegate : public ::v8::JobDelegate
+            class V8JobDelegate : public v8::JobDelegate
             {
             public:
                 explicit V8JobDelegate(V8JobState *inState, bool isJoiningThread = false);
@@ -48,7 +48,7 @@ namespace v8App
                 bool m_Yielded = {false};
             };
 
-            V8JobState(v8::Platform *inPlatform, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers);
+            V8JobState(V8Platform *inPlatform, V8JobTaskUniquePtr inTask, V8TaskPriority inPriority, size_t inNumWorkers);
             virtual ~V8JobState();
 
             void NotifyConcurrencyIncrease();
@@ -63,11 +63,11 @@ namespace v8App
             bool CanRunFirstTask();
             bool DidRunFirstTask();
 
-            void UpdatePriority(v8::TaskPriority inPriority);
+            void UpdatePriority(V8TaskPriority inPriority);
 
         protected:
             size_t ComputeTaskToPost(size_t inMaxConcurrency);
-            void PostonWorkerThread(size_t inNumToPost, v8::TaskPriority inPriority);
+            void PostonWorkerThread(size_t inNumToPost, V8TaskPriority inPriority);
 
             inline size_t GetMaxConcurrency(size_t inWorkerCount)
             {
@@ -78,13 +78,13 @@ namespace v8App
 
             static constexpr V8JobTaskIdType kInvalidJobId = std::numeric_limits<uint8_t>::max();
 
-            v8::Platform *m_Platform;
+            V8Platform *m_Platform;
             V8JobTaskUniquePtr m_Task;
 
             std::mutex m_Lock;
             V8JobTaskIdAtomicType m_AssignedTaskIds;
             std::atomic_bool m_Canceled{false};
-            v8::TaskPriority m_Priority;
+            V8TaskPriority m_Priority;
             size_t m_ActiveTasks = 0;
             size_t m_PendingTasks = 0;
             size_t m_NumWorkersAvailable;
@@ -108,7 +108,7 @@ namespace v8App
             virtual bool IsActive() override;
             virtual bool IsValid() override;
             virtual bool UpdatePriorityEnabled() const override;
-            virtual void UpdatePriority(v8::TaskPriority new_priority) override;
+            virtual void UpdatePriority(V8TaskPriority new_priority) override;
             // v8::JobHandle Implementation
 
         protected:
@@ -118,7 +118,7 @@ namespace v8App
         class V8JobTaskWorker : public v8::Task
         {
         public:
-            V8JobTaskWorker(std::weak_ptr<V8JobState> inState, v8::JobTask *inTask);
+            V8JobTaskWorker(std::weak_ptr<V8JobState> inState, V8JobTask *inTask);
             ~V8JobTaskWorker();
 
             V8JobTaskWorker(const V8JobTaskWorker &) = delete;
@@ -128,7 +128,7 @@ namespace v8App
 
         protected:
             std::weak_ptr<V8JobState> m_State;
-            v8::JobTask *m_Task;
+            V8JobTask *m_Task;
         };
     }
 }

@@ -87,6 +87,9 @@ namespace v8App
         static const std::string c_Resources_Token = "%RESOURCES%";
         static const std::string c_Modules_Token = "%MODULES%";
 
+        /**
+         * Manages the apps asset paths and makes sure that paths stay within the aplication's root path.
+        */
         class AppAssetRoots
         {
         public:

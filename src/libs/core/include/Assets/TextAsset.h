@@ -11,10 +11,13 @@ namespace v8App
 {
     namespace Assets
     {
+        /**
+         * Text Asset override this to load specifc text formats
+        */
         class TextAsset : public BaseAsset
         {
         public:
-            TextAsset(std::filesystem::path inAssetPath) : BaseAsset(inAssetPath) {}
+            TextAsset(std::filesystem::path inAssetPath = std::filesystem::path()) : BaseAsset(inAssetPath) {}
             virtual ~TextAsset() {}
 
             virtual bool ReadAsset() override;

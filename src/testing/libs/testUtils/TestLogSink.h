@@ -25,19 +25,21 @@ namespace v8App
 
             static TestLogSink *GetGlobalSink();
 
-            virtual void SinkMessage(Log::LogMessage &inMessage);
+            virtual void SinkMessage(Log::LogMessage &inMessage) override;
 
-            virtual bool WantsLogMessage(Log::LogLevel inLevel);
+            virtual bool WantsLogMessage(Log::LogLevel inLevel) override;
 
+            virtual void Close() override {};
             void SetWantsLogLevels(const WantsLogLevelsVector &inLevels);
 
             bool PopMessage(Log::LogMessage &inMessage);
             bool NoMessages() const;
             void FlushMessages();
 
-            bool ValidateMessage(const Log::LogMessage &inMessage, const IgnoreMsgKeys& inIgnoreKeys = IgnoreMsgKeys(), int skipMessages = 0);
+            bool ValidateMessage(const Log::LogMessage &inMessage, const IgnoreMsgKeys &inIgnoreKeys = IgnoreMsgKeys(), int skipMessages = 0);
 
             static const std::string GlobalTestSinkName;
+
         protected:
             std::deque<Log::LogMessage> m_Message;
             WantsLogLevelsVector m_WantsLevels;

@@ -9,6 +9,8 @@
 
 #include "V8Types.h"
 #include "JSApp.h"
+#include "IJSContextProvider.h"
+#include "V8SnapshotProvider.h"
 
 namespace v8App
 {
@@ -20,15 +22,24 @@ namespace v8App
             JSSnapshotCreator(JSAppSharedPtr inApp);
             ~JSSnapshotCreator();
 
+            /**
+             * Template function to create the JSApp specified class setup for snapshotting
+             * This created the app and the runtime but no contextes.
+             * JSApp has a version but it creates a clone of the app setup for snapshotting
+             */
+            template<class App>
+            static JSAppSharedPtr CreateSnapshotApp(std::string inName, std::filesystem::path inAppRoot,
+                                                    AppProviders inAppProviders);
+
             bool CreateSnapshotFile(std::filesystem::path inSnapshotFile);
 
-            static v8::StartupData SerializeInternalField(V8LocalObject inHolder, int inIndex, void *inData);
-
-            static void DeserializeInternalField(V8LocalObject inHolder, int inINdex, v8::StartupData inPayload, void *inData);            
         protected:
             JSAppSharedPtr m_App;
         };
+
     }
 }
+
+#include "JSSnapshotCreator.hpp"
 
 #endif //__JS_SNAPSHOT_CREATOR_H__

@@ -15,120 +15,125 @@ namespace v8App
     {
         namespace JSUtilities
         {
-            v8::Local<v8::String> GetSourceLine(v8::Isolate *inIsolate, v8::Local<v8::Message> &inMessage)
+            V8LString GetSourceLine(V8Isolate *inIsolate, V8LMessage &inMessage)
             {
-                v8::MaybeLocal<v8::String> maybe = inMessage->GetSourceLine(inIsolate->GetCurrentContext());
-                v8::Local<v8::String> line;
-                return maybe.ToLocal(&line) ? line : v8::String::Empty(inIsolate);
+                V8MBLString maybe = inMessage->GetSourceLine(inIsolate->GetCurrentContext());
+                V8LString line;
+                return maybe.ToLocal(&line) ? line : V8String::Empty(inIsolate);
             }
 
-            std::string GetStackTrace(V8LocalContext inContext, v8::TryCatch &inTryCatch, std::string inResourceName)
+            std::string GetStackTrace(V8Isolate *inIsolate, V8TryCatch &inTryCatch, std::string inResourceName)
             {
-                V8Isolate *isolate = inContext->GetIsolate();
                 if (inTryCatch.HasCaught() == false)
                 {
                     return "";
                 }
-
-                V8LocalValue exception = inTryCatch.Exception();
-                v8::String::Utf8Value exception_str(isolate, exception);
+                V8LValue exception = inTryCatch.Exception();
+                V8String::Utf8Value exception_str(inIsolate, exception);
 
                 const char *cStr = *exception_str ? *exception_str : "<string conversion failed>";
                 std::stringstream messageBuilder;
-                v8::Local<v8::Message> message = inTryCatch.Message();
+                V8LMessage message = inTryCatch.Message();
                 if (message.IsEmpty())
                 {
                     messageBuilder << cStr << std::endl;
                 }
                 else
                 {
-                    std::string resourceName = V8ToString(isolate, message->GetScriptOrigin().ResourceName());
+                    V8LContext context = inIsolate->GetCurrentContext();
+
+                    std::string resourceName = V8ToString(inIsolate, message->GetScriptOrigin().ResourceName());
                     if (resourceName == "")
                     {
                         resourceName = inResourceName;
                     }
-                    messageBuilder << V8ToString(isolate, message->Get()) << std::endl
-                                   << resourceName << ":" << message->GetLineNumber(inContext).FromMaybe(-1)
+                    int sourceLine = -1;
+                    if (context.IsEmpty() == false)
+                    {
+                        message->GetLineNumber(context).To(&sourceLine);
+                    }
+                    messageBuilder << V8ToString(inIsolate, message->Get()) << std::endl
+                                   << resourceName << ":" << sourceLine
                                    << ":" << cStr
                                    << std::endl;
 
-                    v8::Local<v8::StackTrace> trace = message->GetStackTrace();
+                    V8LStackTrace trace = message->GetStackTrace();
                     if (trace.IsEmpty() == false)
                     {
                         int length = trace->GetFrameCount();
                         for (int idx = 0; idx < length; idx++)
                         {
-                            v8::Local<v8::StackFrame> frame = trace->GetFrame(isolate, idx);
-                            messageBuilder << V8ToString(isolate, frame->GetScriptName()) << ":"
+                            V8LStackFrame frame = trace->GetFrame(inIsolate, idx);
+                            messageBuilder << V8ToString(inIsolate, frame->GetScriptName()) << ":"
                                            << frame->GetLineNumber() << ":" << frame->GetColumn() << ":"
-                                           << V8ToString(isolate, frame->GetFunctionName()) << std::endl;
+                                           << V8ToString(inIsolate, frame->GetFunctionName()) << std::endl;
                         }
                     }
                 }
                 return messageBuilder.str();
             }
 
-            void ThrowV8Error(v8::Isolate *inIsolate, V8Errors inType, std::string inMessage)
+            void ThrowV8Error(V8Isolate *inIsolate, V8Errors inType, std::string inMessage)
             {
-                v8::Local<v8::Value> error;
-                v8::Local<v8::String> v8Message = JSUtilities::StringToV8(inIsolate, inMessage);
+                V8LValue error;
+                V8LString v8Message = JSUtilities::StringToV8(inIsolate, inMessage);
 
                 switch (inType)
                 {
                 case V8Errors::RangeError:
-                    error = v8::Exception::RangeError(v8Message);
+                    error = V8Exception::RangeError(v8Message);
                     break;
                 case V8Errors::ReferenceError:
-                    error = v8::Exception::ReferenceError(v8Message);
+                    error = V8Exception::ReferenceError(v8Message);
                     break;
                 case V8Errors::SyntaxError:
-                    error = v8::Exception::SyntaxError(v8Message);
+                    error = V8Exception::SyntaxError(v8Message);
                     break;
                 case V8Errors::TypeError:
-                    error = v8::Exception::TypeError(v8Message);
+                    error = V8Exception::TypeError(v8Message);
                     break;
                 case V8Errors::WasmCompileError:
-                    error = v8::Exception::WasmCompileError(v8Message);
+                    error = V8Exception::WasmCompileError(v8Message);
                     break;
                 case V8Errors::WasmLinkError:
-                    error = v8::Exception::WasmLinkError(v8Message);
+                    error = V8Exception::WasmLinkError(v8Message);
                     break;
                 case V8Errors::WasmRuntimeError:
-                    error = v8::Exception::WasmRuntimeError(v8Message);
+                    error = V8Exception::WasmRuntimeError(v8Message);
                     break;
 
                 default:
-                    error = v8::Exception::Error(v8Message);
+                    error = V8Exception::Error(v8Message);
                 }
 
                 inIsolate->ThrowException(error);
             }
 
-            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::string &inString)
+            V8LString CreateSymbol(V8Isolate *inIsolate, const std::string &inString)
             {
-                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
+                return V8String::NewFromUtf8(inIsolate, inString.c_str(), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
             }
 
-            v8::Local<v8::String> CreateSymbol(v8::Isolate *inIsolate, const std::u16string &inString)
+            V8LString CreateSymbol(V8Isolate *inIsolate, const std::u16string &inString)
             {
-                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
+                return V8String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), v8::NewStringType::kInternalized, inString.length()).ToLocalChecked();
             }
 
-            std::string V8ToString(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
+            std::string V8ToString(V8Isolate *inIsolate, V8LValue inValue)
             {
                 if (inValue.IsEmpty() || inValue->IsString() == false)
                 {
                     return std::string();
                 }
                 std::string outValue;
-                v8::Local<v8::String> v8Str = v8::Local<v8::String>::Cast(inValue);
+                V8LString v8Str = V8LString::Cast(inValue);
                 int length = v8Str->Utf8Length(inIsolate);
                 outValue.resize(length);
-                v8Str->WriteUtf8(inIsolate, &(outValue)[0], length, nullptr, v8::String::NO_NULL_TERMINATION);
+                v8Str->WriteUtf8(inIsolate, &(outValue)[0], length, nullptr, V8String::NO_NULL_TERMINATION);
                 return outValue;
             }
 
-            std::u16string V8ToU16String(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
+            std::u16string V8ToU16String(V8Isolate *inIsolate, V8LValue inValue)
             {
                 if (inValue.IsEmpty() || inValue->IsString() == false)
                 {
@@ -136,33 +141,33 @@ namespace v8App
                 }
                 std::u16string outValue;
 
-                v8::Local<v8::String> v8Str = v8::Local<v8::String>::Cast(inValue);
+                V8LString v8Str = V8LString::Cast(inValue);
                 outValue.resize(v8Str->Length());
-                v8Str->Write(inIsolate, reinterpret_cast<uint16_t *>(&(outValue)[0]), 0, v8Str->Length(), v8::String::NO_NULL_TERMINATION);
+                v8Str->Write(inIsolate, reinterpret_cast<uint16_t *>(&(outValue)[0]), 0, v8Str->Length(), V8String::NO_NULL_TERMINATION);
                 return outValue;
             }
 
-            v8::Local<v8::String> StringToV8(v8::Isolate *inIsolate, const std::string &inString, v8::NewStringType inType)
+            V8LString StringToV8(V8Isolate *inIsolate, const std::string &inString, v8::NewStringType inType)
             {
-                return v8::String::NewFromUtf8(inIsolate, inString.c_str(), inType, inString.length()).ToLocalChecked();
+                return V8String::NewFromUtf8(inIsolate, inString.c_str(), inType, inString.length()).ToLocalChecked();
             }
 
-            v8::Local<v8::String> U16StringToV8(v8::Isolate *inIsolate, const std::u16string &inString, v8::NewStringType inType)
+            V8LString U16StringToV8(V8Isolate *inIsolate, const std::u16string &inString, v8::NewStringType inType)
             {
-                return v8::String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), inType, inString.length()).ToLocalChecked();
+                return V8String::NewFromTwoByte(inIsolate, reinterpret_cast<const uint16_t *>(inString.c_str()), inType, inString.length()).ToLocalChecked();
             }
 
-            v8::Local<v8::String> ReadScriptFile(v8::Isolate *inIsolate, std::filesystem::path inFilename)
+            V8LString ReadScriptFile(V8Isolate *inIsolate, std::filesystem::path inFilename)
             {
                 if (std::filesystem::exists(inFilename) == false)
                 {
-                    return v8::Local<v8::String>();
+                    return V8LString();
                 }
 
                 std::ifstream fileStream(inFilename, std::ios::ate | std::ios::in | std::ios::binary);
                 if (fileStream.is_open() == false)
                 {
-                    return v8::Local<v8::String>();
+                    return V8LString();
                 }
 
                 std::streampos fileSize = fileStream.tellg();

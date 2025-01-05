@@ -24,19 +24,19 @@ namespace v8App
                 )script";
 
                 V8Isolate::Scope iScope(m_Isolate);
-                v8::HandleScope scope(m_Isolate);
-                v8::TryCatch tryCatch(m_Isolate);
-                v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(m_Isolate);
-                v8::Local<v8::Context> context = v8::Context::New(m_Isolate, nullptr, global);
-                v8::Context::Scope cScope(context);
+                V8HandleScope scope(m_Isolate);
+                V8TryCatch tryCatch(m_Isolate);
+                V8LObjTpl global = V8ObjTpl::New(m_Isolate);
+                V8LContext context = V8Context::New(m_Isolate, nullptr, global);
+                V8ContextScope cScope(context);
 
-                v8::Local<v8::String> v8SourceStr = StringToV8(m_Isolate, scriptStr);
-                v8::Local<v8::String> origin_name = StringToV8(m_Isolate, "test.js");
-                v8::ScriptOrigin origin(m_Isolate, origin_name);
+                V8LString v8SourceStr = StringToV8(m_Isolate, scriptStr);
+                V8LString origin_name = StringToV8(m_Isolate, "test.js");
+                V8ScriptOrigin origin(origin_name);
                 V8ScriptSource source(v8SourceStr, origin);
 
-                v8::Local<v8::Script> script;
-                EXPECT_FALSE(v8::ScriptCompiler::Compile(context, &source).ToLocal(&script));
+                V8LScript script;
+                EXPECT_FALSE(V8ScriptCompiler::Compile(context, &source).ToLocal(&script));
 
                 EXPECT_TRUE(tryCatch.HasCaught());
 
@@ -44,16 +44,16 @@ namespace v8App
 test.js:4:SyntaxError: Unexpected identifier 'x'
 )error");
 
-                EXPECT_EQ(error, JSUtilities::GetStackTrace(context, tryCatch));
+                EXPECT_EQ(error, JSUtilities::GetStackTrace(m_Isolate, tryCatch));
             }
 
             TEST_F(V8UtilitiesTest, TestThrowError)
             {
                 V8Isolate::Scope iScope(m_Isolate);
-                v8::HandleScope scope(m_Isolate);
-                v8::TryCatch tryCatch(m_Isolate);
-                V8LocalContext context = v8::Context::New(m_Isolate);
-                v8::Context::Scope cScope(context);
+                V8HandleScope scope(m_Isolate);
+                V8TryCatch tryCatch(m_Isolate);
+                V8LContext context = V8Context::New(m_Isolate);
+                V8ContextScope cScope(context);
 
                 JSUtilities::ThrowV8Error(m_Isolate, JSUtilities::V8Errors::RangeError, "Range Error");
                 EXPECT_TRUE(tryCatch.HasCaught());
@@ -105,28 +105,28 @@ test.js:4:SyntaxError: Unexpected identifier 'x'
             TEST_F(V8UtilitiesTest, TestStdStringConversion)
             {
                 V8Isolate::Scope iScope(m_Isolate);
-                v8::HandleScope scope(m_Isolate);
+                V8HandleScope scope(m_Isolate);
 
                 std::string str = "";
                 std::string returnedValue = "";
 
                 // test the create symbol
                 str = "TestSymbol";
-                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
-                returnedValue = V8ToString(m_Isolate, symbol.As<v8::Value>());
+                V8LString symbol = CreateSymbol(m_Isolate, str);
+                returnedValue = V8ToString(m_Isolate, symbol.As<V8Value>());
                 EXPECT_EQ(str.c_str(), returnedValue);
 
                 // test the to string function
                 str = "TestString";
                 std::string emptyString;
-                v8::Local<v8::Value> emptyValue;
-                v8::Local<v8::Value> testValue = v8::String::NewFromUtf8(m_Isolate, "TestString", v8::NewStringType::kNormal).ToLocalChecked().As<v8::Value>();
+                V8LValue emptyValue;
+                V8LValue testValue = V8String::NewFromUtf8(m_Isolate, "TestString", v8::NewStringType::kNormal).ToLocalChecked().As<V8Value>();
                 EXPECT_EQ(emptyString, V8ToString(m_Isolate, emptyValue));
-                EXPECT_EQ(emptyString, V8ToString(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
+                EXPECT_EQ(emptyString, V8ToString(m_Isolate, v8::Undefined(m_Isolate).As<V8Value>()));
                 EXPECT_EQ(str, V8ToString(m_Isolate, testValue));
 
                 // test StringToV8
-                v8::Local<v8::String> v8String = StringToV8(m_Isolate, str);
+                V8LString v8String = StringToV8(m_Isolate, str);
                 // resue the converted value above to test on the V* side
                 EXPECT_TRUE(v8String->StrictEquals(testValue));
             }
@@ -134,28 +134,28 @@ test.js:4:SyntaxError: Unexpected identifier 'x'
             TEST_F(V8UtilitiesTest, TestStdU16StringConversion)
             {
                 V8Isolate::Scope iScope(m_Isolate);
-                v8::HandleScope scope(m_Isolate);
+                V8HandleScope scope(m_Isolate);
 
                 std::u16string str = u"";
                 std::u16string returnedValue = u"";
 
                 // test the create symbol
                 str = u"TestSymbol";
-                v8::Local<v8::String> symbol = CreateSymbol(m_Isolate, str);
-                returnedValue = V8ToU16String(m_Isolate, symbol.As<v8::Value>());
+                V8LString symbol = CreateSymbol(m_Isolate, str);
+                returnedValue = V8ToU16String(m_Isolate, symbol.As<V8Value>());
                 EXPECT_EQ(str, returnedValue);
 
                 // test the to string function
                 str = u"TestString";
                 std::u16string emptyString;
-                v8::Local<v8::Value> emptyValue;
-                v8::Local<v8::Value> testValue = v8::String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"TestString")).ToLocalChecked().As<v8::Value>();
+                V8LValue emptyValue;
+                V8LValue testValue = V8String::NewFromTwoByte(m_Isolate, reinterpret_cast<const uint16_t *>(u"TestString")).ToLocalChecked().As<V8Value>();
                 EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, emptyValue));
-                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, v8::Undefined(m_Isolate).As<v8::Value>()));
+                EXPECT_EQ(emptyString, V8ToU16String(m_Isolate, v8::Undefined(m_Isolate).As<V8Value>()));
                 EXPECT_EQ(str, V8ToU16String(m_Isolate, testValue));
 
                 // test StringToV8
-                v8::Local<v8::String> v8String = U16StringToV8(m_Isolate, str);
+                V8LString v8String = U16StringToV8(m_Isolate, str);
                 // resue the converted value above to test on the V* side
                 EXPECT_TRUE(v8String->StrictEquals(testValue));
             }

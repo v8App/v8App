@@ -9,14 +9,18 @@
 #include "gmock/gmock.h"
 
 #include "TestLogSink.h"
+#include "V8InitApp.h"
+#include "test_main.h"
+#include "TestSnapshotCreator.h"
+#include "TestSnapshotProvider.h"
+#include "TestFiles.h"
+
 #include "Utils/Environment.h"
 #include "Utils/Format.h"
 
+#include "JSApp.h"
 #include "JSRuntime.h"
-#include "V8Platform.h"
-
-#include "V8InitApp.h"
-#include "test_main.h"
+#include "V8AppPlatform.h"
 
 namespace v8App
 {
@@ -63,14 +67,19 @@ namespace v8App
         class TestContext : public JSContext
         {
         public:
-            TestContext(JSRuntimeSharedPtr inRuntime, std::string inName) : JSContext(inRuntime, inName) {}
+            TestContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespace, std::filesystem::path inEntryPoint,
+                        size_t inSnapIndex, bool inUseV8Default, bool inSupportsSnapshot = true,
+                        SnapshotMethod inSnapMethod = SnapshotMethod::kNamespaceOnly) : JSContext(inRuntime, inName, inNamespace, inEntryPoint, inSnapIndex,
+                                                                                                  inUseV8Default, inSupportsSnapshot, inSnapMethod) {}
             void TestDisposeContext() { m_Runtime = nullptr; }
         };
 
-        class TestContextCreator : public JSContextCreationHelper
+        class TestContextCreator : public IJSContextProvider
         {
         public:
-            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName) override
+            virtual JSContextSharedPtr CreateContext(JSRuntimeSharedPtr inRuntime, std::string inName, std::string inNamespce,
+                                                     std::filesystem::path inEntryPoint,
+                                                     bool inSupportsSnapshot, SnapshotMethod inSnapMethod, size_t inContextIndex, bool inUseV8Default) override
             {
                 return m_Context;
             }
@@ -79,75 +88,98 @@ namespace v8App
             std::shared_ptr<TestContext> m_Context;
         };
 
+        class TestJSRuntimeCloseHandler final : public ISnapshotHandleCloser, std::enable_shared_from_this<TestJSRuntimeCloseHandler>
+        {
+        public:
+            int m_Value = 0;
+
+        protected:
+            virtual void CloseHandleForSnapshot() { m_Value = 10; }
+        };
+
+        class TestCloseHandlerJSRuntime : public JSRuntime
+        {
+        public:
+            TestCloseHandlerJSRuntime() {}
+            virtual ~TestCloseHandlerJSRuntime() {};
+
+            int GetNumberOfClosers() { return m_HandleClosers.size(); }
+            void SetSnapshotter(bool inValue) { m_IsSnapshotter = inValue; }
+        };
+
         TEST_F(JSRuntimeTest, Constrcutor)
         {
             std::string runtimeName = "testJSRuntimeConstructor";
-            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>(m_App, IdleTasksSupport::kIdleTasksEnabled, runtimeName);
-            ASSERT_NE(nullptr, runtime);
-            EXPECT_EQ(true, runtime->IdleTasksEnabled());
-            EXPECT_EQ(nullptr, runtime->GetIsolate());
-            EXPECT_EQ(nullptr, runtime->GetSharedIsolate());
-            EXPECT_EQ(runtimeName, runtime->GetName());
-            EXPECT_NE(runtime->GetForegroundTaskRunner().get(), nullptr);
-            EXPECT_EQ(nullptr, JSRuntime::GetJSRuntimeFromV8Isolate(runtime->GetIsolate()));
-            EXPECT_EQ(m_App, runtime->GetApp());
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
 
-            runtime->DisposeRuntime();
-            EXPECT_EQ(nullptr, runtime->GetIsolate());
-            EXPECT_EQ(nullptr, runtime->GetSharedIsolate());
-            EXPECT_EQ(nullptr, runtime->GetForegroundTaskRunner());
-            EXPECT_EQ(nullptr, runtime->GetApp());
+            EXPECT_EQ(runtime->GetForegroundTaskRunner(), nullptr);
+            EXPECT_EQ(false, runtime->IdleTasksEnabled());
             EXPECT_EQ(nullptr, JSRuntime::GetJSRuntimeFromV8Isolate(runtime->GetIsolate()));
+            EXPECT_EQ(nullptr, runtime->GetSharedIsolate());
+            EXPECT_EQ(nullptr, runtime->GetIsolate());
+            EXPECT_EQ(nullptr, runtime->GetApp());
+            EXPECT_EQ("", runtime->GetName());
+            EXPECT_EQ(nullptr, runtime->GetSnapshotCreator());
+            EXPECT_FALSE(runtime->IsSnapshotRuntime());
+            EXPECT_EQ(nullptr, runtime->GetCppHeap());
+            EXPECT_EQ(nullptr, runtime->GetContextProvider());
+            EXPECT_FALSE(runtime->IsInitialzed());
         }
 
-        TEST_F(JSRuntimeTest, CreateJSRuntime)
+        TEST_F(JSRuntimeTest, InitializeDispose)
         {
-            std::vector<intptr_t> testExternal{reinterpret_cast<intptr_t>(nullptr)};
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(m_App, IdleTasksSupport::kIdleTasksEnabled, "testCreateJSRutimeIdleEnabled", &s_V8StartupData, testExternal.data());
-            EXPECT_TRUE(runtimePtr->IdleTasksEnabled());
-            EXPECT_NE(runtimePtr->GetSharedIsolate().get(), nullptr);
-            EXPECT_NE(runtimePtr->GetIsolate(), nullptr);
-            EXPECT_EQ(runtimePtr, JSRuntime::GetJSRuntimeFromV8Isolate(runtimePtr->GetIsolate()));
-            runtimePtr->DisposeRuntime();
-            runtimePtr.reset();
+            std::string runtimeName = "testJSRuntimeInitializeDispose";
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
 
-            runtimePtr = JSRuntime::CreateJSRuntime(m_App, IdleTasksSupport::kIdleTasksDisabled, "testCreateJSRutimeIdleNotEnabled", &s_V8StartupData);
-            EXPECT_FALSE(runtimePtr->IdleTasksEnabled());
-            runtimePtr->DisposeRuntime();
-            runtimePtr.reset();
+            EXPECT_TRUE(runtime->Initialize(m_App, runtimeName));
+            EXPECT_EQ(runtime, JSRuntime::GetJSRuntimeFromV8Isolate(runtime->GetIsolate()));
+            EXPECT_EQ(m_App, runtime->GetApp());
+            EXPECT_EQ(runtimeName, runtime->GetName());
+            EXPECT_NE(nullptr, runtime->GetSharedIsolate());
+            EXPECT_NE(nullptr, runtime->GetIsolate());
+            EXPECT_EQ(nullptr, runtime->GetSnapshotCreator());
+            EXPECT_FALSE(runtime->IsSnapshotRuntime());
+            EXPECT_NE(nullptr, runtime->GetCppHeap());
+            EXPECT_EQ(m_App->GetContextProvider(), runtime->GetContextProvider());
+            EXPECT_TRUE(runtime->IsInitialzed());
+
+            runtime->DisposeRuntime();
+            EXPECT_EQ(nullptr, runtime->GetForegroundTaskRunner().get());
+            EXPECT_EQ(nullptr, runtime->GetSharedIsolate());
+            EXPECT_EQ(nullptr, runtime->GetIsolate());
+            EXPECT_EQ(nullptr, runtime->GetApp());
+            EXPECT_EQ(nullptr, runtime->GetSnapshotCreator());
+            EXPECT_EQ(nullptr, runtime->GetCppHeap());
+            EXPECT_EQ(nullptr, runtime->GetContextProvider());
+            EXPECT_FALSE(runtime->IsInitialzed());
+            runtime.reset();
+
+            runtime = std::make_shared<JSRuntime>();
+            EXPECT_FALSE(runtime->IdleTasksEnabled());
+            runtime->DisposeRuntime();
+            runtime.reset();
         }
 
         TEST_F(JSRuntimeTest, CreateJSRuntimeForSnapshot)
         {
+            std::string runtimeName = "testJSRuntimeCreateJSRuntimeForSnapshot";
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
+            ASSERT_TRUE(runtime->Initialize(m_App, runtimeName, 0, JSRuntimeSnapshotAttributes::SnapshotOnly, true));
 
-            std::vector<intptr_t> testExternal{reinterpret_cast<intptr_t>(nullptr)};
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntimeForSnapshot(m_App, IdleTasksSupport::kIdleTasksEnabled, "testCreateJSRuntimeForSnapshotIdleEnabled");
-            EXPECT_TRUE(runtimePtr->IdleTasksEnabled());
-            EXPECT_NE(runtimePtr->GetSharedIsolate().get(), nullptr);
-            EXPECT_NE(runtimePtr->GetIsolate(), nullptr);
-            EXPECT_EQ(runtimePtr, JSRuntime::GetJSRuntimeFromV8Isolate(runtimePtr->GetIsolate()));
+            EXPECT_NE(runtime->GetSharedIsolate().get(), nullptr);
+            EXPECT_NE(runtime->GetSnapshotCreator().get(), nullptr);
+            EXPECT_NE(runtime->GetIsolate(), nullptr);
+            EXPECT_TRUE(runtime->IsSnapshotRuntime());
 
-            // we need to init the isolate before we dispoe of it
-            v8::Isolate::CreateParams params;
-            params.snapshot_blob = &s_V8StartupData;
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
+            runtime->DisposeRuntime();
+            EXPECT_EQ(runtime->GetSnapshotCreator().get(), nullptr);
+            runtime.reset();
 
-            runtimePtr->DisposeRuntime();
-            runtimePtr.reset();
+            runtime = std::make_shared<JSRuntime>();
+            EXPECT_FALSE(runtime->IdleTasksEnabled());
 
-            runtimePtr = JSRuntime::CreateJSRuntimeForSnapshot(m_App, IdleTasksSupport::kIdleTasksEnabled, "testCreateJSRuntimeForSnapshotIdleNotEnabled");
-            EXPECT_TRUE(runtimePtr->IdleTasksEnabled());
-
-            // we need to init the isolate before we dispoe of it
-            params.snapshot_blob = &s_V8StartupData;
-            params.array_buffer_allocator =
-                v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-            v8::Isolate::Initialize(runtimePtr->GetIsolate(), params);
-
-            runtimePtr->DisposeRuntime();
-            runtimePtr.reset();
+            runtime->DisposeRuntime();
+            runtime.reset();
         }
 
         TEST_F(JSRuntimeTest, ProcessTaskIdleTask)
@@ -159,10 +191,11 @@ namespace v8App
             int idleTaskInt = 0;
             int idleTaskInt2 = 0;
 
-            std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-            JSAppSharedPtr app = std::make_shared<JSApp>("ProcessTaskIdleTask", snapProvider);
-            JSRuntimeSharedPtr runtimePtr = JSRuntime::CreateJSRuntime(app, IdleTasksSupport::kIdleTasksEnabled, GENERATE_JSRUNTIME_NAME(), &s_V8StartupData);
-            V8TaskRunnerSharedPtr runner = runtimePtr->GetForegroundTaskRunner();
+            std::string runtimeName = "testJSRuntimeProcessTaskIdleTask";
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
+            ASSERT_TRUE(runtime->Initialize(m_App, runtimeName));
+
+            V8TaskRunnerSharedPtr runner = runtime->GetForegroundTaskRunner();
             runner->PostTask(std::make_unique<IntTask>(&taskInt, 10));
             runner->PostTask(std::make_unique<IntTask>(&taskInt2, 20));
             runner->PostIdleTask(std::make_unique<IntIdleTask>(&idleTaskInt, 30, 3));
@@ -173,61 +206,48 @@ namespace v8App
             EXPECT_EQ(0, idleTaskInt);
             EXPECT_EQ(0, idleTaskInt2);
 
-            runtimePtr->ProcessTasks();
+            runtime->ProcessTasks();
             EXPECT_EQ(10, taskInt);
             EXPECT_EQ(20, taskInt2);
             EXPECT_EQ(0, idleTaskInt);
             EXPECT_EQ(0, idleTaskInt2);
 
-            runtimePtr->ProcessIdleTasks(1);
+            runtime->ProcessIdleTasks(1);
             EXPECT_EQ(30, idleTaskInt);
             EXPECT_EQ(0, idleTaskInt2);
 
-            runtimePtr->ProcessIdleTasks(5);
+            runtime->ProcessIdleTasks(5);
             EXPECT_EQ(30, idleTaskInt);
             EXPECT_EQ(40, idleTaskInt2);
         }
 
-        TEST_F(JSRuntimeTest, SetGetObjectTemplate)
+        TEST_F(JSRuntimeTest, SetGetClassFunctionTemplate)
         {
-            JSRuntimeSharedPtr runtimePtr = m_App->GetJSRuntime();
-            v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate());
-            v8::HandleScope scope(runtimePtr->GetIsolate());
+            std::string runtimeName = "testJSRuntimeSetGetClassFunctionTemplate";
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
+            ASSERT_TRUE(runtime->Initialize(m_App, runtimeName));
 
-            v8::Local<v8::ObjectTemplate> objTemplate = v8::ObjectTemplate::New(runtimePtr->GetIsolate());
+            V8IsolateScope isolateScope(runtime->GetIsolate());
+            V8HandleScope scope(runtime->GetIsolate());
+
+            V8LFuncTpl objTemplate = V8FuncTpl::New(runtime->GetIsolate());
             EXPECT_FALSE(objTemplate.IsEmpty());
 
-            struct TemplateInfo info;
+            struct CppBridge::V8CppObjInfo info("test", nullptr, nullptr);
 
-            EXPECT_TRUE(runtimePtr->GetObjectTemplate(&info).IsEmpty());
+            EXPECT_TRUE(runtime->GetClassFunctionTemplate(&info).IsEmpty());
 
-            runtimePtr->SetObjectTemplate(&info, objTemplate);
-            EXPECT_FALSE(runtimePtr->GetObjectTemplate(&info).IsEmpty());
-        }
-
-        TEST_F(JSRuntimeTest, SetGetFunctionTemplate)
-        {
-            JSRuntimeSharedPtr runtimePtr = m_App->GetJSRuntime();
-            v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate());
-            v8::HandleScope scope(runtimePtr->GetIsolate());
-
-            v8::Local<v8::FunctionTemplate> funcTemplate = v8::FunctionTemplate::New(runtimePtr->GetIsolate());
-            ASSERT_FALSE(funcTemplate.IsEmpty());
-
-            struct TemplateInfo info;
-
-            EXPECT_TRUE(runtimePtr->GetFunctionTemplate(&info).IsEmpty());
-
-            runtimePtr->SetFunctionTemplate(&info, funcTemplate);
-            EXPECT_FALSE(runtimePtr->GetFunctionTemplate(&info).IsEmpty());
+            runtime->SetClassFunctionTemplate("test", &info, objTemplate);
+            EXPECT_FALSE(runtime->GetClassFunctionTemplate(&info).IsEmpty());
         }
 
         TEST_F(JSRuntimeTest, GetCreateContext)
         {
-            TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Warn, Log::LogLevel::Error};
-            TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
-            std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
-            EXPECT_TRUE(Log::Log::AddLogSink(logSinkObj));
+            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
+            Log::Log::SetLogLevel(Log::LogLevel::Error);
+            // make sure no message are in the list
+            logSink->FlushMessages();
+
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
                 Log::MsgKey::TimeStamp,
@@ -236,23 +256,22 @@ namespace v8App
                 Log::MsgKey::Line};
             Log::Log::SetLogLevel(Log::LogLevel::Warn);
 
-            JSRuntimeSharedPtr runtimePtr = m_App->GetJSRuntime();
-            v8::Isolate::Scope isolateScope(runtimePtr->GetIsolate());
+            std::string runtimeName = "testJSRuntimeCreateJSRuntimeForSnapshot";
+            JSRuntimeSharedPtr runtime = std::make_shared<JSRuntime>();
 
-            std::unique_ptr<TestContextCreator> helper = std::make_unique<TestContextCreator>();
-            TestContextCreator *createPtr = helper.get();
+            std::shared_ptr<TestContextCreator> contextProvider = std::make_shared<TestContextCreator>();
 
-            runtimePtr->SetContextCreationHelper(std::move(helper));
+            ASSERT_TRUE(runtime->Initialize(m_App, runtimeName));
+            runtime->SetContextProvider(contextProvider);
 
-            EXPECT_EQ(nullptr, runtimePtr->GetContextByName("test"));
+            EXPECT_EQ(nullptr, runtime->GetContextByName("test"));
             Log::LogMessage expected = {
                 {Log::MsgKey::Msg, "Failed to find JSContext with name test"},
                 {Log::MsgKey::LogLevel, "Warn"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
-            logSink->FlushMessages();
 
-            EXPECT_EQ(nullptr, runtimePtr->CreateContext("test"));
+            EXPECT_EQ(nullptr, runtime->CreateContext("test", ""));
 
             expected = {
                 {Log::MsgKey::Msg, "ContextHelper returned a nullptr for the context"},
@@ -261,17 +280,66 @@ namespace v8App
             EXPECT_TRUE(logSink->ValidateMessage(expected, ignoreKeys));
             logSink->FlushMessages();
 
-            createPtr->m_Context = std::make_shared<TestContext>(runtimePtr, "test");
+            contextProvider->m_Context = std::make_shared<TestContext>(runtime, "test", "", "", 0, true);
 
-            EXPECT_NE(nullptr, runtimePtr->CreateContext("test"));
+            EXPECT_EQ(contextProvider->m_Context, runtime->CreateContext("test", ""));
             EXPECT_TRUE(logSink->NoMessages());
-            EXPECT_NE(nullptr, runtimePtr->GetContextByName("test"));
-            createPtr->DisposeContext(std::shared_ptr<TestContext>());
+            EXPECT_EQ(contextProvider->m_Context, runtime->GetContextByName("test"));
+            contextProvider->DisposeContext(std::shared_ptr<TestContext>());
+            runtime->DisposeRuntime();
         }
 
-        TEST_F(JSRuntimeTest, GenerateRuntimeName)
+        TEST_F(JSRuntimeTest, RegisterUnregisterRunCloseHandlers)
         {
-            EXPECT_EQ(Utils::format("JSRuntime_{}_{}_{}", __FILE__, __func__, __LINE__), GENERATE_JSRUNTIME_NAME());
+            std::filesystem::path testRoot = s_TestDir / "RegisterUnregisterCloseHandlers";
+            EXPECT_TRUE(TestUtils::CreateAppDirectory(testRoot));
+
+            IJSSnapshotCreatorSharedPtr provider = std::make_shared<TestSnapshotCreator>();
+            AppProviders providers(std::make_shared<TestSnapshotProvider>(),
+                                   std::make_shared<V8RuntimeProvider>(),
+                                   std::make_shared<V8ContextProvider>());
+
+            JSAppSharedPtr snapApp = std::make_shared<JSApp>();
+            ASSERT_TRUE(snapApp->Initialize("RegisterUnregisterCloseHandlers", testRoot, providers));
+            std::shared_ptr<TestJSRuntimeCloseHandler> closer = std::make_shared<TestJSRuntimeCloseHandler>();
+            std::shared_ptr<TestJSRuntimeCloseHandler> closer2 = std::make_shared<TestJSRuntimeCloseHandler>();
+
+            // non snapshot runtime
+            std::shared_ptr<TestCloseHandlerJSRuntime> runtime = std::make_shared<TestCloseHandlerJSRuntime>();
+
+            // won't add on non snapshotter
+            runtime->SetSnapshotter(false);
+            runtime->RegisterSnapshotHandleCloser(closer.get());
+            EXPECT_EQ(0, runtime->GetNumberOfClosers());
+
+            // adds it
+            runtime->SetSnapshotter(true);
+            runtime->RegisterSnapshotHandleCloser(closer.get());
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            // test unregister is not called when a non snapshotter
+            runtime->SetSnapshotter(false);
+            runtime->UnregisterSnapshotHandlerCloser(closer.get());
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            // test that it just removes the one we want
+            runtime->SetSnapshotter(true);
+            runtime->RegisterSnapshotHandleCloser(closer2.get());
+            EXPECT_EQ(2, runtime->GetNumberOfClosers());
+            runtime->UnregisterSnapshotHandlerCloser(closer2.get());
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            // test that the handlers don't get run if it's a snapshot
+            runtime->SetSnapshotter(false);
+            runtime->CloseOpenHandlesForSnapshot();
+            EXPECT_EQ(1, runtime->GetNumberOfClosers());
+
+            runtime->SetSnapshotter(true);
+            runtime->CloseOpenHandlesForSnapshot();
+            EXPECT_EQ(0, runtime->GetNumberOfClosers());
+            EXPECT_EQ(10, closer->m_Value);
+
+            snapApp->DisposeApp();
         }
     }
 }

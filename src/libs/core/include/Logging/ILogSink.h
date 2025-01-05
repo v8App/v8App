@@ -13,6 +13,9 @@ namespace v8App
 {
     namespace Log
     {
+        /**
+         * Interface class for the log system sinks for messages.
+        */
         class ILogSink
         {
         public:
@@ -21,6 +24,11 @@ namespace v8App
 
             virtual void SinkMessage(LogMessage &inMessage) = 0;
             virtual bool WantsLogMessage(LogLevel inLevel) = 0;
+
+            /**
+             * Perform any final work for the log and close it.
+            */
+            virtual void Close() = 0;
 
             const std::string GetName() const { return m_Name; };
             void SetName(const std::string &inName) { m_Name = inName; };

@@ -59,7 +59,7 @@
 		},
 		{
 			"type": "shell",
-			"command": "bazel build //src/testing/libs/core:testCore -c dbg --subcommands",
+			"command": "bazel build //src/testing/libs/core:testCore -c dbg",
 			"windows":{
 				"command": "bazel build //src/testing/libs/core:testCore --config=windows -c dbg"
 			},
@@ -128,6 +128,14 @@
 				"command": "bazel build //src/testing/libs/jsRuntime:testJSRuntime --config=windows -c dbg"
 			},
 			"label": "Bazel Build testJSRuntime Debug"
+		},
+		{
+			"type": "shell",
+			"command": "bazel build //src/testing:cppgc-obj-sample -c dbg",
+			"windows":{
+				"command": "bazel build //src/testing:cppgc-obj-sample --config=windows -c dbg"
+			},
+			"label": "Bazel Build CppGC Sample Debug"
 		},
 	]
 }

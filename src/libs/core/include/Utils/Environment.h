@@ -11,6 +11,9 @@ namespace v8App
 {
     namespace Utils
     {
+        /**
+         * Gets an environment variable for the OS
+        */
         inline std::string GetEnvironmentVar(std::string EnvVar)
         {
             const char* var = std::getenv(EnvVar.c_str());

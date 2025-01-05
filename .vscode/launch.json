@@ -361,5 +361,48 @@
                     },
            }
         },
+        {
+            "name": "CppGCSample",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/src/testing/cppgc-obj-sample.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/src/testing/",
+            "environment": [
+                {
+                    "name": "RUNFILES_MANIFEST_FILE",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/cppgc-obj-sample.exe.runfiles/MANIFEST"
+                },
+                {
+                    "name": "TEST_SRCDIR",
+                    "value": "${workspaceFolder}/bazel-bin/src/testing/cppgc-obj-sample.exe.runfiles"
+                },
+                {
+                    "name":"TestFiles",
+                    "value":"v8App/src/testing//runtime/test-files"
+                },
+                {
+                    "name":"V8_ICU_DATA",
+                    "value":"C:/Users/dorml/github/v8App/third_party/v8/win-x64-debug/icudtl.dat"
+                },
+                {
+                    "name":"V8_SNAPSHOT_BIN",
+                    "value":"C:/Users/dorml/github/v8App/third_party/v8/win-x64-debug/snapshot_blob.bin"
+                },
+            ],
+            "console": "externalTerminal",
+            "preLaunchTask": "Bazel Build CppGC Sample Debug",
+            "osx": {
+                "program": "${workspaceFolder}/bazel-bin/src/testing/cppgc-obj-sample",
+                "type": "lldb",
+                "env": {
+                    "RUNFILES_MANIFEST_FILE": "${workspaceFolder}/bazel-bin/src/testing/cppgc-obj-sample.runfiles/MANIFEST",
+                    "TEST_SRCDIR": "${workspaceFolder}/bazel-bin/src/testing/cppgc-obj-sample.runfiles",
+                        "V8_ICU_DATA":"/Users/dormlock/github/v8App/third_party/v8/macos-arm64-debug/icudtl.dat",
+                        "V8_SNAPSHOT_BIN":"/Users/dormlock/github/v8App/third_party/v8/macos-arm64-debug/snapshot_blob.bin",
+                    },
+           }
+        },
     ]
 }

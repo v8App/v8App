@@ -14,6 +14,9 @@ namespace v8App
 {
     namespace Queues
     {
+        /**
+         * Implements a thread safe queue
+        */
         template <class QueueType>
         class TThreadSafeQueue
         {
@@ -30,11 +33,24 @@ namespace v8App
                 m_Queue = std::move(inQueue.m_Queue);
             }
 
+            /**
+             * Adds an item to the queue
+             */
             virtual void PushItem(QueueType inItem);
+            /**
+             * Gets the next item it could be that no item is returned as another thread may have 
+             * already fetched the item
+             */
             virtual std::optional<QueueType> GetNextItem();
 
+            /**
+             * Check to see if there may be an item in the queue to get
+            */
             virtual bool MayHaveItems() { return m_Queue.size() != 0;}
 
+            /**
+             * Set the queue to a teminating state preventing any additional items to be added
+            */
             virtual void Terminate();
 
         protected:

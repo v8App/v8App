@@ -49,7 +49,7 @@ namespace v8App
                 return nullptr;
             }
 
-            std::filesystem::path fileRoot = Utils::MakeRelativePathToRoot(inFilePath, m_App->GetAppRoots()->GetAppRoot());
+            std::filesystem::path fileRoot = Utils::MakeRelativePathToRoot(inFilePath, m_App->GetAppRoot()->GetAppRoot());
             auto it = fileRoot.begin();
             if (it->string() != Assets::c_RootJS && it->string() != Assets::c_RootModules)
             {
@@ -109,14 +109,14 @@ namespace v8App
                 }
             }
 
-            V8LocalString sourceStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_SourceStr);
-            V8LocalString fileStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_FilePath.generic_string());
+            V8LString sourceStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_SourceStr);
+            V8LString fileStr = JSUtilities::StringToV8(inIsolate, cacheInfo->m_FilePath.generic_string());
             V8ScriptCachedData *cache = nullptr;
             if (cacheInfo->m_Compiled != nullptr)
             {
                 cache = new V8ScriptCachedData(cacheInfo->m_Compiled, cacheInfo->m_CompiledLength, V8ScriptCachedData::BufferNotOwned);
             }
-            v8::ScriptOrigin origin(inIsolate, fileStr, 0, 0, false, -1, V8LocalValue(), false, false, true);
+            V8ScriptOrigin origin(fileStr, 0, 0, false, -1, V8LValue(), false, false, true);
             return std::make_unique<V8ScriptSource>(sourceStr, origin, cache);
         }
 
@@ -208,7 +208,7 @@ namespace v8App
 
         std::filesystem::path CodeCache::GenerateCachePath(std::filesystem::path inFilePath)
         {
-            std::filesystem::path cachePath = m_App->GetAppRoots()->MakeRelativePathToAppRoot(inFilePath);
+            std::filesystem::path cachePath = m_App->GetAppRoot()->MakeRelativePathToAppRoot(inFilePath);
             auto it = cachePath.begin();
             if (it->string() != "js" && it->string() != "modules")
             {
@@ -217,7 +217,7 @@ namespace v8App
                 LOG_ERROR(msg);
                 return std::filesystem::path();
             }
-            cachePath = m_App->GetAppRoots()->GetAppRoot() / std::filesystem::path(".code_cache") / cachePath;
+            cachePath = m_App->GetAppRoot()->GetAppRoot() / std::filesystem::path(".code_cache") / cachePath;
             cachePath = cachePath.replace_extension(std::string("jscc"));
             return cachePath;
         }
@@ -276,7 +276,7 @@ namespace v8App
             }
 
             Assets::BinaryAsset file(inCachePath);
-            std::vector<uint8_t> vecData(inData, inData + inDataLength);
+            std::vector<char> vecData(inData, inData + inDataLength);
             if (file.SetContent(vecData) == false)
             {
                 return false;
@@ -306,7 +306,7 @@ namespace v8App
             {
                 return false;
             }
-            const std::vector<uint8_t> &buffer = file.GetContent();
+            const std::vector<char> &buffer = file.GetContent();
             if (buffer.size() == 0)
             {
                 return true;

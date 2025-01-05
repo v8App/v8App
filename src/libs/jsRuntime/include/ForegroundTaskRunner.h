@@ -38,26 +38,29 @@ namespace v8App
             explicit ForegroundTaskRunner();
             ~ForegroundTaskRunner();
 
-            // TaskRunner implementation
-            virtual void PostTask(V8TaskUniquePtr inTask) override;
-            virtual void PostNonNestableTask(V8TaskUniquePtr inTask) override;
-            virtual void PostDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds) override;
-            virtual void PostNonNestableDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds) override;
-            virtual void PostIdleTask(V8IdleTaskUniquePtr) override;
-            bool IdleTasksEnabled() override { return true; };
-            virtual bool NonNestableTasksEnabled() const override { return true; }
-            virtual bool NonNestableDelayedTasksEnabled() const override { return true; }
-            // end TaskRunner implementation
-
             // gets a task from the queue
             V8TaskUniquePtr GetNextTask();
             // get a idle task from the queue
             V8IdleTaskUniquePtr GetNextIdleTask();
 
-            bool MaybeHasTask() { return m_Tasks.MayHaveItems();}
-            bool MaybeHasIdleTask() { return m_IdleTasks.MayHaveItems();}
-    
+            bool MaybeHasTask() { return m_Tasks.MayHaveItems(); }
+            bool MaybeHasIdleTask() { return m_IdleTasks.MayHaveItems(); }
+
             void Terminate();
+
+            // TaskRunner implementation
+        public:
+            bool IdleTasksEnabled() override { return true; };
+            virtual bool NonNestableTasksEnabled() const override { return true; }
+            virtual bool NonNestableDelayedTasksEnabled() const override { return true; }
+
+        protected:
+            virtual void PostTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation &inLocation) override;
+            virtual void PostNonNestableTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation &inLocation) override;
+            virtual void PostDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation &inLocation) override;
+            virtual void PostNonNestableDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation &inLocation) override;
+            virtual void PostIdleTaskImpl(V8IdleTaskUniquePtr, const V8SourceLocation &inLocation) override;
+            // end TaskRunner implementation
 
         protected:
             bool m_Terminated = false;

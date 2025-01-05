@@ -52,14 +52,14 @@ do
 done
 
 if [[ ${MAC_OS} -eq 0 ]] && [[ ${ANDROID} -eq 0 ]] && [[ ${IOS} -eq 0 ]] && [[ ${LINUX} -eq 0 ]] && [[ ${WINDOWS} -eq 0 ]]; then
-    echo "Failed to find a dstribution to download"
+    echo "Failed to find a distribution to download"
     exit 1
 fi
 
 if [[ ! -e ${TOP}/v8 ]]; then
     mkdir ${TOP}/v8
     if [[ $? -ne 0 ]]; then
-        echo "Failed to create teh v8 dstrivution directory"
+        echo "Failed to create the v8 distribution directory"
         exit 1
     fi
 fi

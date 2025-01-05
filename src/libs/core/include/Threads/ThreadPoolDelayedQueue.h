@@ -21,7 +21,8 @@ namespace v8App
     namespace Threads
     {
         /**
-         * ThreadPoolQueue Implements a queue that has a thread pool that runs all the tasks posted to it
+         * ThreadPoolQueue Implements a queue that has a thread pool that runs all the tasks posted 
+         * to it and can have delyaed tasks posted to it
          */
         class ThreadPoolDelayedQueue
         {

@@ -1,0 +1,1 @@
+export const module2Int = 5;

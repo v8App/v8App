@@ -13,7 +13,7 @@
 #include "Logging/LogJSONFile.h"
 
 #include "V8Types.h"
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "JSRuntime.h"
 #endif
 
@@ -23,7 +23,8 @@ std::unique_ptr<Runfiles> s_Runfiles;
 std::filesystem::path s_TestDir;
 
 #ifdef USE_JSRUNTIME
-v8::StartupData s_V8StartupData{nullptr, 0};
+std::filesystem::path s_SnapPath;
+v8App::JSRuntime::V8StartupData s_V8StartupData{nullptr, 0};
 #endif
 
 int main(int argc, char **argv)
@@ -39,13 +40,11 @@ int main(int argc, char **argv)
     for (int x = 0; x < argc; x++)
     {
         std::string arg(argv[x]);
-        //std::cout << arg << std::endl;
+        // std::cout << arg << std::endl;
 
         if (arg.starts_with("--test-dir="))
         {
             setupDone = true;
-            size_t arg_sepe = arg.find("=");
-
             arg = arg.replace(0, 11, "");
             s_TestDir = std::filesystem::path(arg);
         }
@@ -124,7 +123,7 @@ int main(int argc, char **argv)
 
             std::string cmd = "cp -r " + testFileDir.string() + "/* " + s_TestDir.string();
 #if defined(V8APP_WINDOWS)
-            cmd = "xcopy \""+testFileDir.string()+"\\\" \""+s_TestDir.string()+"\" /E /Q";
+            cmd = "xcopy \"" + testFileDir.string() + "\\\" \"" + s_TestDir.string() + "\" /E /Q";
 #endif
             if (std::system(cmd.c_str()) != 0)
             {
@@ -137,12 +136,12 @@ int main(int argc, char **argv)
 #ifdef USE_JSRUNTIME
 #if defined(V8_APP_WIN)
     std::filesystem::path logPath = s_TestDir / std::filesystem::path("C:log");
-    #else
+#else
     std::filesystem::path logPath = s_TestDir / std::filesystem::path("log");
-    #endif
+#endif
     std::filesystem::create_directories(logPath);
     logPath /= std::filesystem::path("UnitTestLog.json");
-    //only omit it if we detected we are a child run from like  death test
+    // only omit it if we detected we are a child run from like  death test
     if (setupDone == false)
     {
         std::cout << "Log File: " << logPath << std::endl;
@@ -159,27 +158,33 @@ int main(int argc, char **argv)
     }
 
     std::string icuData = s_Runfiles->Rlocation(icu_name);
-    std::string snapshotData = s_Runfiles->Rlocation(snapshot_name);
+    s_SnapPath = s_Runfiles->Rlocation(snapshot_name);
 
     EXPECT_NE("", icuData);
-    EXPECT_NE("", snapshotData);
+    EXPECT_NE("", s_SnapPath);
 
     v8::V8::InitializeICU(icuData.c_str());
 
-    std::ifstream sData(snapshotData, std::ios_base::binary | std::ios_base::ate);
-    if(sData.is_open() == false || sData.fail())
+    std::ifstream sData(s_SnapPath, std::ios_base::binary | std::ios_base::ate);
+    if (sData.is_open() == false || sData.fail())
     {
-        std::cout << "Failed to open " << snapshotData << std::endl;
+        std::cout << "Failed to open " << s_SnapPath << std::endl;
         std::exit(1);
     }
     int dataLength = sData.tellg();
     sData.seekg(0, std::ios::beg);
     std::unique_ptr<char> buf = std::unique_ptr<char>(new char[dataLength]);
     sData.read(buf.get(), dataLength);
-    s_V8StartupData =  v8::StartupData{buf.release(), dataLength};
+    s_V8StartupData = v8App::JSRuntime::V8StartupData{buf.release(), dataLength};
 
-    v8App::JSRuntime::PlatformIsolateHelperUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
-    v8App::JSRuntime::V8Platform::InitializeV8(std::move(helper));
+    v8::V8::SetFlagsFromString("--expose_gc");
+    //TODO: remove once we can turn off the shared cage or v8 exposes the IsolateGroup
+    //Using this to get our snapshot testing to work can lead to corruption of the 
+    //read only heap space
+    v8::V8::SetFlagsFromString("--stress_snapshot");
+
+    v8App::JSRuntime::PlatformRuntimeProviderUniquePtr helper = std::make_unique<v8App::JSRuntime::JSRuntimeIsolateHelper>();
+    v8App::JSRuntime::V8AppPlatform::InitializeV8(std::move(helper));
 #endif
     std::cout << std::endl
               << std::endl;
@@ -187,7 +192,7 @@ int main(int argc, char **argv)
     int exitCode = RUN_ALL_TESTS();
 
 #ifdef USE_JSRUNTIME
-    v8App::JSRuntime::V8Platform::ShutdownV8();
+    v8App::JSRuntime::V8AppPlatform::ShutdownV8();
 #endif
 
     return exitCode;

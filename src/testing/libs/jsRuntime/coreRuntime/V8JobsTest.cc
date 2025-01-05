@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "V8Jobs.h"
 
 namespace v8App
@@ -65,17 +65,17 @@ namespace v8App
         class TestV8JobState : public V8JobState
         {
         public:
-            TestV8JobState(v8::Platform *inPlatform, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers)
+            TestV8JobState(V8Platform *inPlatform, V8JobTaskUniquePtr inTask, V8TaskPriority inPriority, size_t inNumWorkers)
                 : V8JobState(inPlatform, std::move(inTask), inPriority, inNumWorkers) {}
 
             size_t TestComputeTaskToPost(size_t inMaxConcurrency) { return ComputeTaskToPost(inMaxConcurrency); }
             size_t TestGetMaxConcurrency(size_t inWorkerCountr) { return GetMaxConcurrency(inWorkerCountr); }
             const V8JobTaskIdType GetInvalidId() { return kInvalidJobId; }
-            void TestPostonWorkerThread(size_t inNumToPost, v8::TaskPriority inPriority) { PostonWorkerThread(inNumToPost, inPriority); }
+            void TestPostonWorkerThread(size_t inNumToPost, V8TaskPriority inPriority) { PostonWorkerThread(inNumToPost, inPriority); }
 
             V8JobTaskIdType GetAssignedTasks() { return m_AssignedTaskIds.load(std::memory_order::relaxed); }
             bool GetCancelled() { return m_Canceled.load(std::memory_order::relaxed); }
-            v8::TaskPriority GetPriority() { return m_Priority; }
+            V8TaskPriority GetPriority() { return m_Priority; }
             size_t GetActiveTasks() { return m_ActiveTasks; }
             size_t GetPendingTasks() { return m_PendingTasks; }
             size_t GetNumberOfWorkersAvailable() { return m_NumWorkersAvailable; }
@@ -126,10 +126,10 @@ namespace v8App
         class TestJobTaskWorker : public V8JobTaskWorker
         {
         public:
-            TestJobTaskWorker(std::weak_ptr<V8JobState> inState, v8::JobTask *inTask) : V8JobTaskWorker(inState, inTask) {}
+            TestJobTaskWorker(std::weak_ptr<V8JobState> inState, V8JobTask *inTask) : V8JobTaskWorker(inState, inTask) {}
 
             V8JobState *GeState() { return m_State.lock().get(); }
-            v8::JobTask *GetTask() { return m_Task; }
+            V8JobTask *GetTask() { return m_Task; }
         };
 
         class TestJobHandle : public V8JobHandle
@@ -144,13 +144,13 @@ namespace v8App
 
         TEST(V8JobsStateTest, Constrcutor)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 10);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 10);
             EXPECT_EQ(0, state.GetAssignedTasks());
             EXPECT_FALSE(state.GetCancelled());
-            EXPECT_EQ(v8::TaskPriority::kBestEffort, state.GetPriority());
+            EXPECT_EQ(V8TaskPriority::kBestEffort, state.GetPriority());
             EXPECT_EQ(0, state.GetActiveTasks());
             EXPECT_EQ(0, state.GetPendingTasks());
             EXPECT_EQ(10, state.GetNumberOfWorkersAvailable());
@@ -159,10 +159,10 @@ namespace v8App
 
         TEST(V8JobsStateTest, GetMaxConcurrency)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 10);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 10);
 
             EXPECT_EQ(5, state.TestGetMaxConcurrency(10));
             EXPECT_EQ(5, state.TestGetMaxConcurrency(2));
@@ -170,10 +170,10 @@ namespace v8App
 
         TEST(V8JobsStateTest, GetReleaseTaskId)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 10);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 10);
 
             EXPECT_EQ(0, state.GetAssignedTasks());
 #ifdef PLATFORM_64
@@ -195,11 +195,11 @@ namespace v8App
 
         TEST(V8JobsStateTest, ComputeTestToPost)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
             TestJobsTask *taskPtr = task.get();
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 10);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 10);
             EXPECT_EQ(5, state.TestComputeTaskToPost(5));
             EXPECT_EQ(5, state.GetPendingTasks());
             EXPECT_EQ(0, state.TestComputeTaskToPost(5));
@@ -225,10 +225,10 @@ namespace v8App
         TEST(V8JobsStateTest, PostOnWorkerThread)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
 
             {
                 std::lock_guard<std::mutex> lock(testJobTaskQueuesLock);
@@ -238,17 +238,17 @@ namespace v8App
 
             state->SetCancelled(true);
             state->SetPendingTasks(1);
-            state->TestPostonWorkerThread(1, v8::TaskPriority::kBestEffort);
+            state->TestPostonWorkerThread(1, V8TaskPriority::kBestEffort);
             std::this_thread::sleep_for(std::chrono::seconds(1));
             EXPECT_EQ(0, testInt);
 
             state->SetCancelled(false);
             state->SetPendingTasks(1);
-            state->TestPostonWorkerThread(0, v8::TaskPriority::kBestEffort);
+            state->TestPostonWorkerThread(0, V8TaskPriority::kBestEffort);
             std::this_thread::sleep_for(std::chrono::seconds(1));
             EXPECT_EQ(0, testInt);
 
-            state->TestPostonWorkerThread(1, v8::TaskPriority::kBestEffort);
+            state->TestPostonWorkerThread(1, V8TaskPriority::kBestEffort);
             std::this_thread::sleep_for(std::chrono::seconds(3));
             EXPECT_EQ(5, testInt);
             // Have to cancel so that any additional jobs posted by the worker thread stop
@@ -258,10 +258,10 @@ namespace v8App
         TEST(V8JobsStateTest, NotifyConcurrencyIncrease)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
 
             {
                 std::lock_guard<std::mutex> lock(testJobTaskQueuesLock);
@@ -284,23 +284,23 @@ namespace v8App
 
         TEST(V8JobsStateTest, UpdatePriority)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
 
-            EXPECT_EQ(v8::TaskPriority::kBestEffort, state.GetPriority());
-            state.UpdatePriority(v8::TaskPriority::kUserBlocking);
-            EXPECT_EQ(v8::TaskPriority::kUserBlocking, state.GetPriority());
+            EXPECT_EQ(V8TaskPriority::kBestEffort, state.GetPriority());
+            state.UpdatePriority(V8TaskPriority::kUserBlocking);
+            EXPECT_EQ(V8TaskPriority::kUserBlocking, state.GetPriority());
         }
 
         TEST(V8JobsStateTest, IsActive)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(0);
             TestJobsTask *taskPtr = task.get();
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
 
             EXPECT_FALSE(state.IsActive());
             state.SetActiveTasks(5);
@@ -312,10 +312,10 @@ namespace v8App
 
         TEST(V8JobsStateTest, CanDidRunFirstTask)
         {
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsTask> task = std::make_unique<TestJobsTask>(5);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
 
             state->SetCancelled(true);
             state->SetPendingTasks(3);
@@ -347,11 +347,11 @@ namespace v8App
         TEST(V8JobsStateTest, Join)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
             task->m_Concurrency = 2;
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
 
             {
                 std::lock_guard<std::mutex> lock(testJobTaskQueuesLock);
@@ -371,10 +371,10 @@ namespace v8App
         TEST(V8JobsStateTest, CancelAndWait)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
 
             {
                 std::lock_guard<std::mutex> lock(testJobTaskQueuesLock);
@@ -392,10 +392,10 @@ namespace v8App
         TEST(V8JobsStateTest, CancelAndDetach)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
 
             {
                 std::lock_guard<std::mutex> lock(testJobTaskQueuesLock);
@@ -415,10 +415,10 @@ namespace v8App
         TEST(V8JobDelegateTest, Constrcutor)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
             TestV8JobDelegate delegate(&state, false);
 
             EXPECT_FALSE(delegate.IsJoiningThread());
@@ -429,10 +429,10 @@ namespace v8App
         TEST(V8JobDelegateTest, ShouldYield)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
             TestV8JobDelegate delegate(&state, false);
 
             EXPECT_FALSE(delegate.ShouldYield());
@@ -445,10 +445,10 @@ namespace v8App
         TEST(V8JobDelegateTest, GetTaskId)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
             TestV8JobDelegate delegate(&state, false);
 
             EXPECT_EQ(0, delegate.GetTaskId());
@@ -459,10 +459,10 @@ namespace v8App
         TEST(V8JobDelegateTest, IsJoiningThread)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            TestV8JobState state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+            TestV8JobState state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
             std::unique_ptr<TestV8JobDelegate> delegate = std::make_unique<TestV8JobDelegate>(&state, false);
 
             EXPECT_FALSE(delegate->IsJoiningThread());
@@ -474,10 +474,10 @@ namespace v8App
         TEST(V8JobDelegateTest, NotifyConcurrencyIncrease)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestV8JobDelegate delegate(state.get(), false);
 
             {
@@ -495,10 +495,10 @@ namespace v8App
         TEST(V8JobHandleTest, Constrcutor)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobHandle handle(state);
 
             EXPECT_EQ(state.get(), handle.GetState());
@@ -514,27 +514,27 @@ namespace v8App
         TEST(V8JobHandleTest, UpdatePriority)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobHandle handle(state);
 
             EXPECT_TRUE(handle.UpdatePriorityEnabled());
-            EXPECT_EQ(v8::TaskPriority::kBestEffort, state->GetPriority());
+            EXPECT_EQ(V8TaskPriority::kBestEffort, state->GetPriority());
 
-            state->UpdatePriority(v8::TaskPriority::kUserBlocking);
-            EXPECT_EQ(v8::TaskPriority::kUserBlocking, state->GetPriority());
+            state->UpdatePriority(V8TaskPriority::kUserBlocking);
+            EXPECT_EQ(V8TaskPriority::kUserBlocking, state->GetPriority());
             handle.ClearState();
         }
 
         TEST(V8JobHandleTest, NotifyConcurrencyIncrease)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobHandle handle(state);
 
             {
@@ -552,11 +552,11 @@ namespace v8App
         TEST(V8JobHandleTest, Join)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
             task->m_Concurrency = 2;
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobHandle handle(state);
 
             {
@@ -577,10 +577,10 @@ namespace v8App
         TEST(V8JobHandleTest, Cancel)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobHandle handle(state);
 
             {
@@ -599,10 +599,10 @@ namespace v8App
         TEST(V8JobHandleTest, CancelAnDetach)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobHandle handle(state);
 
             {
@@ -623,11 +623,11 @@ namespace v8App
         TEST(V8JobTaskWorker, Constrcutor)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTask> task = std::make_unique<TestJobsPostTask>(&testInt);
             TestJobsPostTask *taskPtr = task.get();
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             TestJobTaskWorker worker(state, taskPtr);
 
             EXPECT_EQ(state.get(), worker.GeState());
@@ -637,11 +637,11 @@ namespace v8App
         TEST(V8JobTaskWorker, Run)
         {
             size_t testInt = 0;
-            std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+            std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
             std::unique_ptr<TestJobsPostTaskCancel> task = std::make_unique<TestJobsPostTaskCancel>(&testInt);
             TestJobsPostTaskCancel *taskPtr = task.get();
 
-            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 2);
+            std::shared_ptr<TestV8JobState> state = std::make_shared<TestV8JobState>(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 2);
             std::shared_ptr<TestV8JobState> emptyState;
             taskPtr->m_State = state.get();
 

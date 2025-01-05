@@ -23,12 +23,16 @@ namespace v8App
     {
         namespace CppBridge
         {
+            /**
+             * Class to maek it easier to hook up a cpp class to a v8 object.
+             * 
+             * Note: you should set the constructor first before setting any other 
+             * function as the contructor will clear the already registered functions.
+            */
             class V8ObjectTemplateBuilder
             {
             public:
-                explicit V8ObjectTemplateBuilder(v8::Isolate* inIsolate);
-                V8ObjectTemplateBuilder(v8::Isolate* inIsolate, const char *inTypeName);
-                V8ObjectTemplateBuilder(v8::Isolate* inIsolate, const char *inTypeName, v8::Local<v8::ObjectTemplate> inTemplate, bool inConstructorAllows = false);
+                explicit V8ObjectTemplateBuilder(V8Isolate* inIsolate, const char* inTypeName = nullptr);
 
                 V8ObjectTemplateBuilder(const V8ObjectTemplateBuilder &inTemplate);
                 ~V8ObjectTemplateBuilder();
@@ -65,7 +69,7 @@ namespace v8App
                 V8ObjectTemplateBuilder &SetReadOnlyProperty(const std::string &inName, const G &inGetter)
                 {
                     return SetPropertyInternal(inName, CreateFunctionTemplate(m_Isolate, Utils::MakeCallback(inGetter), m_TypeName),
-                                               v8::Local<v8::FunctionTemplate>());
+                                               V8LFuncTpl());
                 }
 
                 template <typename G, typename S>
@@ -75,19 +79,18 @@ namespace v8App
                                                CreateFunctionTemplate(m_Isolate, Utils::MakeCallback(inSetter), m_TypeName));
                 }
 
-                v8::Local<v8::ObjectTemplate> Build();
+                V8LFuncTpl Build();
 
             private:
-                V8ObjectTemplateBuilder &SetConstructorInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inConstructor);
-                V8ObjectTemplateBuilder &SetValueMethodInternal(const std::string &inName, v8::Local<v8::Data> inValue);
-                V8ObjectTemplateBuilder &SetPropertyInternal(const std::string &inName, v8::Local<v8::FunctionTemplate> inGetter,
-                                                             v8::Local<v8::FunctionTemplate> inSetter);
+                V8ObjectTemplateBuilder &SetConstructorInternal(const std::string &inName, V8LFuncTpl inConstructor);
+                V8ObjectTemplateBuilder &SetValueMethodInternal(const std::string &inName, V8LData inValue);
+                V8ObjectTemplateBuilder &SetPropertyInternal(const std::string &inName, V8LFuncTpl inGetter,
+                                                             V8LFuncTpl inSetter);
 
-                v8::Isolate* m_Isolate;
-                v8::Local<v8::ObjectTemplate> m_Template;
-                bool m_ConstructorAllowed;
-
-                const char *m_TypeName = nullptr;
+                V8Isolate* m_Isolate;
+                V8LFuncTpl m_Constructor;
+                V8LObjTpl m_ProtoTemplate;
+                const char* m_TypeName;
             };
         }
     }

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a MIT license that can be
 // found in the LICENSE file.
 
-#ifndef ___CODE_CACHE__
-#define ___CODE_CACHE__
+#ifndef __CODE_CACHE__
+#define __CODE_CACHE__
 
 #include <filesystem>
 #include <map>
@@ -77,4 +77,4 @@ namespace v8App
         };
     }
 }
-#endif //___CODE_CACHE__
+#endif //__CODE_CACHE__

@@ -32,10 +32,9 @@ namespace v8App
 
         TEST(AppAssetRootsTest, SetGetAppRootPath)
         {
-            TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Error};
-            TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
-            std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
-            EXPECT_TRUE(Log::Log::AddLogSink(logSinkObj));
+            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
+            Log::Log::SetLogLevel(Log::LogLevel::Error);
+
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
                 Log::MsgKey::TimeStamp,
@@ -215,7 +214,7 @@ namespace v8App
             std::filesystem::path path2 = std::filesystem::path("test/test2");
             std::filesystem::path path3 = std::filesystem::path("test/../test2");
             std::filesystem::path path4 = std::filesystem::path("../../../test/test2");
-            std::filesystem::path win = root /"test\\test2";
+            std::filesystem::path win = root / "test\\test2";
             std::filesystem::path win2 = std::filesystem::path("C:\\test\\test2");
 
             // string version

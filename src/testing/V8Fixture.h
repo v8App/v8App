@@ -9,7 +9,7 @@
 
 #include "TestLogSink.h"
 
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "JSContext.h"
 
 namespace v8App
@@ -24,13 +24,13 @@ namespace v8App
 
             void SetUp() override;
             void TearDown() override;
-            v8::Local<v8::Context> GetContextAndEnter();
 
         protected:
             JSRuntimeSharedPtr m_Runtime;
             JSAppSharedPtr m_App;
             V8Isolate *m_Isolate = nullptr;
             JSContextSharedPtr m_Context;
+            AppProviders m_Providers;
 
             TestUtils::IgnoreMsgKeys m_IgnoreKeys = {
                 Log::MsgKey::AppName,

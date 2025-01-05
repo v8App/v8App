@@ -104,8 +104,21 @@
         "codecvt": "cpp",
         "strstream": "cpp",
         "numeric": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "cfenv": "cpp",
+        "csignal": "cpp",
+        "execution": "cpp",
+        "scoped_allocator": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp",
+        "gsl_util": "cpp",
+        "print": "cpp"
     },
+    "gtest-adapter.debugConfig": [
+        "test libJSRuntimeCore Debug",
+        "test libJSRuntime Debug"
+    ],
+    "gtest-adapter.supportLocation": true,
     "editor.tokenColorCustomizations": {
         "textMateRules": [
             {
@@ -127,9 +140,5 @@
                 }
             }
         ]
-    },
-    "gtest-adapter.debugConfig": [
-        "test libCore Debug"
-    ],
-    "gtest-adapter.supportLocation": true
+    }
 }

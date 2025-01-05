@@ -10,9 +10,12 @@
 #include "gmock/gmock.h"
 
 #include "V8Fixture.h"
+#include "Utils/Format.h"
 
 #include "Assets/TextAsset.h"
+#include "Utils/Format.h"
 
+#include "JSApp.h"
 #include "JSUtilities.h"
 #include "JSContextModules.h"
 
@@ -30,15 +33,15 @@ namespace v8App
             JSContextSharedPtr GetJSContext() { return m_Context; }
             void SetJSContext(JSContextSharedPtr inContext) { m_Context = inContext; }
 
-            JSModuleInfoSharedPtr TestBuildModuleInfo(JSModuleInfo::AttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
+            JSModuleInfoSharedPtr TestBuildModuleInfo(JSModuleAttributesInfo &inAttributesInfo, const std::filesystem::path &inImportPath, const std::filesystem::path &inCurrentModPath)
             {
                 return BuildModuleInfo(inAttributesInfo, inImportPath, inCurrentModPath);
             }
 
             JSModuleInfoSharedPtr TestLoadModuleTree(JSContextSharedPtr inContext, JSModuleInfoSharedPtr inModInfo) { return LoadModuleTree(inContext, inModInfo); }
 
-            bool TestAddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleInfo::ModuleType inModuleType) { return AddModule(inModule, inFileName, inModuleType); }
-            JSModuleInfoSharedPtr TestGetModuleInfoByModule(V8LocalModule inModule, JSModuleInfo::ModuleType inType) { return GetModuleInfoByModule(inModule, inType); }
+            bool TestAddModule(const JSModuleInfoSharedPtr &inModule, std::string inFileName, JSModuleType inModuleType) { return AddModule(inModule, inFileName, inModuleType); }
+            JSModuleInfoSharedPtr TestGetModuleInfoByModule(V8LModule inModule, JSModuleType inType) { return GetModuleInfoByModule(inModule, inType); }
         };
 
         TEST_F(JSContextModulesTest, ConstrcutorGetIsolate)
@@ -53,13 +56,13 @@ namespace v8App
         {
             TestJSContextModules jsModules(m_Context);
             JSModuleInfoSharedPtr info;
-            JSModuleInfo::AttributesInfo attributesInfo;
-            std::filesystem::path rootPath = m_App->GetAppRoots()->GetAppRoot();
+            JSModuleAttributesInfo attributesInfo;
+            std::filesystem::path rootPath = m_App->GetAppRoot()->GetAppRoot();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            v8::Context::Scope cScope(m_Context->GetLocalContext());
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8ContextScope cScope(m_Context->GetLocalContext());
 
             std::filesystem::path testPath("testModule.js");
             // test no module for attribute
@@ -84,13 +87,12 @@ namespace v8App
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%JS%/testModule.txt");
             attributesInfo.m_Module = "";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", attributesInfo.m_TypeString, testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", JSModuleInfo::ModuleTypeToString(attributesInfo.m_Type), testPath));
 
             tryCatch.Reset();
             // non module info returned
@@ -128,26 +130,25 @@ namespace v8App
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught SyntaxError: Files ending in .js or .mjs can not be in resources, ImportPath: {}", testPath));
+                      Utils::format("Uncaught SyntaxError: Files ending in {}, {} or {} can not be in resources, ImportPath: {}", JSModuleAttributesInfo::kExtJS, JSModuleAttributesInfo::kExtModuleJS, JSModuleAttributesInfo::kExtNative, testPath));
 
             testPath = std::filesystem::path("%RESOURCES%/testModule.mjs");
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught SyntaxError: Files ending in .js or .mjs can not be in resources, ImportPath: {}", testPath));
+                      Utils::format("Uncaught SyntaxError: Files ending in {}, {} or {} can not be in resources, ImportPath: {}", JSModuleAttributesInfo::kExtJS, JSModuleAttributesInfo::kExtModuleJS, JSModuleAttributesInfo::kExtNative, testPath));
 
             tryCatch.Reset();
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%RESOURCES%/testModule.txt");
             attributesInfo.m_Module = "";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-            attributesInfo.m_TypeString = "json";
+            attributesInfo.m_Type = JSModuleType::kJSON;
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type json. Importpath: {}", testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type JSON. Importpath: {}", testPath));
 
             tryCatch.Reset();
             // non module info returned
@@ -163,13 +164,12 @@ namespace v8App
             // extension doesn't match allowed type
             testPath = std::filesystem::path("%MODULES%/builModInfo/test.json");
             attributesInfo.m_Module = "";
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info = jsModules.TestBuildModuleInfo(attributesInfo, testPath, rootPath);
             EXPECT_EQ(info, nullptr);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", attributesInfo.m_TypeString, testPath));
+                      Utils::format("Uncaught TypeError: File type doesn't match specified type {}. Importpath: {}", JSModuleInfo::ModuleTypeToString(attributesInfo.m_Type), testPath));
 
             // module attributed but module not the module
             tryCatch.Reset();
@@ -192,7 +192,7 @@ namespace v8App
                       Utils::format("Uncaught SyntaxError: Failed to find module's version: NoModVersion, ImportPath: {}", testPath));
 
             // test relative module path to specified root
-            std::filesystem::path modPath = m_App->GetAppRoots()->FindModuleVersionRootPath("buildModInfo/1.0.0");
+            std::filesystem::path modPath = m_App->GetAppRoot()->FindModuleVersionRootPath("buildModInfo/1.0.0");
             ASSERT_NE("", modPath.string());
 
             tryCatch.Reset();
@@ -235,16 +235,15 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             // failed to load script
@@ -269,7 +268,8 @@ namespace v8App
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
                       "Uncaught SyntaxError: Unexpected token '-'");
             expected = {
-                {Log::MsgKey::Msg, Utils::format("Uncaught SyntaxError: Unexpected token '-'\n{}:1:SyntaxError: Unexpected token '-'\n", info->GetModulePath().generic_string())},
+                {Log::MsgKey::Msg, Utils::format("Got an error compiling module {}", info->GetModulePath())},
+                {Log::MsgKey::StackTrace, Utils::format("Uncaught SyntaxError: Unexpected token '-'\n{}:1:SyntaxError: Unexpected token '-'\n", info->GetModulePath().generic_string())},
                 {Log::MsgKey::LogLevel, "Error"},
             };
             EXPECT_TRUE(logSink->ValidateMessage(expected, m_IgnoreKeys));
@@ -307,16 +307,15 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJSON;
-            attributesInfo.m_TypeString = "json";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJSON;
             info->SetAttributesInfo(attributesInfo);
 
             // failed to load the json
@@ -381,16 +380,15 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             info->SetPath(appRoot / std::filesystem::path("js/loadModuleImport.mjs"));
@@ -408,16 +406,15 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             info->SetPath(appRoot / std::filesystem::path("js/importModuleDynamic.js"));
@@ -434,16 +431,15 @@ namespace v8App
             TestJSContextModules jsModules(m_Context);
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
-            std::filesystem::path appRoot = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path appRoot = m_App->GetAppRoot()->GetAppRoot();
             JSModuleInfoSharedPtr info = std::make_shared<JSModuleInfo>(m_Context);
-            JSModuleInfo::AttributesInfo attributesInfo;
-            attributesInfo.m_Type = JSModuleInfo::ModuleType::kJavascript;
-            attributesInfo.m_TypeString = "js";
+            JSModuleAttributesInfo attributesInfo;
+            attributesInfo.m_Type = JSModuleType::kJavascript;
             info->SetAttributesInfo(attributesInfo);
 
             // unknown asssertion
@@ -473,7 +469,7 @@ namespace v8App
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      "Uncaught TypeError: File type doesn't match specified type json. Importpath: \"./importFile.js\"");
+                      "Uncaught TypeError: File type doesn't match specified type JSON. Importpath: \"./importFile.js\"");
 
             // type js attributes
             tryCatch.Reset();
@@ -490,7 +486,7 @@ namespace v8App
             ASSERT_EQ(nullptr, moduleInfo);
             EXPECT_TRUE(tryCatch.HasCaught());
             EXPECT_EQ(JSUtilities::V8ToString(m_Isolate, tryCatch.Message()->Get()),
-                      "Uncaught TypeError: File type doesn't match specified type native. Importpath: \"./importFile.js\"");
+                      "Uncaught TypeError: File type doesn't match specified type Native. Importpath: \"./importFile.js\"");
 
             // type unknown attributes
             tryCatch.Reset();
@@ -507,15 +503,15 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, LoadModule)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
-            V8MaybeLocalModule maybeModule;
+            V8MBLModule maybeModule;
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/compileError.js");
 
@@ -524,30 +520,30 @@ namespace v8App
 
             srcPath = root / std::filesystem::path("js/loadModule.js");
             moduleInfo = jsModules->LoadModule(srcPath);
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             ASSERT_FALSE(module.IsEmpty());
             EXPECT_NE(nullptr, jsModules->GetModuleBySpecifier(srcPath.generic_string()));
         }
 
         TEST_F(JSContextModulesTest, LoadJSON)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
 
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
             ASSERT_NE(moduleInfo, nullptr);
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             ASSERT_NE(nullptr, info);
-            V8LocalValue jsonValue = info->GetLocalJSON();
+            V8LValue jsonValue = info->GetLocalJSON();
             EXPECT_FALSE(jsonValue.IsEmpty());
             EXPECT_TRUE(jsonValue->IsObject());
         }
@@ -557,14 +553,14 @@ namespace v8App
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             // passed nullptr
             JSModuleInfoSharedPtr info;
@@ -591,14 +587,14 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, InstantiateModuleJSDynamic)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/importModuleDynamic.js");
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
@@ -608,14 +604,14 @@ namespace v8App
 
         TEST_F(JSContextModulesTest, InstantiateModuleJSON)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
@@ -628,18 +624,18 @@ namespace v8App
             TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
             Log::Log::SetLogLevel(Log::LogLevel::Error);
 
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             // passed nullptr
             JSModuleInfoSharedPtr info;
-            EXPECT_FALSE(jsModules->RunModule(info));
+            EXPECT_TRUE(jsModules->RunModule(info).IsEmpty());
             Log::LogMessage expected = {
                 {Log::MsgKey::Msg, "RunModule passed a null module ptr"},
                 {Log::MsgKey::LogLevel, "Error"}};
@@ -647,7 +643,7 @@ namespace v8App
 
             // info hasn't had module loaded
             info = std::make_shared<JSModuleInfo>(m_Context);
-            EXPECT_FALSE(jsModules->RunModule(info));
+            EXPECT_TRUE(jsModules->RunModule(info).IsEmpty());
             expected = {
                 {Log::MsgKey::Msg, "RunModule passed module info's module is empty"},
                 {Log::MsgKey::LogLevel, "Error"}};
@@ -657,62 +653,62 @@ namespace v8App
             info = jsModules->LoadModule(srcPath);
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
-            EXPECT_TRUE(jsModules->RunModule(info));
+            EXPECT_FALSE(jsModules->RunModule(info).IsEmpty());
         }
 
         TEST_F(JSContextModulesTest, RunModuleJSDynamic)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/importModuleDynamic.js");
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
-            EXPECT_TRUE(jsModules->RunModule(info));
+            EXPECT_FALSE(jsModules->RunModule(info).IsEmpty());
         }
 
         TEST_F(JSContextModulesTest, RunModuleJSON)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("resources/loadModule.json");
             JSModuleInfoSharedPtr info = jsModules->LoadModule(srcPath);
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));
-            EXPECT_TRUE(jsModules->RunModule(info));
+            EXPECT_FALSE(jsModules->RunModule(info).IsEmpty());
         }
 
         TEST_F(JSContextModulesTest, GenerateCodeCache)
         {
-            std::filesystem::path root = m_App->GetAppRoots()->GetAppRoot();
+            std::filesystem::path root = m_App->GetAppRoot()->GetAppRoot();
             JSContextModulesSharedPtr jsModules = m_Context->GetJSModules();
 
             V8Isolate::Scope iScope(m_Isolate);
-            v8::HandleScope hScope(m_Isolate);
-            v8::TryCatch tryCatch(m_Isolate);
-            V8LocalContext context = m_Context->GetLocalContext();
-            v8::Context::Scope cScope(context);
+            V8HandleScope hScope(m_Isolate);
+            V8TryCatch tryCatch(m_Isolate);
+            V8LContext context = m_Context->GetLocalContext();
+            V8ContextScope cScope(context);
 
             std::filesystem::path srcPath = root / std::filesystem::path("js/loadModuleImport.mjs");
             CodeCacheSharedPtr codeCache = m_App->GetCodeCache();
             JSModuleInfoSharedPtr moduleInfo = jsModules->LoadModule(srcPath);
-            V8LocalModule module = moduleInfo->GetLocalModule();
+            V8LModule module = moduleInfo->GetLocalModule();
             JSModuleInfoSharedPtr info = jsModules->GetModuleBySpecifier(srcPath.generic_string());
             ASSERT_NE(nullptr, info);
             ASSERT_TRUE(jsModules->InstantiateModule(info));

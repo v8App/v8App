@@ -13,9 +13,12 @@
 #include "TestSnapshotProvider.h"
 #include "Utils/Environment.h"
 
+#include "JSApp.h"
 #include "JSRuntime.h"
-#include "V8Platform.h"
-
+#include "V8AppPlatform.h"
+#include "V8RuntimeProvider.h"
+#include "V8ContextProvider.h"
+#include "CppBridge/V8CppObjInfo.h"
 #include "test_main.h"
 
 namespace v8App
@@ -27,87 +30,53 @@ namespace v8App
             bool m_Bool;
         };
 
-        TEST(JSRuntimeDeathTest, SetObjectTemplate)
+        TEST(JSRuntimeDeathTest, SetClassFunctionTemplate)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-                JSAppSharedPtr app = std::make_shared<JSApp>("test", snapProvider);
+                JSAppSharedPtr app = std::make_shared<JSApp>();
 
-                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "SetObjectTemplate");
+                JSRuntimeSharedPtr runtimePtr = std::make_shared<JSRuntime>();
 
-                v8::Local<v8::ObjectTemplate> objTemplate;
-                struct TemplateInfo info;
-                runtimePtr->SetObjectTemplate(&info, objTemplate);
-                std::exit(0);
-            },
-                         "");
+                V8LFuncTpl objTemplate;
+                CppBridge::V8CppObjInfo info("test", nullptr, nullptr);
+                runtimePtr->SetClassFunctionTemplate("test", &info, objTemplate);
+                std::exit(0); }, "");
         }
 
-        TEST(JSRuntimeDeathTest, GetObjectTemplate)
+        TEST(JSRuntimeDeathTest, GetClassFunctionTemplate)
         {
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-                JSAppSharedPtr app = std::make_shared<JSApp>("test", snapProvider);
+                JSAppSharedPtr app = std::make_shared<JSApp>();
 
-                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "GetObjectTemplate");
+                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>();
 
-                v8::Local<v8::ObjectTemplate> objTemplate;
-                struct TemplateInfo info;
-                runtimePtr->GetObjectTemplate(&info);
-                // V8PlatformInitFixture::TearDownTestSuite();
-                std::exit(0);
-            },
-                         "");
+                CppBridge::V8CppObjInfo info("test", nullptr, nullptr);
+                runtimePtr->GetClassFunctionTemplate(&info);
+                std::exit(0); }, "");
         }
 
-        TEST(JSRuntimeDeathTest, SetFunctionTemplate)
+        TEST(JSRuntimeDeathTest, GetForegroundTaskRunner)
         {
+#ifdef V8APP_DEBUG
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-                JSAppSharedPtr app = std::make_shared<JSApp>("test", snapProvider);
-
-                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "SetFunctionTemplate");
-
-                v8::Local<v8::FunctionTemplate> funcTemplate;
-                struct TemplateInfo info;
-                runtimePtr->SetFunctionTemplate(&info, funcTemplate);
-                std::exit(0);
-            },
-                         "");
+                JSRuntimeIsolateHelper helper;
+                V8TaskRunnerSharedPtr runner = helper.GetForegroundTaskRunner(nullptr, V8TaskPriority::kBestEffort);
+                std::exit(0); }, "");
+#endif
         }
 
-        TEST(JSRuntimeDeathTest, GetFunctionTemplate)
+        TEST(JSRuntimeDeathTest, IdleTasksEnabled)
         {
+#ifdef V8APP_DEBUG
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-                JSAppSharedPtr app = std::make_shared<JSApp>("test", snapProvider);
-
-                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "GetFunctionTemplate");
-
-                struct TemplateInfo info;
-                runtimePtr->GetFunctionTemplate(&info);
-                std::exit(0);
-            },
-                         "");
-        }
-
-        TEST(JSRuntimeDeathTest, CreateContextNotNullCreator)
-        {
-            GTEST_FLAG_SET(death_test_style, "threadsafe");
-            ASSERT_DEATH({
-                std::shared_ptr<TestSnapshotProvider> snapProvider = std::make_shared<TestSnapshotProvider>();
-                JSAppSharedPtr app = std::make_shared<JSApp>("test", snapProvider);
-
-                std::shared_ptr<JSRuntime> runtimePtr = std::make_shared<JSRuntime>(app, IdleTasksSupport::kIdleTasksEnabled, "CreateContextNotNullCreator");
-
-                runtimePtr->CreateContext("test");
-                std::exit(0);
-            },
-                         "");
+                JSRuntimeIsolateHelper helper;
+                bool enabled = helper.IdleTasksEnabled(nullptr);
+                std::exit(0); }, "");
+#endif
         }
     }
 }

@@ -21,27 +21,30 @@
             static v8App::Log::LogMessage temp;                 \
             temp.emplace(v8App::Log::MsgKey::Msg, #expr);       \
             v8App::Log::Log::Fatal(temp, file, function, line); \
+            v8App::Log::Log::Shutdown();                           \
             ABORT();                                            \
         }                                                       \
     } while (0);
 
 #define UNIMPLEMENTED()                                             \
-do                                                                  \
-{                                                                   \
+    do                                                              \
+    {                                                               \
         static v8App::Log::LogMessage temp;                         \
         temp.emplace(v8App::Log::MsgKey::Msg,                       \
-        "Unimplmented Method Called");                              \
+                     "Unimplmented Method Called");                 \
         v8App::Log::Log::Fatal(temp, __FILE__, __func__, __LINE__); \
+        v8App::Log::Log::Shutdown();                                   \
         ABORT();                                                    \
     } while (0);
 
-#define UNREACHABLE()                                             \
-do                                                                  \
-{                                                                   \
+#define UNREACHABLE()                                               \
+    do                                                              \
+    {                                                               \
         static v8App::Log::LogMessage temp;                         \
         temp.emplace(v8App::Log::MsgKey::Msg,                       \
-        "Hit a supposedly unreacable code point");                  \
+                     "Hit a supposedly unreacable code point");     \
         v8App::Log::Log::Fatal(temp, __FILE__, __func__, __LINE__); \
+        v8App::Log::Log::Shutdown();                                   \
         ABORT();                                                    \
     } while (0);
 
@@ -57,7 +60,6 @@ do                                                                  \
 #define CHECK_NOT_NULL(a) CHECK((a) != nullptr)
 #define CHECK_TRUE(a) CHECK((a))
 #define CHECK_FALSE(a) CHECK((!a))
-
 
 #ifdef V8APP_DEBUG
 #define LOG_GENERAL(message) v8App::Log::Log::General(message, __FILE__, __func__, __LINE__)

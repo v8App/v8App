@@ -26,7 +26,7 @@ namespace v8App
             ASSERT_FALSE(ScriptStartupDataManager::InitializeICUData("notExist"));
             ASSERT_FALSE(ScriptStartupDataManager::InitializeStartupData(""));
 #ifdef V8APP_DEBUG
-            //this test can only be done in ebug since in release builds the data will be baked in
+            //this test can only be done in debug since in release builds the data will be baked in
             ASSERT_FALSE(ScriptStartupDataManager::InitializeStartupData("notExist"));
 #endif
 

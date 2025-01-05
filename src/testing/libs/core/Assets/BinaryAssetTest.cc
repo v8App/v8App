@@ -24,7 +24,7 @@ namespace v8App
             BinaryAsset binary(tmp);
 
             EXPECT_TRUE(binary.GetContent().empty());
-            std::vector<uint8_t> content{1, 2, 3};
+            std::vector<char> content{1, 2, 3};
             EXPECT_TRUE(binary.SetContent(content));
             EXPECT_EQ(content, binary.GetContent());
         }
@@ -35,8 +35,8 @@ namespace v8App
             std::filesystem::remove(tmp);
             BinaryAsset binary(tmp);
 
-            std::vector<uint8_t> content{1, 2, 3};
-            std::vector<uint8_t> empty;
+            std::vector<char> content{1, 2, 3};
+            std::vector<char> empty;
             EXPECT_TRUE(binary.SetContent(content));
             EXPECT_TRUE(binary.WriteAsset());
 
@@ -48,10 +48,9 @@ namespace v8App
 
 #ifndef V8APP_WINDOWS
             //Set file permissions doersn't seem to work on windows so skip this test on windows for now.
-            TestUtils::WantsLogLevelsVector error = {Log::LogLevel::Error};
-            TestUtils::TestLogSink *logSink = new TestUtils::TestLogSink("TestLogSink", error);
-            std::unique_ptr<Log::ILogSink> logSinkObj(logSink);
-            EXPECT_TRUE(Log::Log::AddLogSink(logSinkObj));
+            TestUtils::TestLogSink *logSink = TestUtils::TestLogSink::GetGlobalSink();
+            Log::Log::SetLogLevel(Log::LogLevel::Error);
+
             TestUtils::IgnoreMsgKeys ignoreKeys = {
                 Log::MsgKey::AppName,
                 Log::MsgKey::TimeStamp,

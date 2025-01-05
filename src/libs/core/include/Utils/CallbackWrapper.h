@@ -20,7 +20,10 @@ namespace v8App
 {
     namespace Utils
     {
-
+        /**
+         * Base class for the callback wrappers that can provide info
+         * about the callback
+         */
         class CallbackWrapperBase
         {
         public:
@@ -32,6 +35,7 @@ namespace v8App
 
         template <typename Signature, bool Lambda = false>
         class CallbackWrapper;
+        
         /**
          * Handles free functions and static member functions
          */
@@ -39,25 +43,35 @@ namespace v8App
         class CallbackWrapper<R (*)(Args...)> : public CallbackWrapperBase
         {
         public:
-            using Functor = R(Args...);
+            using Functor = R (Args...);
             using FunctionPtr = R (*)(Args...);
 
-            CallbackWrapper(Functor inCallback) : m_Callback(inCallback) {}
-            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback) {}
+            CallbackWrapper(Functor inCallback) : m_Callback(inCallback)
+            {
+                m_FuncHash = reinterpret_cast<size_t>(inCallback);
+            }
+            CallbackWrapper(const CallbackWrapper &inCallback)
+            {
+                m_Callback = inCallback.m_Callback;
+                m_FuncHash = inCallback.m_FuncHash;
+            }
             CallbackWrapper(CallbackWrapper &&inCallback)
             {
                 m_Callback = inCallback.m_Callback;
                 inCallback.m_Callback = nullptr;
+                m_FuncHash = inCallback.m_FuncHash;
             }
             CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept
             {
                 m_Callback = std::move(inCallback.m_Callback);
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
 
             CallbackWrapper &operator=(const CallbackWrapper &inCallback)
             {
                 m_Callback = inCallback.m_Callback;
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
 
@@ -71,7 +85,13 @@ namespace v8App
                 return std::is_same<void, R>::value;
             }
 
+            size_t GetFuncAddress()
+            {
+                return m_FuncHash;
+            }
+
         private:
+            size_t m_FuncHash;
             FunctionPtr m_Callback = nullptr;
         };
 
@@ -90,15 +110,18 @@ namespace v8App
             {
                 m_Callback = inCallback.m_Callback;
                 inCallback.m_Callback = nullptr;
+                m_FuncHash = inCallback.m_FuncHash;
             }
             CallbackWrapper &operator=(const CallbackWrapper &inCallback)
             {
                 m_Callback = inCallback.m_Callback;
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
             CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept
             {
                 m_Callback = std::move(inCallback.m_Callback);
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
 
@@ -120,7 +143,13 @@ namespace v8App
                 return std::is_same<void, R>::value;
             }
 
+            size_t GetFuncAddress()
+            {
+                return m_FuncHash;
+            }
+
         private:
+            size_t m_FuncHash = std::hash<std::string>{}(typeid(Functor).name());
             Functor m_Callback = nullptr;
         };
 
@@ -139,15 +168,18 @@ namespace v8App
             {
                 m_Callback = inCallback.m_Callback;
                 inCallback.m_Callback = nullptr;
+                m_FuncHash = inCallback.m_FuncHash;
             }
             CallbackWrapper &operator=(const CallbackWrapper &inCallback)
             {
                 m_Callback = inCallback.m_Callback;
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
             CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept
             {
                 m_Callback = std::move(inCallback.m_Callback);
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
 
@@ -169,7 +201,13 @@ namespace v8App
                 return std::is_same<void, R>::value;
             }
 
+            size_t GetFuncAddress()
+            {
+                return m_FuncHash;
+            }
+
         private:
+            size_t m_FuncHash = std::hash<std::string>{}(typeid(Functor).name());
             Functor m_Callback = nullptr;
         };
 
@@ -182,13 +220,13 @@ namespace v8App
         public:
             using Functor = R (C::*)(Args...) const;
 
-            CallbackWrapper(C &inCallback) : m_Lambda(inCallback) {}
+            CallbackWrapper(C &inCallback) : m_Lambda(inCallback), m_FuncHash(m_FuncHash = std::hash<std::string>{}(typeid(inCallback).name())) {}
             CallbackWrapper(const CallbackWrapper &inCallback)
-                : m_Lambda(inCallback.m_Lambda)
+                : m_Lambda(inCallback.m_Lambda), m_FuncHash(inCallback.m_FuncHash)
             {
                 static_assert(std::is_trivially_copyable<C>::value, "Only trivialy copyable lambda are supported");
             }
-            CallbackWrapper(CallbackWrapper &&inCallback) : m_Lambda(inCallback.m_Lambda) {}
+            CallbackWrapper(CallbackWrapper &&inCallback) : m_Lambda(inCallback.m_Lambda), m_FuncHash(inCallback.m_FuncHash) {}
 
             R Invoke(Args... args)
             {
@@ -205,7 +243,13 @@ namespace v8App
             CallbackWrapper &operator=(const CallbackWrapper &inCallback) = delete;
             CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept = delete;
 
+            size_t GetFuncAddress()
+            {
+                return m_FuncHash;
+            }
+
         private:
+            size_t m_FuncHash;
             C m_Lambda;
         };
 
@@ -215,13 +259,13 @@ namespace v8App
         public:
             using Functor = R (C::*)(Args...) const;
 
-            CallbackWrapper(C &inCallback) : m_Lambda(inCallback) {}
+            CallbackWrapper(C &inCallback) : m_Lambda(inCallback), m_FuncHash(m_FuncHash = std::hash<std::string>{}(typeid(inCallback).name())) {}
             CallbackWrapper(const CallbackWrapper &inCallback)
-                : m_Lambda(inCallback.m_Lambda)
+                : m_Lambda(inCallback.m_Lambda), m_FuncHash(inCallback.m_FuncHash)
             {
                 static_assert(std::is_trivially_copyable<C>::value, "Only trivialy copyable lambda are supported");
             }
-            CallbackWrapper(CallbackWrapper &&inCallback) : m_Lambda(inCallback.m_Lambda) {}
+            CallbackWrapper(CallbackWrapper &&inCallback) : m_Lambda(inCallback.m_Lambda), m_FuncHash(inCallback.m_FuncHash) {}
             R Invoke(Args... args)
             {
                 return m_Lambda.operator()(args...);
@@ -237,7 +281,13 @@ namespace v8App
             CallbackWrapper &operator=(const CallbackWrapper &inCallback) = delete;
             CallbackWrapper &operator=(CallbackWrapper &&inCallback) noexcept = delete;
 
+            size_t GetFuncAddress()
+            {
+                return m_FuncHash;
+            }
+
         private:
+            size_t m_FuncHash;
             C m_Lambda;
         };
 
@@ -250,18 +300,24 @@ namespace v8App
             using Functor = std::function<R(Args...)>;
 
         public:
-            CallbackWrapper(Functor inCallback) : m_Callback(inCallback) {}
-            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback) {}
-            CallbackWrapper(CallbackWrapper &&inCallback) noexcept : m_Callback(std::move(inCallback.m_Callback)) {}
+            CallbackWrapper(Functor &inCallback) : m_Callback(inCallback) {}
+            CallbackWrapper(const CallbackWrapper &inCallback) : m_Callback(inCallback.m_Callback), m_FuncHash(inCallback.m_FuncHash) {}
+            CallbackWrapper(CallbackWrapper &&inCallback) noexcept
+            {
+                m_Callback = std::move(inCallback.m_Callback);
+                m_FuncHash = inCallback.m_FuncHash;
+            }
 
             CallbackWrapper &operator=(const CallbackWrapper &inCallback)
             {
                 m_Callback = inCallback.m_Callback;
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
             CallbackWrapper &operator=(const CallbackWrapper &&inCallback) noexcept
             {
                 m_Callback = std::move(inCallback.m_Callback);
+                m_FuncHash = inCallback.m_FuncHash;
                 return *this;
             }
 
@@ -277,7 +333,13 @@ namespace v8App
                 return std::is_same<void, R>::value;
             }
 
+            size_t GetFuncAddress()
+            {
+                return m_FuncHash;
+            }
+
         private:
+            size_t m_FuncHash = std::hash<std::string>{}(typeid(Functor).name());
             Functor m_Callback;
         };
 
@@ -306,7 +368,7 @@ namespace v8App
         }
 
         /**
-         * Helper function to create a callback for a lmabda function 
+         * Helper function to create a callback for a lmabda function
          */
         template <typename Signature>
         auto MakeCallbackForLambda(Signature inCallback)

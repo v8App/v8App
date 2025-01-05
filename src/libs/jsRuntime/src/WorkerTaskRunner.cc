@@ -19,19 +19,33 @@ namespace v8App
             Terminate();
         }
 
-        void WorkerTaskRunner::PostTask(V8TaskUniquePtr inTask)
+        void WorkerTaskRunner::PostTaskImpl(V8TaskUniquePtr inTask, const V8SourceLocation &inLocation)
         {
-            Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]{task->Run();});
+            Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]
+                                                                                                  { task->Run(); });
             m_Tasks.PostTask(std::move(task));
         }
 
-        void WorkerTaskRunner::PostDelayedTask(V8TaskUniquePtr inTask, double inDelaySeconds)
+        void WorkerTaskRunner::PostDelayedTaskImpl(V8TaskUniquePtr inTask, double inDelaySeconds, const V8SourceLocation &inLocation)
         {
-           Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]{task->Run();});
+            Threads::ThreadPoolTaskUniquePtr task = std::make_unique<Threads::CallableThreadTask>([task = std::move(inTask)]
+                                                                                                  { task->Run(); });
             m_Tasks.PostDelayedTask(inDelaySeconds, std::move(task));
-         }
+        }
 
-        void WorkerTaskRunner::PostIdleTask(V8IdleTaskUniquePtr inTask)
+        void WorkerTaskRunner::PostNonNestableTaskImpl(V8TaskUniquePtr task,
+                                                        const V8SourceLocation &location)
+        {
+            UNIMPLEMENTED();
+        }
+        void WorkerTaskRunner::PostNonNestableDelayedTaskImpl(V8TaskUniquePtr task,
+                                                               double delay_in_seconds,
+                                                               const V8SourceLocation &location)
+        {
+            UNIMPLEMENTED();
+        }
+
+        void WorkerTaskRunner::PostIdleTaskImpl(V8IdleTaskUniquePtr inTask, const V8SourceLocation &inLocation)
         {
             UNIMPLEMENTED();
         }

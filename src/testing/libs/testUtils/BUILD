@@ -3,6 +3,7 @@ load("@v8App//:bazel/v8_app_rules.bzl", "v8App_library")
 v8App_library(
     name = "testUtils",
     srcs = [
+        "TestFiles.cc",
         "TestLogSink.cc",
     ],
     hdrs = [

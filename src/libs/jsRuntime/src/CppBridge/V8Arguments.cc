@@ -12,10 +12,10 @@ namespace v8App
     {
         namespace CppBridge
         {
-            V8Arguments::V8Arguments(const v8::FunctionCallbackInfo<v8::Value> &inInfo)
+            V8Arguments::V8Arguments(const V8FuncCallInfoValue &inInfo)
                 : m_Isolate(inInfo.GetIsolate()), m_IsProperty(false), m_FunctionInfo(&inInfo) {}
 
-            V8Arguments::V8Arguments(const v8::PropertyCallbackInfo<v8::Value> &inInfo)
+            V8Arguments::V8Arguments(const V8PropCallInfoValeu &inInfo)
                 : m_Isolate(inInfo.GetIsolate()), m_IsProperty(true), m_PropertyInfo(&inInfo) {}
 
             V8Arguments::~V8Arguments() = default;
@@ -34,7 +34,7 @@ namespace v8App
                     return;
                 }
 
-                v8::Local<v8::Value> value = (*m_FunctionInfo)[m_NextArg - 1];
+                V8LValue value = (*m_FunctionInfo)[m_NextArg - 1];
                 std::ostringstream error;
                 error << "Failed to convert argument at index" << m_NextArg - 1
                       << " from " << V8TypeAsString(m_Isolate, value);
@@ -43,10 +43,10 @@ namespace v8App
 
             void V8Arguments::ThrowTypeError(const std::string inError) const
             {
-                m_Isolate->ThrowException(v8::Exception::TypeError(ConvertToV8(m_Isolate, inError).As<v8::String>()));
+                m_Isolate->ThrowException(V8Exception::TypeError(ConvertToV8(m_Isolate, inError).As<V8String>()));
             }
 
-            std::string V8TypeAsString(v8::Isolate *inIsolate, v8::Local<v8::Value> inValue)
+            std::string V8TypeAsString(V8Isolate *inIsolate, V8LValue inValue)
             {
                 if (inValue.IsEmpty())
                 {

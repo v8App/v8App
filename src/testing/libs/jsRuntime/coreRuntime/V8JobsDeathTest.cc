@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "V8Platform.h"
+#include "V8AppPlatform.h"
 #include "V8Jobs.h"
 
 namespace v8App
@@ -25,7 +25,7 @@ namespace v8App
         class TestV8JobStateDeath : public V8JobState
         {
         public:
-            TestV8JobStateDeath(v8::Platform *inPlatform, V8JobTaskUniquePtr inTask, v8::TaskPriority inPriority, size_t inNumWorkers)
+            TestV8JobStateDeath(V8Platform *inPlatform, V8JobTaskUniquePtr inTask, V8TaskPriority inPriority, size_t inNumWorkers)
                 : V8JobState(inPlatform, std::move(inTask), inPriority, inNumWorkers) {}
 
             void SetCancelled(bool value) { m_Canceled.store(value, std::memory_order_relaxed); }
@@ -36,10 +36,10 @@ namespace v8App
 #ifdef V8APP_DEBUG
             GTEST_FLAG_SET(death_test_style, "threadsafe");
             ASSERT_DEATH({
-                std::unique_ptr<V8Platform> platform = std::make_unique<V8Platform>();
+                std::unique_ptr<V8AppPlatform> platform = std::make_unique<V8AppPlatform>();
                 std::unique_ptr<TestJobsTaskDeath> task = std::make_unique<TestJobsTaskDeath>(5);
 
-                TestV8JobStateDeath state(platform.get(), std::move(task), v8::TaskPriority::kBestEffort, 1);
+                TestV8JobStateDeath state(platform.get(), std::move(task), V8TaskPriority::kBestEffort, 1);
                 std::unique_ptr<V8JobState::V8JobDelegate> delegate = std::make_unique<V8JobState::V8JobDelegate>(&state, false);
 
                 state.SetCancelled(true);
